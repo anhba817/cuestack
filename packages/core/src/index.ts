@@ -37,9 +37,24 @@ export {
   type ThemeValues,
 } from './elements/contract.js'
 
-// Time and advancement arrive with US3 and US2 respectively; this entry gains
-// their exports as each lands. Exporting them before they exist would make the
-// package unbuildable, which is a worse kind of placeholder than an absence.
+// Time
+export { createClock, CLAMP_CEILING_MS, type Clock } from './time/clock.js'
+export {
+  createTransport,
+  type Transport,
+  type TransportSnapshot,
+  type TransportState,
+} from './time/transport.js'
+
+// Advancement
+export {
+  createAdvanceController,
+  type AdvanceController,
+  type AdvanceControllerOptions,
+  type AdvanceDecision,
+  type AdvanceSignals,
+  type AdvanceCause,
+} from './advance/controller.js'
 
 // Ports and adapters
 export type { Ports, TimeSource, MediaPort, MediaStatus, VisibilityPort } from './ports/index.js'
