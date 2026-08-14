@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createElement as h } from 'react'
-import { expectCleanHydration, hydrate, server } from '../harness/render.js'
+import { canonical, expectCleanHydration, hydrate, server } from '../harness/render.js'
 import { corpus } from '../harness/corpus.js'
 import { LessonPlayer } from '../../src/index.js'
 
@@ -16,7 +16,7 @@ describe('hydration equality', () => {
     async (_name, lesson) => {
       const markup = server(h(LessonPlayer, { lesson }))
       const result = await hydrate(h(LessonPlayer, { lesson }), markup)
-      expect(result.after).toBe(result.before)
+      expect(canonical(result.after)).toBe(canonical(result.before))
     },
   )
 

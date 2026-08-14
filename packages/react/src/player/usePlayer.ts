@@ -3,6 +3,14 @@ import type { Transport } from '@cuestack/core'
 
 export interface PlayerContextValue {
   readonly transport: Transport
+  /**
+   * The current slide's authored duration.
+   *
+   * Here rather than on the transport's snapshot because it is authored, not computed — it
+   * does not change as time passes, and putting it in a per-tick snapshot would imply it
+   * might. Controls need it to bound a seek, and they have no lesson to read it from.
+   */
+  readonly slideDurationMs: number
 }
 
 export const PlayerContext = createContext<PlayerContextValue | null>(null)

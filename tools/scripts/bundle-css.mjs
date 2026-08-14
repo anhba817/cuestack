@@ -21,12 +21,12 @@ import { dirname, join } from 'node:path'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const styles = join(root, 'packages/react/src/styles')
 
-const ORDER = ['reset.css', 'stage.css']
+const ORDER = ['reset.css', 'stage.css', '../player/controls/controls.css']
 
 /** The entry file must import exactly what is concatenated, in the same order. A file
  *  added to one and not the other is the drift this check exists to stop. */
 const entry = readFileSync(join(styles, 'styles.css'), 'utf8')
-const imported = [...entry.matchAll(/@import\s+'\.\/([^']+)'/g)].map((m) => m[1])
+const imported = [...entry.matchAll(/@import\s+'([^']+)'/g)].map((m) => m[1].replace(/^\.\//, ''))
 if (imported.join(',') !== ORDER.join(',')) {
   console.error(
     `bundle-css: styles.css imports [${imported.join(', ')}] but this script bundles ` +

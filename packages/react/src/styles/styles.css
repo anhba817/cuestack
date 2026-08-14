@@ -1,2 +1,3 @@
 @import './reset.css';
 @import './stage.css';
+@import '../player/controls/controls.css';

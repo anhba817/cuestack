@@ -1,0 +1,55 @@
+/*
+ * Playback controls.
+ *
+ * **Not scaled to the stage.** Everything inside the stage is sized in container query
+ * units, because it is composed content and must keep its proportions. These are chrome: a
+ * learner operating a control on a phone needs a target their finger can hit, and a control
+ * that shrank with a small stage would become unusable exactly when it matters most.
+ * WCAG 2.2 2.5.8 puts the floor at 24×24 CSS pixels; 44 is the comfortable figure.
+ *
+ * Scoped beneath `.cs-controls`, like everything else, so a host's buttons are untouched.
+ */
+
+.cs-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: 14px;
+  color: var(--cs-theme-text-default, #111111);
+  background: var(--cs-theme-surface-muted, #f2f2f2);
+  flex-wrap: wrap;
+}
+
+.cs-controls-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--cs-theme-border-default, #cccccc);
+  border-radius: 6px;
+  background: var(--cs-theme-surface-default, #ffffff);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Never removed. Focus is the only affordance a keyboard learner has, and an outline
+   suppressed for looks is the single most common way a player becomes unusable. */
+.cs-controls-button:focus-visible,
+.cs-controls-seek:focus-visible {
+  outline: 3px solid var(--cs-theme-focus-ring, #111111);
+  outline-offset: 2px;
+}
+
+.cs-controls-seek {
+  flex: 1 1 8rem;
+  min-height: 44px;
+  accent-color: var(--cs-theme-accent-primary, #1a4fd6);
+}
+
+.cs-controls-time {
+  /* Tabular figures so the time does not jitter the layout as digits change width. */
+  font-variant-numeric: tabular-nums;
+  color: var(--cs-theme-text-muted, #666666);
+}

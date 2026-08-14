@@ -14,6 +14,7 @@ import type { AssetResolver } from '../elements/assets.js'
 import type { ThemeValues } from '../theme/tokens.js'
 import { createFrameWriter } from '../frame/FrameWriter.js'
 import { useFrameLoop } from '../frame/useFrameLoop.js'
+import { browserPorts } from './browserPorts.js'
 import { PlayerContext } from './usePlayer.js'
 import { SlideView } from './SlideView.js'
 import { Stage } from './Stage.js'
@@ -27,12 +28,26 @@ export interface LessonPlayerClientProps {
   readonly resolveAsset?: AssetResolver
   /**
    * Not in the original data model, and needed: the transport requires a time source,
-   * and feature 002's FR-015 requires that source to be substitutable. Real playback
-   * supplies browser ports; tests supply a hand-advanced clock. Without this the player
-   * would be untestable without waiting in real time.
+   * and feature 002's FR-015 requires that source to be substitutable. Tests supply a
+   * hand-advanced clock. Without this the player would be untestable without waiting in
+   * real time.
+   *
+   * Defaults to real browser ports, constructed inside the mount effect. It was optional
+   * with no default at first, and the effect returned early without it — so a host writing
+   * `<LessonPlayer lesson={lesson} autoPlay />` got a static first frame and nothing more,
+   * permanently. Every playback test passed `ports`, so the only path a real host takes was
+   * the only path untested.
    */
   readonly ports?: Ports
   readonly autoPlay?: boolean
+  /**
+   * Chrome the host places inside the player — `<PlaybackControls />` above all.
+   *
+   * Inside rather than beside, because controls need the transport and the transport must
+   * stay singular: a host holding its own would be a second idea of the current time. It
+   * renders outside the stage, since controls are chrome and not composed slide content.
+   */
+  readonly children?: ReactNode
   readonly onReady?: (transport: Transport) => void
 }
 
@@ -57,6 +72,7 @@ export function LessonPlayerClient({
   ports,
   autoPlay = false,
   onReady,
+  children,
 }: LessonPlayerClientProps): ReactNode {
   const slide = lesson.slides[slideIndex]
 
@@ -82,8 +98,9 @@ export function LessonPlayerClient({
   const state = visibleIds === '' ? initial : latest.current
 
   useEffect(() => {
-    if (!slide || !ports) return
-    const t = createTransport(lesson, ports)
+    if (!slide) return
+    // Constructed here, never during render: browserPorts() reads document and performance.
+    const t = createTransport(lesson, ports ?? browserPorts())
     setTransport(t)
     onReady?.(t)
 
@@ -119,8 +136,17 @@ export function LessonPlayerClient({
   )
 
   return transport ? (
-    <PlayerContext.Provider value={{ transport }}>{content}</PlayerContext.Provider>
+    <PlayerContext.Provider value={{ transport, slideDurationMs: slide.durationMs }}>
+      {content}
+      {children}
+    </PlayerContext.Provider>
   ) : (
-    content
+    /* Before the mount effect, and on the server: no transport, so no provider. Children
+       still render, so non-hook chrome is server-rendered too — PlaybackControls renders
+       nothing without a provider, which is what keeps the hydration pass matching. */
+    <>
+      {content}
+      {children}
+    </>
   )
 }
