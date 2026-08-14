@@ -1,46 +1,117 @@
-import type { ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { LessonManifest } from '@cuestack/schema'
-import { resolve } from '@cuestack/core'
+import {
+  createTransport,
+  resolve,
+  type Ports,
+  type RenderState,
+  type Transport,
+  type TransportSnapshot,
+} from '@cuestack/core'
 import { builtinRenderers } from '../elements/builtin/index.js'
 import { createRendererRegistry, type ElementRendererRegistry } from '../elements/registry.js'
 import type { ThemeValues } from '../theme/tokens.js'
+import { createFrameWriter } from '../frame/FrameWriter.js'
+import { useFrameLoop } from '../frame/useFrameLoop.js'
+import { PlayerContext } from './usePlayer.js'
 import { SlideView } from './SlideView.js'
 import { Stage } from './Stage.js'
 
-export interface LessonPlayerProps {
+export interface LessonPlayerClientProps {
   readonly lesson: LessonManifest
   readonly slideIndex?: number
   readonly elements?: ElementRendererRegistry
   readonly theme?: ThemeValues
+  /**
+   * Not in the original data model, and needed: the transport requires a time source,
+   * and feature 002's FR-015 requires that source to be substitutable. Real playback
+   * supplies browser ports; tests supply a hand-advanced clock. Without this the player
+   * would be untestable without waiting in real time.
+   */
+  readonly ports?: Ports
+  readonly autoPlay?: boolean
+  readonly onReady?: (transport: Transport) => void
 }
 
 const DEFAULT_RENDERERS = createRendererRegistry(builtinRenderers)
 
 /**
- * The component a host renders.
+ * The playing player. **Client only** — it uses hooks, so it cannot be a Server
+ * Component.
  *
- * This is the render path both the server and the client's first pass take, and it
- * resolves at **time zero** — no clock, no effects, no subscriptions. That is what
- * makes hydration match by construction rather than by care: the client's first render
- * cannot differ from the server's, because it is the same pure call with the same
+ * Its first render resolves at time zero, identical to what LessonPlayerStatic emits on
+ * the server. Playback starts in an effect after mount, never during render, which is
+ * what makes hydration match by construction rather than by care: the client's first
+ * pass cannot differ from the server's, because it is the same pure call with the same
  * argument (research R-03).
- *
- * Playback is added by the client entry, in an effect after mount.
  */
-export function LessonPlayer({
+export function LessonPlayerClient({
   lesson,
   slideIndex = 0,
   elements = DEFAULT_RENDERERS,
   theme,
-}: LessonPlayerProps): ReactNode {
+  ports,
+  autoPlay = false,
+  onReady,
+}: LessonPlayerClientProps): ReactNode {
   const slide = lesson.slides[slideIndex]
-  if (!slide) return null
 
-  const state = resolve(slide, 0)
+  /**
+   * Which elements are visible. Held in state because that is structural — React must
+   * re-render when it changes. Continuous values (opacity, transform) are NOT here:
+   * the frame writer applies those directly, so sixty updates a second cost no
+   * reconciliation (plan.md Complexity Tracking row 1).
+   */
+  const [visibleIds, setVisibleIds] = useState<string>('')
+  const [transport, setTransport] = useState<Transport | null>(null)
+  const writer = useMemo(() => createFrameWriter(), [])
 
-  return (
+  const resolveAt = useCallback(
+    (slideTimeMs: number): RenderState => resolve(slide!, slideTimeMs),
+    [slide],
+  )
+
+  // Time zero, always, for the render both the server and the client's first pass take.
+  const initial = useMemo(() => (slide ? resolve(slide, 0) : null), [slide])
+
+  const latest = useRef<RenderState | null>(initial)
+  const state = visibleIds === '' ? initial : latest.current
+
+  useEffect(() => {
+    if (!slide || !ports) return
+    const t = createTransport(lesson, ports)
+    setTransport(t)
+    onReady?.(t)
+
+    const unsubscribe = t.subscribe((snapshot: TransportSnapshot) => {
+      const next = resolve(slide, snapshot.slideTimeMs)
+      latest.current = next
+      // Re-render only when the *set* of visible elements changes.
+      setVisibleIds(next.elements.map((e) => e.id).join(',') || 'none')
+      writer.write(next)
+    })
+
+    if (autoPlay) t.play()
+
+    return () => {
+      unsubscribe()
+      writer.clear()
+    }
+  }, [lesson, slide, ports, autoPlay, onReady, writer])
+
+  useFrameLoop(transport, writer, resolveAt)
+
+  if (!slide || !state) return null
+
+  const content = (
     <Stage lesson={lesson} {...(theme ? { theme } : {})}>
-      <SlideView state={state} renderers={elements} />
+      <SlideView state={state} renderers={elements} writer={writer} />
     </Stage>
+  )
+
+  return transport ? (
+    <PlayerContext.Provider value={{ transport }}>{content}</PlayerContext.Provider>
+  ) : (
+    content
   )
 }

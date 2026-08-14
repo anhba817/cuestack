@@ -121,22 +121,22 @@ drive the transport and assert elements appear at their authored times.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T029 [P] [US2] Hydration equality test in `packages/react/test/hydration/equality.test.ts` — markup before and after hydration is byte-identical for every corpus slide (US2 #1, SC-003)
-- [ ] T030 [P] [US2] Mismatch-warning test in `packages/react/test/hydration/warnings.test.ts` — zero React mismatch warnings, with the console guard failing the test rather than letting them scroll past (US2 #2, SC-002)
-- [ ] T031 [P] [US2] Playback test in `packages/react/test/hydration/playback.test.ts` — after hydration, elements appear and disappear at their authored times as the synthetic clock advances (US2 #3)
-- [ ] T032 [P] [US2] Pause and seek test in `packages/react/test/hydration/transport.test.ts` — pausing holds the visible state; seeking shows that moment with no effect appearing to replay (US2 #4, #5, FR-021/022)
-- [ ] T033 [P] [US2] Rendered-parity test in `packages/react/test/hydration/rendered-parity.test.ts` — for every corpus slide and boundary, the rendered output of seeking equals that of playing (SC-011). Feature 002 proved this for computed state; this proves it with the renderer in the path
-- [ ] T034 [P] [US2] No-reconciliation-per-frame test in `packages/react/test/hydration/frame-cost.test.ts` — advancing the clock across many frames triggers React renders only when an element's visibility changes, not on every frame (plan.md Complexity Tracking row 1)
+- [X] T029 [P] [US2] Hydration equality test in `packages/react/test/hydration/equality.test.ts` — markup before and after hydration is byte-identical for every corpus slide (US2 #1, SC-003)
+- [X] T030 [P] [US2] Mismatch-warning test in `packages/react/test/hydration/warnings.test.ts` — zero React mismatch warnings, with the console guard failing the test rather than letting them scroll past (US2 #2, SC-002)
+- [X] T031 [P] [US2] Playback test in `packages/react/test/hydration/playback.test.ts` — after hydration, elements appear and disappear at their authored times as the synthetic clock advances (US2 #3)
+- [X] T032 [P] [US2] Pause and seek test in `packages/react/test/hydration/transport.test.ts` — pausing holds the visible state; seeking shows that moment with no effect appearing to replay (US2 #4, #5, FR-021/022)
+- [X] T033 [P] [US2] Rendered-parity test in `packages/react/test/hydration/rendered-parity.test.ts` — for every corpus slide and boundary, the rendered output of seeking equals that of playing (SC-011). Feature 002 proved this for computed state; this proves it with the renderer in the path
+- [X] T034 [P] [US2] No-reconciliation-per-frame test in `packages/react/test/hydration/frame-cost.test.ts` — advancing the clock across many frames triggers React renders only when an element's visibility changes, not on every frame (plan.md Complexity Tracking row 1)
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Implement `packages/react/src/frame/applyVisual.ts` — map one `ResolvedElement` to its custom properties, the single conversion between the kernel's output and the page
-- [ ] T036 [US2] Implement `packages/react/src/frame/FrameWriter.ts` — ref registration and property writes, the only imperative DOM mutation in the package
-- [ ] T037 [US2] Implement `packages/react/src/frame/useFrameLoop.ts` — an animation-frame loop driving the writer, cancelled on unmount
-- [ ] T038 [US2] Wire the transport into `packages/react/src/player/LessonPlayer.tsx`, starting the clock in an effect after mount so the first client render cannot differ from the server's (research R-03)
-- [ ] T039 [US2] Implement `packages/react/src/player/usePlayer.ts`, exposing the kernel's transport unwrapped and throwing outside a player subtree
-- [ ] T040 [US2] Implement the client entry `packages/react/src/index.ts` with the full surface
-- [ ] T041 [US2] Set `will-change` in `packages/react/src/player/ElementFrame.tsx` from `activeEffects` being non-empty, reading the kernel's output rather than tracking animation state (research R-06)
+- [X] T035 [US2] Implement `packages/react/src/frame/applyVisual.ts` — map one `ResolvedElement` to its custom properties, the single conversion between the kernel's output and the page
+- [X] T036 [US2] Implement `packages/react/src/frame/FrameWriter.ts` — ref registration and property writes, the only imperative DOM mutation in the package
+- [X] T037 [US2] Implement `packages/react/src/frame/useFrameLoop.ts` — an animation-frame loop driving the writer, cancelled on unmount
+- [X] T038 [US2] Wire the transport into `packages/react/src/player/LessonPlayer.tsx`, starting the clock in an effect after mount so the first client render cannot differ from the server's (research R-03)
+- [X] T039 [US2] Implement `packages/react/src/player/usePlayer.ts`, exposing the kernel's transport unwrapped and throwing outside a player subtree
+- [X] T040 [US2] Implement the client entry `packages/react/src/index.ts` with the full surface
+- [X] T041 [US2] Set `will-change` in `packages/react/src/player/ElementFrame.tsx` from `activeEffects` being non-empty, reading the kernel's output rather than tracking animation state (research R-06)
 
 **Checkpoint**: US1 and US2 both work. A lesson server-renders, hydrates, and plays.
 

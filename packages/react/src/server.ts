@@ -8,8 +8,8 @@
  * What differs is behaviour, not shape — nothing here starts a clock, subscribes, or
  * touches a DOM, so this module renders in a Node process with no browser.
  */
-export { LessonPlayer } from './player/LessonPlayer.js'
-export type { LessonPlayerProps } from './player/LessonPlayer.js'
+export { LessonPlayerStatic as LessonPlayer } from './player/LessonPlayerStatic.js'
+export type { LessonPlayerStaticProps as LessonPlayerProps } from './player/LessonPlayerStatic.js'
 export { Stage } from './player/Stage.js'
 export { SlideView } from './player/SlideView.js'
 export { ElementFrame } from './player/ElementFrame.js'
