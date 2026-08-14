@@ -71,13 +71,27 @@ why.
 
 ## Tolerance
 
-One constant, in one place. It is the same order as the timing tolerance FR-PLY-018 defines for
-non-streaming elements, and it is **not** the same guarantee — see below.
+**`MEDIA_SYNC_TOLERANCE_MS = 500`**, exported from `core/src/media/reconcile.ts`. One constant, one
+place. It is *not* the timing tolerance FR-PLY-018 defines for non-streaming elements — that one
+governs a guarantee this cannot make, and the two are separate numbers for separate promises.
 
-Too small and every report looks like a learner seek, producing the loop the rule exists to
-prevent. Too large and a genuine small scrub is swallowed as an echo. The value is chosen against
-the smallest scrub a learner can perform with the seek control, which Wave 2 fixed at one second
-per step for exactly this kind of reason.
+The value is bounded on both sides, and both bounds already exist in the codebase:
+
+| Bound | Value | Why |
+|---|---|---|
+| **Floor** | 250 ms | A playing media element reports its position at roughly 4 Hz, so a report can be up to one interval further along than when the seek landed. Below this, every report during playback reads as a learner scrub and the loop returns. Wave 1 chose the same figure for `CLAMP_CEILING_MS`, for the same physical reason: it is the cadence a browser can be relied on to tick at. |
+| **Ceiling** | 1000 ms | The smallest deliberate move a learner can make. Wave 2 fixed the seek slider's `step` at one second so that an arrow key moves it visibly. Above this, a genuine single-step scrub is swallowed as an echo. |
+
+500 ms is the midpoint, with 2× headroom under the floor and 2× margin below the ceiling.
+
+**The bounds are asserted, not just the value.** A test in `@cuestack/core` checks the floor against
+the report interval, and a test in `@cuestack/react` checks the ceiling against the exported seek
+step. If a later wave changes the slider to quarter-second steps — Wave 4's editor timeline is
+likely to want finer scrubbing — the ceiling assertion fails and names the tolerance as the thing
+that has to shrink. A bare constant would instead have started silently swallowing scrubs.
+
+Picking the number is the easy half. What makes it survive is that the two facts it was derived
+from are still checked.
 
 ## What this weakens, stated plainly
 

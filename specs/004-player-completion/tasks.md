@@ -151,29 +151,30 @@ once when the end is reported twice.
 - [ ] T035 [P] [US2] Reconciliation tests in `packages/core/test/media/reconcile.test.ts` — a report within tolerance of the commanded position is an echo and moves nothing; a report outside it seeks the transport; a commanded seek that never lands leaves `following` false (contracts/media-port-contract.md)
 - [ ] T036 [US2] Loop negative control in `packages/core/test/media/reconcile.test.ts` — with the tolerance check removed, one seek produces an unbounded exchange. The rule exists to prevent a specific failure, and a rule never observed preventing it is not known to work
 - [ ] T037 [US2] Stuck-flag negative control in `packages/core/test/media/reconcile.test.ts` — a seek the media never acknowledges does not swallow the learner's next genuine scrub, which is the failure an `ignoreNextReport` flag would have had (research R-02)
-- [ ] T038 [P] [US2] Media-link tests in `packages/core/test/media/link.test.ts` — commands reach the port, `durationMs` from the file wins over the manifest's, and `failed` is reported rather than waited on
-- [ ] T039 [P] [US2] BR-014 test in `packages/react/test/rules/BR-014.test.tsx` — a lesson with audible media does not begin playback without a learner action, a silent lesson does, and the requirement is not asked twice (research R-08)
-- [ ] T040 [P] [US2] Media-cued visibility test in `packages/react/test/media/cued-elements.test.tsx` — an element tied to media position appears within tolerance of its cue, measured against reported position rather than wall clock (FR-013, SC-006)
-- [ ] T041 [P] [US2] Lesson-seeks-media test in `packages/react/test/media/seek.test.tsx` — seeking the lesson commands the media; scrubbing the media moves the lesson; an unhonoured seek leaves the displayed position honest (FR-034, FR-035, FR-036, SC-014)
-- [ ] T042 [P] [US2] Pause-and-resume test in `packages/react/test/media/pause.test.tsx` — pausing the lesson pauses its media, and resuming continues from the stopped position (FR-016)
-- [ ] T043 [P] [US2] Hidden-document test in `packages/react/test/media/hidden.test.tsx` — hiding the document pauses the visual timeline *and* its media, and returning resumes both from the same position (FR-018, FR-016, BR-013). The transport half has held since Wave 1; the media half is new and is the reason this is not covered by the existing BR-013 test
-- [ ] T044 [P] [US2] Degenerate-media test in `packages/react/test/media/degenerate.test.tsx` — a slide gated on media that is muted, or reports zero duration, still advances rather than waiting on an end that never comes (spec Edge Cases)
-- [ ] T045 [P] [US2] Media-failure test in `packages/react/test/media/failure.test.tsx` — a slide gated on media that fails reaches `ADVANCE_MEDIA_FAILED` and offers a way on rather than stalling (FR-017)
-- [ ] T046 [P] [US2] Gesture-prompt accessibility test in `packages/react/test/media/gesture-a11y.test.tsx` — the prompt is announced, keyboard-reachable, and names the action
-- [ ] T047 [P] [US2] **MVP Acceptance Scenario C** end-to-end in `packages/react/test/acceptance/scenario-c.test.tsx`, written from §34 C verbatim including the duplicate-end-event row
+- [ ] T038 [P] [US2] Tolerance-bounds test in `packages/core/test/media/tolerance.test.ts` and `packages/react/test/media/tolerance-bounds.test.ts` — assert `MEDIA_SYNC_TOLERANCE_MS` exceeds the media report interval and falls below the seek control's step, which `PlaybackControls` must export as `SEEK_STEP_MS` rather than inlining `1000`. The constant is derived from two facts that live elsewhere; without these assertions a later change to either — Wave 4's timeline will want finer scrubbing — makes it silently wrong instead of loudly wrong
+- [ ] T039 [P] [US2] Media-link tests in `packages/core/test/media/link.test.ts` — commands reach the port, `durationMs` from the file wins over the manifest's, and `failed` is reported rather than waited on
+- [ ] T040 [P] [US2] BR-014 test in `packages/react/test/rules/BR-014.test.tsx` — a lesson with audible media does not begin playback without a learner action, a silent lesson does, and the requirement is not asked twice (research R-08)
+- [ ] T041 [P] [US2] Media-cued visibility test in `packages/react/test/media/cued-elements.test.tsx` — an element tied to media position appears within tolerance of its cue, measured against reported position rather than wall clock (FR-013, SC-006)
+- [ ] T042 [P] [US2] Lesson-seeks-media test in `packages/react/test/media/seek.test.tsx` — seeking the lesson commands the media; scrubbing the media moves the lesson; an unhonoured seek leaves the displayed position honest (FR-034, FR-035, FR-036, SC-014)
+- [ ] T043 [P] [US2] Pause-and-resume test in `packages/react/test/media/pause.test.tsx` — pausing the lesson pauses its media, and resuming continues from the stopped position (FR-016)
+- [ ] T044 [P] [US2] Hidden-document test in `packages/react/test/media/hidden.test.tsx` — hiding the document pauses the visual timeline *and* its media, and returning resumes both from the same position (FR-018, FR-016, BR-013). The transport half has held since Wave 1; the media half is new and is the reason this is not covered by the existing BR-013 test
+- [ ] T045 [P] [US2] Degenerate-media test in `packages/react/test/media/degenerate.test.tsx` — a slide gated on media that is muted, or reports zero duration, still advances rather than waiting on an end that never comes (spec Edge Cases)
+- [ ] T046 [P] [US2] Media-failure test in `packages/react/test/media/failure.test.tsx` — a slide gated on media that fails reaches `ADVANCE_MEDIA_FAILED` and offers a way on rather than stalling (FR-017)
+- [ ] T047 [P] [US2] Gesture-prompt accessibility test in `packages/react/test/media/gesture-a11y.test.tsx` — the prompt is announced, keyboard-reachable, and names the action
+- [ ] T048 [P] [US2] **MVP Acceptance Scenario C** end-to-end in `packages/react/test/acceptance/scenario-c.test.tsx`, written from §34 C verbatim including the duplicate-end-event row
 
 ### Implementation for User Story 2
 
-- [ ] T048 [US2] Add `play`, `pause`, and `seek` to `MediaPort` in `packages/core/src/ports/media.ts` — fire-and-forget, never throwing, per contracts/media-port-contract.md, and record in the file why they return void
-- [ ] T049 [US2] Implement the authority rule in `packages/core/src/media/reconcile.ts` as one pure function of two positions and a tolerance (depends on T048)
-- [ ] T050 [US2] Implement `packages/core/src/media/link.ts`, the only place the transport and the media port meet (depends on T049)
-- [ ] T051 [US2] Export the media surface from `packages/core/src/index.ts` and extend T027's resolution test to cover it
-- [ ] T052 [P] [US2] Implement `packages/react/src/media/domMediaPort.ts` over `HTMLMediaElement`, reporting position changes from **every** source including the element's own native controls
-- [ ] T053 [US2] Attach `packages/react/src/elements/builtin/VideoElement.tsx` and `AudioElement.tsx` to the media link by element id (depends on T052)
-- [ ] T054 [US2] Implement the lesson-level gesture latch and `packages/react/src/player/GesturePrompt.tsx` (research R-08)
-- [ ] T055 [US2] Wire lesson seek and pause to media commands in `packages/react/src/player/LessonPlayerClient.tsx` (depends on T050)
-- [ ] T056 [US2] Add gesture-prompt styles to `packages/react/src/styles/stage.css`, chrome-sized rather than stage-scaled for the same reason the controls are
-- [ ] T057 [US2] Add BR-014 to `EXPECTED` in `tools/scripts/check-rule-coverage.mjs` and move it out of the "no code to test yet" comment block
+- [ ] T049 [US2] Add `play`, `pause`, and `seek` to `MediaPort` in `packages/core/src/ports/media.ts` — fire-and-forget, never throwing, per contracts/media-port-contract.md, and record in the file why they return void
+- [ ] T050 [US2] Implement the authority rule in `packages/core/src/media/reconcile.ts` as one pure function of two positions and a tolerance, exporting `MEDIA_SYNC_TOLERANCE_MS = 500` and `MEDIA_REPORT_INTERVAL_MS = 250` with the derivation from contracts/media-port-contract.md in a comment (depends on T049)
+- [ ] T051 [US2] Implement `packages/core/src/media/link.ts`, the only place the transport and the media port meet (depends on T050)
+- [ ] T052 [US2] Export the media surface from `packages/core/src/index.ts` and extend T027's resolution test to cover it
+- [ ] T053 [P] [US2] Implement `packages/react/src/media/domMediaPort.ts` over `HTMLMediaElement`, reporting position changes from **every** source including the element's own native controls
+- [ ] T054 [US2] Attach `packages/react/src/elements/builtin/VideoElement.tsx` and `AudioElement.tsx` to the media link by element id (depends on T053)
+- [ ] T055 [US2] Implement the lesson-level gesture latch and `packages/react/src/player/GesturePrompt.tsx` (research R-08)
+- [ ] T056 [US2] Wire lesson seek and pause to media commands in `packages/react/src/player/LessonPlayerClient.tsx` (depends on T051)
+- [ ] T057 [US2] Add gesture-prompt styles to `packages/react/src/styles/stage.css`, chrome-sized rather than stage-scaled for the same reason the controls are
+- [ ] T058 [US2] Add BR-014 to `EXPECTED` in `tools/scripts/check-rule-coverage.mjs` and move it out of the "no code to test yet" comment block
 
 **Checkpoint**: US1 and US2 work. Scenarios B and C pass. Media and the lesson share one time.
 
@@ -188,26 +189,26 @@ authored duration, progress advances, and a completion state appears and is anno
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T058 [P] [US3] Transition tests in `packages/react/test/playback/transition.test.tsx` — both slides present for the authored duration, each resolved at its own slide time, then only the incoming one (research R-06)
-- [ ] T059 [US3] No-transition test in `packages/react/test/playback/transition.test.tsx` — `type: 'none'` and `durationMs: 0` both change immediately and animate nothing, since the format permits either
-- [ ] T060 [P] [US3] Transition-interruption test in `packages/react/test/playback/transition-interrupt.test.tsx` — a seek mid-transition settles to the incoming slide and never leaves two slides visible (US3 #8)
-- [ ] T061 [P] [US3] Progress tests in `packages/react/test/playback/progress.test.tsx` — shown only when the host enables it, counts slides visited so seeking backwards does not reduce it, and is absent otherwise
-- [ ] T062 [P] [US3] Completion tests in `packages/react/test/playback/completion.test.tsx` — a completion state after the final slide, announced, with a way back into the lesson (FR-021, FR-022)
-- [ ] T063 [P] [US3] Decorative-failure test in `packages/react/test/playback/decorative-failure.test.tsx` — a failed decorative asset does not interrupt the slide (FR-023)
-- [ ] T064 [P] [US3] Degenerate-transition test in `packages/react/test/playback/transition-degenerate.test.tsx` — a transition longer than the slide it moves to, and a lesson of exactly one slide: progress and completion both have to mean something at n=1 (spec Edge Cases)
-- [ ] T065 [P] [US3] Gated-final-slide test in `packages/react/test/playback/final-gate.test.tsx` — a final slide carrying an unanswered required question does not reach the completion state, and says why rather than appearing finished; and hiding the document mid-transition settles rather than stranding two slides visible (spec Edge Cases, SC-010)
-- [ ] T066 [P] [US3] **MVP Acceptance Scenario A** end-to-end in `packages/react/test/acceptance/scenario-a.test.tsx` — the authored sequence at 0.5 s, 2 s, 4 s, and the transition at 8 s, asserted both by playing and by seeking
+- [ ] T059 [P] [US3] Transition tests in `packages/react/test/playback/transition.test.tsx` — both slides present for the authored duration, each resolved at its own slide time, then only the incoming one (research R-06)
+- [ ] T060 [US3] No-transition test in `packages/react/test/playback/transition.test.tsx` — `type: 'none'` and `durationMs: 0` both change immediately and animate nothing, since the format permits either
+- [ ] T061 [P] [US3] Transition-interruption test in `packages/react/test/playback/transition-interrupt.test.tsx` — a seek mid-transition settles to the incoming slide and never leaves two slides visible (US3 #8)
+- [ ] T062 [P] [US3] Progress tests in `packages/react/test/playback/progress.test.tsx` — shown only when the host enables it, counts slides visited so seeking backwards does not reduce it, and is absent otherwise
+- [ ] T063 [P] [US3] Completion tests in `packages/react/test/playback/completion.test.tsx` — a completion state after the final slide, announced, with a way back into the lesson (FR-021, FR-022)
+- [ ] T064 [P] [US3] Decorative-failure test in `packages/react/test/playback/decorative-failure.test.tsx` — a failed decorative asset does not interrupt the slide (FR-023)
+- [ ] T065 [P] [US3] Degenerate-transition test in `packages/react/test/playback/transition-degenerate.test.tsx` — a transition longer than the slide it moves to, and a lesson of exactly one slide: progress and completion both have to mean something at n=1 (spec Edge Cases)
+- [ ] T066 [P] [US3] Gated-final-slide test in `packages/react/test/playback/final-gate.test.tsx` — a final slide carrying an unanswered required question does not reach the completion state, and says why rather than appearing finished; and hiding the document mid-transition settles rather than stranding two slides visible (spec Edge Cases, SC-010)
+- [ ] T067 [P] [US3] **MVP Acceptance Scenario A** end-to-end in `packages/react/test/acceptance/scenario-a.test.tsx` — the authored sequence at 0.5 s, 2 s, 4 s, and the transition at 8 s, asserted both by playing and by seeking
 
 ### Implementation for User Story 3
 
-- [ ] T067 [P] [US3] Implement `packages/react/src/player/SlideTransition.tsx` rendering outgoing and incoming slides, each resolved at its own slide time
-- [ ] T068 [P] [US3] Add `packages/react/src/styles/transition.css` for fade, slide, and zoom, driven by custom properties like everything else and scoped beneath the stage, **and register it in `packages/react/src/styles/styles.css` and the `ORDER` list in `tools/scripts/bundle-css.mjs`** — that script fails the build when the two disagree, so a new stylesheet that is not registered breaks the build in the task that creates it
-- [ ] T069 [US3] Drive transitions from slide changes in `packages/react/src/player/LessonPlayerClient.tsx`, settling immediately on interruption (depends on T067)
-- [ ] T070 [P] [US3] Implement `packages/react/src/player/LessonProgress.tsx`, counting visited slides
-- [ ] T071 [P] [US3] Implement `packages/react/src/player/LessonComplete.tsx`, announced and offering a return
-- [ ] T072 [US3] Add a `progress` option to the player props in `packages/react/src/player/LessonPlayerClient.tsx` and document why it is a host option rather than a manifest field (spec Assumptions)
-- [ ] T073 [US3] Export `SlideTransition`, `LessonProgress`, and `LessonComplete` from `packages/react/src/index.ts`, and from `server.ts` where they are hook-free — feature 003 found the two entries diverged twice
-- [ ] T074 [US3] Add progress and completion styles to `packages/react/src/player/controls/controls.css` — the existing chrome stylesheet, already registered and already sized as chrome rather than scaled to the stage
+- [ ] T068 [P] [US3] Implement `packages/react/src/player/SlideTransition.tsx` rendering outgoing and incoming slides, each resolved at its own slide time
+- [ ] T069 [P] [US3] Add `packages/react/src/styles/transition.css` for fade, slide, and zoom, driven by custom properties like everything else and scoped beneath the stage, **and register it in `packages/react/src/styles/styles.css` and the `ORDER` list in `tools/scripts/bundle-css.mjs`** — that script fails the build when the two disagree, so a new stylesheet that is not registered breaks the build in the task that creates it
+- [ ] T070 [US3] Drive transitions from slide changes in `packages/react/src/player/LessonPlayerClient.tsx`, settling immediately on interruption (depends on T068)
+- [ ] T071 [P] [US3] Implement `packages/react/src/player/LessonProgress.tsx`, counting visited slides
+- [ ] T072 [P] [US3] Implement `packages/react/src/player/LessonComplete.tsx`, announced and offering a return
+- [ ] T073 [US3] Add a `progress` option to the player props in `packages/react/src/player/LessonPlayerClient.tsx` and document why it is a host option rather than a manifest field (spec Assumptions)
+- [ ] T074 [US3] Export `SlideTransition`, `LessonProgress`, and `LessonComplete` from `packages/react/src/index.ts`, and from `server.ts` where they are hook-free — feature 003 found the two entries diverged twice
+- [ ] T075 [US3] Add progress and completion styles to `packages/react/src/player/controls/controls.css` — the existing chrome stylesheet, already registered and already sized as chrome rather than scaled to the stage
 
 **Checkpoint**: US1–US3 work. Scenarios A, B, and C pass. A lesson runs start to finish.
 
@@ -223,24 +224,24 @@ becomes invisible or unreachable.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T075 [P] [US4] Descriptor tests in `packages/core/test/effects/reduced.test.ts` — an effect declaring `reduced` contributes it, one that does not falls back to its end state, and a non-moving effect declares nothing (contracts/reduced-motion-contract.md)
-- [ ] T076 [P] [US4] Resolver tests in `packages/core/test/resolve/reduced.test.ts` — `ResolvedElement.reduced` is null when no active effect moves, present when one does, and both visuals are pure functions of `(slide, timeMs)`
-- [ ] T077 [US4] Timing-preservation test in `packages/core/test/resolve/reduced.test.ts` — a substitution reaches its end state at the same moment as the effect it replaces (FR-026)
-- [ ] T078 [P] [US4] BR-015 test in `packages/core/test/rules/BR-015.test.ts` — every built-in moving effect has a substitution that neither hides the element nor moves it outside the stage (FR-027)
-- [ ] T079 [P] [US4] Stylesheet tests in `packages/react/test/scaling/reduced-motion.test.ts` — the media block prefers `--cs-r-*` and falls back to no motion, using the CSS evaluator from feature 003's harness
-- [ ] T080 [P] [US4] First-frame test in `packages/react/test/ssr/reduced-motion.test.ts` — both property sets are in the server-rendered markup, and nothing in the server path reads `matchMedia` (FR-028)
-- [ ] T081 [P] [US4] **MVP Acceptance Scenario F** end-to-end in `packages/react/test/acceptance/scenario-f.test.tsx`, written from §34 F verbatim
+- [ ] T076 [P] [US4] Descriptor tests in `packages/core/test/effects/reduced.test.ts` — an effect declaring `reduced` contributes it, one that does not falls back to its end state, and a non-moving effect declares nothing (contracts/reduced-motion-contract.md)
+- [ ] T077 [P] [US4] Resolver tests in `packages/core/test/resolve/reduced.test.ts` — `ResolvedElement.reduced` is null when no active effect moves, present when one does, and both visuals are pure functions of `(slide, timeMs)`
+- [ ] T078 [US4] Timing-preservation test in `packages/core/test/resolve/reduced.test.ts` — a substitution reaches its end state at the same moment as the effect it replaces (FR-026)
+- [ ] T079 [P] [US4] BR-015 test in `packages/core/test/rules/BR-015.test.ts` — every built-in moving effect has a substitution that neither hides the element nor moves it outside the stage (FR-027)
+- [ ] T080 [P] [US4] Stylesheet tests in `packages/react/test/scaling/reduced-motion.test.ts` — the media block prefers `--cs-r-*` and falls back to no motion, using the CSS evaluator from feature 003's harness
+- [ ] T081 [P] [US4] First-frame test in `packages/react/test/ssr/reduced-motion.test.ts` — both property sets are in the server-rendered markup, and nothing in the server path reads `matchMedia` (FR-028)
+- [ ] T082 [P] [US4] **MVP Acceptance Scenario F** end-to-end in `packages/react/test/acceptance/scenario-f.test.tsx`, written from §34 F verbatim
 
 ### Implementation for User Story 4
 
-- [ ] T082 [US4] Add optional `reduced` to `EffectDescriptor` in `packages/core/src/effects/registry.ts`, and reject a descriptor declaring `reduced` with `motion: false` — it would never be consulted
-- [ ] T083 [P] [US4] Declare substitutions on the moving built-ins in `packages/core/src/effects/builtin/transform.ts` and `pulse.ts` per the table in contracts/reduced-motion-contract.md (depends on T082)
-- [ ] T084 [US4] Compose the reduced visual in `packages/core/src/resolve/index.ts` and add `reduced` to `ResolvedElement` in `packages/core/src/resolve/state.ts`, emitting it only when an active effect moves (depends on T083)
-- [ ] T085 [US4] Emit the `--cs-r-*` properties in `packages/react/src/frame/properties.ts` and `applyVisual.ts`
-- [ ] T086 [US4] Write the reduced set from `packages/react/src/frame/FrameWriter.ts`, skipping it entirely when `reduced` is null
-- [ ] T087 [US4] Replace Wave 2's blunt neutralisation in `packages/react/src/styles/stage.css` with the nested-fallback selection, and apply the same substitution to slide transitions in `transition.css` — replaced, not shortened (US4 #4)
-- [ ] T088 [US4] Update `specs/002-headless-kernel/data-model.md` for `ResolvedElement.reduced`, as feature 003 did for `accessibility` — the document is checked against reality by review, and drift there has been found before
-- [ ] T089 [US4] Add BR-015 to `EXPECTED` in `tools/scripts/check-rule-coverage.mjs`
+- [ ] T083 [US4] Add optional `reduced` to `EffectDescriptor` in `packages/core/src/effects/registry.ts`, and reject a descriptor declaring `reduced` with `motion: false` — it would never be consulted
+- [ ] T084 [P] [US4] Declare substitutions on the moving built-ins in `packages/core/src/effects/builtin/transform.ts` and `pulse.ts` per the table in contracts/reduced-motion-contract.md (depends on T083)
+- [ ] T085 [US4] Compose the reduced visual in `packages/core/src/resolve/index.ts` and add `reduced` to `ResolvedElement` in `packages/core/src/resolve/state.ts`, emitting it only when an active effect moves (depends on T084)
+- [ ] T086 [US4] Emit the `--cs-r-*` properties in `packages/react/src/frame/properties.ts` and `applyVisual.ts`
+- [ ] T087 [US4] Write the reduced set from `packages/react/src/frame/FrameWriter.ts`, skipping it entirely when `reduced` is null
+- [ ] T088 [US4] Replace Wave 2's blunt neutralisation in `packages/react/src/styles/stage.css` with the nested-fallback selection, and apply the same substitution to slide transitions in `transition.css` — replaced, not shortened (US4 #4)
+- [ ] T089 [US4] Update `specs/002-headless-kernel/data-model.md` for `ResolvedElement.reduced`, as feature 003 did for `accessibility` — the document is checked against reality by review, and drift there has been found before
+- [ ] T090 [US4] Add BR-015 to `EXPECTED` in `tools/scripts/check-rule-coverage.mjs`
 
 **Checkpoint**: US1–US4 work. Scenarios A, B, C, and F all pass.
 
@@ -255,20 +256,20 @@ stated, announced, recoverable state rather than a blank stage or a silent stall
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T090 [P] [US5] Blocking-condition tests in `packages/react/test/playback/problems.test.tsx` — each of `ADVANCE_UNSATISFIABLE`, `ADVANCE_MEDIA_FAILED`, and `UNKNOWN_REQUIRED_INTERACTION` produces a learner-facing state naming problem, object, and action (FR-030, NFR-USA-004)
-- [ ] T091 [US5] Leak test in `packages/react/test/playback/problems.test.tsx` — no internal identifier, element id, or error code appears in learner-facing output, and `RenderState.problems` appear nowhere at all (FR-024, research R-07)
-- [ ] T092 [P] [US5] Retry test in `packages/react/test/playback/asset-retry.test.tsx` — a failed required asset can be retried without restarting the lesson, and a non-retryable condition offers a different way forward (FR-029)
-- [ ] T093 [P] [US5] Error accessibility test in `packages/react/test/playback/problem-a11y.test.tsx` — every error state is announced and keyboard-reachable (FR-031)
-- [ ] T094 [P] [US5] Dead-end test in `packages/react/test/playback/dead-end.test.tsx` — the corpus's `on_correct` one-attempt required question reaches `unsatisfiable` and the learner is offered a way on rather than waiting (research R-05)
-- [ ] T095 [P] [US5] No-stranding sweep in `packages/react/test/playback/no-stranding.test.tsx` — for every corpus lesson, no reachable state leaves the learner unable to progress and unable to learn why (SC-010)
+- [ ] T091 [P] [US5] Blocking-condition tests in `packages/react/test/playback/problems.test.tsx` — each of `ADVANCE_UNSATISFIABLE`, `ADVANCE_MEDIA_FAILED`, and `UNKNOWN_REQUIRED_INTERACTION` produces a learner-facing state naming problem, object, and action (FR-030, NFR-USA-004)
+- [ ] T092 [US5] Leak test in `packages/react/test/playback/problems.test.tsx` — no internal identifier, element id, or error code appears in learner-facing output, and `RenderState.problems` appear nowhere at all (FR-024, research R-07)
+- [ ] T093 [P] [US5] Retry test in `packages/react/test/playback/asset-retry.test.tsx` — a failed required asset can be retried without restarting the lesson, and a non-retryable condition offers a different way forward (FR-029)
+- [ ] T094 [P] [US5] Error accessibility test in `packages/react/test/playback/problem-a11y.test.tsx` — every error state is announced and keyboard-reachable (FR-031)
+- [ ] T095 [P] [US5] Dead-end test in `packages/react/test/playback/dead-end.test.tsx` — the corpus's `on_correct` one-attempt required question reaches `unsatisfiable` and the learner is offered a way on rather than waiting (research R-05)
+- [ ] T096 [P] [US5] No-stranding sweep in `packages/react/test/playback/no-stranding.test.tsx` — for every corpus lesson, no reachable state leaves the learner unable to progress and unable to learn why (SC-010)
 
 ### Implementation for User Story 5
 
-- [ ] T096 [US5] Implement the code-to-message mapping in `packages/react/src/player/problems.ts`, one place, with retryability per code
-- [ ] T097 [US5] Implement `packages/react/src/player/PlaybackProblem.tsx` — announced, keyboard-reachable, naming problem, object, and action in learner terms
-- [ ] T098 [US5] Present `RenderState.blocked` from `packages/react/src/player/LessonPlayerClient.tsx`, and deliberately not `RenderState.problems` (depends on T097)
-- [ ] T099 [US5] Wire asset retry through the asset port in `packages/react/src/elements/AssetFallback.tsx` without restarting the lesson
-- [ ] T100 [US5] Add problem-state styles to `packages/react/src/styles/stage.css`
+- [ ] T097 [US5] Implement the code-to-message mapping in `packages/react/src/player/problems.ts`, one place, with retryability per code
+- [ ] T098 [US5] Implement `packages/react/src/player/PlaybackProblem.tsx` — announced, keyboard-reachable, naming problem, object, and action in learner terms
+- [ ] T099 [US5] Present `RenderState.blocked` from `packages/react/src/player/LessonPlayerClient.tsx`, and deliberately not `RenderState.problems` (depends on T098)
+- [ ] T100 [US5] Wire asset retry through the asset port in `packages/react/src/elements/AssetFallback.tsx` without restarting the lesson
+- [ ] T101 [US5] Add problem-state styles to `packages/react/src/styles/stage.css`
 
 **Checkpoint**: All five stories independently functional.
 
@@ -276,16 +277,16 @@ stated, announced, recoverable state rather than a blank stage or a silent stall
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T101 Extend the rendered-parity sweep in `packages/react/test/hydration/rendered-parity.test.ts` to cover recorded interaction state and media position — seeking equals playing for every corpus slide and every answered state (SC-009)
-- [ ] T102 Arm the playback budgets in `tools/scripts/gates/perf.mjs` against T005's fixture: frame cost under 16.7 ms and seek-to-rendered-state under 100 ms, each failing on a 10% regression, and **state in the gate's output that this measures the player's per-frame work rather than paint** so a pass is not mistaken for a full answer (research R-09)
-- [ ] T103 [P] Add a perf negative control to `tools/scripts/check-gates.test.ts` — an artificially slowed resolve fails the frame budget, proving the newly armed gate fires
-- [ ] T104 [P] Add an a11y sweep over the new states to `packages/react/test/a11y/axe.test.ts` — question answered and unanswered, feedback, gesture prompt, mid-transition, progress, completion, and every error state (SC-011)
-- [ ] T105 [P] Update `packages/react/README.md` for interactions, media, progress, completion, and the reduced-motion contract
-- [ ] T106 [P] Add a Changesets entry at `.changeset/player-completion.md` covering the `@cuestack/core` minor (media commands, interactions, `ResolvedElement.reduced`) and the `@cuestack/react` minor
-- [ ] T107 Promote the example in `examples/nextjs/app/` to a lesson worth completing — a question to answer, progress, and a completion state, so the wave's claim is demonstrable in a browser
-- [ ] T108 Add the acceptance suite to `.github/workflows/ci.yml` as a named job, so §34 A/B/C/F are visible as a gate rather than buried in the test run
-- [ ] T109 Run every scenario in `specs/004-player-completion/quickstart.md` by hand, **including the reduced-motion emulation and the keyboard pass over an answered question**, and correct any step that does not work as written
-- [ ] T110 Flip PL-1, PL-2, PL-3, PL-4, QA-3, and QA-4 in `docs/cuestack_framework_plan.md`, note that QA-3 covers A/B/C/F only, and confirm the Wave 4 critical path still holds
+- [ ] T102 Extend the rendered-parity sweep in `packages/react/test/hydration/rendered-parity.test.ts` to cover recorded interaction state and media position — seeking equals playing for every corpus slide and every answered state (SC-009)
+- [ ] T103 Arm the playback budgets in `tools/scripts/gates/perf.mjs` against T005's fixture: frame cost under 16.7 ms and seek-to-rendered-state under 100 ms, each failing on a 10% regression, and **state in the gate's output that this measures the player's per-frame work rather than paint** so a pass is not mistaken for a full answer (research R-09)
+- [ ] T104 [P] Add a perf negative control to `tools/scripts/check-gates.test.ts` — an artificially slowed resolve fails the frame budget, proving the newly armed gate fires
+- [ ] T105 [P] Add an a11y sweep over the new states to `packages/react/test/a11y/axe.test.ts` — question answered and unanswered, feedback, gesture prompt, mid-transition, progress, completion, and every error state (SC-011)
+- [ ] T106 [P] Update `packages/react/README.md` for interactions, media, progress, completion, and the reduced-motion contract
+- [ ] T107 [P] Add a Changesets entry at `.changeset/player-completion.md` covering the `@cuestack/core` minor (media commands, interactions, `ResolvedElement.reduced`) and the `@cuestack/react` minor
+- [ ] T108 Promote the example in `examples/nextjs/app/` to a lesson worth completing — a question to answer, progress, and a completion state, so the wave's claim is demonstrable in a browser
+- [ ] T109 Add the acceptance suite to `.github/workflows/ci.yml` as a named job, so §34 A/B/C/F are visible as a gate rather than buried in the test run
+- [ ] T110 Run every scenario in `specs/004-player-completion/quickstart.md` by hand, **including the reduced-motion emulation and the keyboard pass over an answered question**, and correct any step that does not work as written
+- [ ] T111 Flip PL-1, PL-2, PL-3, PL-4, QA-3, and QA-4 in `docs/cuestack_framework_plan.md`, note that QA-3 covers A/B/C/F only, and confirm the Wave 4 critical path still holds
 
 ---
 
@@ -306,7 +307,7 @@ stated, announced, recoverable state rather than a blank stage or a silent stall
 - **US5 (Phase 7)**: depends on Phase 2. Two of its conditions are *reachable* only once US1
   (`UNKNOWN_REQUIRED_INTERACTION`, the dead-end question) and US2 (`ADVANCE_MEDIA_FAILED`) exist —
   the presentation is independent, the fixtures are not, which is why it is ranked last.
-- **Polish (Phase 8)**: T101–T104 depend on the stories they sweep; T105–T110 depend on all five.
+- **Polish (Phase 8)**: T102–T105 depend on the stories they sweep; T106–T111 depend on all five.
 
 ### Within Each Story
 
@@ -325,39 +326,44 @@ it happened while correcting the first.
 | Setup | T002, T003, T004, T005 | Different harness files, none importing another |
 | Foundational | T007, T008 | Different test files |
 | US1 | T013–T023, T024 | Eleven independent test files, plus the one core module with no dependency on the others |
-| US2 | T035, T038–T047, T052 | Eleven independent test files, plus the DOM port, which depends only on the port type |
-| US3 | T058, T060–T066, T067, T068, T070, T071 | Eight test files and four independent components |
-| US4 | T075, T076, T078–T081, T083 | Six test files, plus the built-in substitutions once the descriptor accepts them |
-| US5 | T090, T092–T095 | Five independent test files |
-| Polish | T103, T104, T105, T106 | Different files |
+| US2 | T035, T038–T048, T053 | Twelve independent test files, plus the DOM port, which depends only on the port type |
+| US3 | T059, T061–T067, T068, T069, T071, T072 | Eight test files and four independent components |
+| US4 | T076, T077, T079–T082, T084 | Six test files, plus the built-in substitutions once the descriptor accepts them |
+| US5 | T091, T093–T096 | Five independent test files |
+| Polish | T104, T105, T106, T107 | Different files |
 
 **Five tasks that look parallel and are not.** T036 and T037 share
-`packages/core/test/media/reconcile.test.ts` with T035; T059 shares
-`packages/react/test/playback/transition.test.tsx` with T058; T091 shares
-`packages/react/test/playback/problems.test.tsx` with T090; T077 shares
-`packages/core/test/resolve/reduced.test.ts` with T076. All five carried a `[P]` in the first draft
+`packages/core/test/media/reconcile.test.ts` with T035; T060 shares
+`packages/react/test/playback/transition.test.tsx` with T059; T092 shares
+`packages/react/test/playback/problems.test.tsx` with T091; T078 shares
+`packages/core/test/resolve/reduced.test.ts` with T077. All five carried a `[P]` in the first draft
 of this file, which contradicted the same file's own table of shared files two sections below.
 Caught by deriving each table from the file rather than writing them alongside it — and the fifth
 was found only on the second derivation, after the first four were fixed.
 
-**Renumbering note.** Five tasks were inserted after the first analysis pass, which shifted every
-id after them. The remap was done with collision-safe sentinels rather than a search-and-replace —
+**Renumbering note.** Six tasks were inserted across two analysis-remediation passes, which shifted
+every id after them. The remap was done with collision-safe sentinels rather than a search-and-replace —
 renaming `T022` to `T023` while a `T023` still exists is how a previous feature's renumber corrupted
 its own file — and both tables above were then re-derived and compared against the file rather than
-edited by hand. The sets survived; three *prose* counts inside them did not, and were corrected.
+edited by hand. The sets survived the first pass; three *prose* counts inside them did not. The second pass was
+worse and more instructive: a new `[P]` task landed **inside** the range `T038–T047`, and because a
+remap moves a range's endpoints and not its membership, the row silently came to exclude the very
+task inserted into it. That is the identical failure features 002 and 003 shipped, reproduced here
+under a rename. It was caught only because the table is re-derived and compared after every edit —
+reading it would not have revealed anything wrong.
 
 ### Files Touched by More Than One Task
 
 | File | Tasks | Order |
 |---|---|---|
-| `packages/react/src/player/LessonPlayerClient.tsx` | T009, T010, T011, T032, T033, T055, T069, T072, T098 | Sequential — the busiest file in the wave |
-| `packages/react/src/styles/stage.css` | T034, T056, T087, T100 | Sequential |
-| `packages/core/src/index.ts` | T027, T051 | Sequential |
-| `tools/scripts/check-rule-coverage.mjs` | T057, T089 | Sequential, and each with its own tests |
+| `packages/react/src/player/LessonPlayerClient.tsx` | T009, T010, T011, T032, T033, T056, T070, T073, T099 | Sequential — the busiest file in the wave |
+| `packages/react/src/styles/stage.css` | T034, T057, T088, T101 | Sequential |
+| `packages/core/src/index.ts` | T027, T052 | Sequential |
+| `tools/scripts/check-rule-coverage.mjs` | T058, T090 | Sequential, and each with its own tests |
 | `packages/core/test/media/reconcile.test.ts` | T035, T036, T037 | Sequential — same file |
-| `packages/react/test/playback/transition.test.tsx` | T058, T059 | Sequential — same file |
-| `packages/core/test/resolve/reduced.test.ts` | T076, T077 | Sequential — same file |
-| `packages/react/test/playback/problems.test.tsx` | T090, T091 | Sequential — same file |
+| `packages/react/test/playback/transition.test.tsx` | T059, T060 | Sequential — same file |
+| `packages/core/test/resolve/reduced.test.ts` | T077, T078 | Sequential — same file |
+| `packages/react/test/playback/problems.test.tsx` | T091, T092 | Sequential — same file |
 
 `LessonPlayerClient.tsx` accumulating nine tasks is worth watching. If it becomes hard to review,
 the split to make is extracting the advance/transition orchestration into a hook — but only if the
@@ -425,7 +431,7 @@ Three tracks after Phase 2, converging at Polish:
 - Two business rules gain subject matter, BR-014 and BR-015, taking `check-rule-coverage.mjs` from
   10 of 18 to 12 of 18. BR-005, BR-006, and BR-007 are already covered and gain their first
   *end-to-end* exercise, which is a different thing
-- The playback budgets arm in T102, discharging the Constitution's 50-slide/300-element fixture
+- The playback budgets arm in T103, discharging the Constitution's 50-slide/300-element fixture
   requirement that Wave 2 deferred with a reason that no longer holds
 - Interaction state and media position are **inputs** to resolution, never state inside it — that
   is what keeps seeking a recomputation and parity structural (research R-01)

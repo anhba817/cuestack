@@ -81,7 +81,7 @@ video to its end and observe exactly one advancement. MVP Acceptance Scenario C.
 3. **Given** the same slide, **When** the video reaches its end, **Then** the lesson advances
    exactly once, even if the end is reported more than once.
 4. **Given** an element whose visibility is tied to media playback, **When** the media reaches
-   the element's cue time, **Then** the element appears within the stated timing tolerance.
+   the element's cue time, **Then** the element appears within the media synchronisation tolerance.
 5. **Given** a lesson containing media that would play with sound, **When** it loads without any
    learner action, **Then** playback does not begin and the learner is told how to start it.
 6. **Given** the learner has made that initial action, **When** playback begins, **Then** audible
@@ -347,8 +347,8 @@ page read in order would silently move what other documents point at.
   order and within the timing tolerance.
 - **SC-005**: MVP Acceptance Scenario F passes: with reduced motion active, every moving effect
   resolves to an alternative, and content order and timing are unchanged.
-- **SC-006**: An element synchronised to media appears within the stated timing tolerance of its
-  cue, measured against the media's reported position rather than wall-clock time.
+- **SC-006**: An element synchronised to media appears within the media synchronisation tolerance
+  of its cue, measured against the media's reported position rather than wall-clock time.
 - **SC-007**: Playback holds 60 frames per second on reference hardware for the corpus's heaviest
   slide, and remains usable at 30 (NFR-PERF-004). Measured by a repeatable fixture, not by
   observation.
@@ -366,8 +366,9 @@ page read in order would silently move what other documents point at.
   automated check over the event payloads rather than by inspection.
 - **SC-013**: Audible media never plays before a learner action, demonstrated across the corpus.
 - **SC-014**: Seeking the lesson to any moment on a media slide leaves the media within the
-  stated timing tolerance of that moment, and a seek the media cannot honour leaves the lesson
-  responsive with its displayed position honest about where the media actually is.
+  **media synchronisation tolerance** of that moment — not the tighter non-streaming tolerance,
+  which a media clock cannot meet — and a seek the media cannot honour leaves the lesson responsive
+  with its displayed position honest about where the media actually is.
 
 ## Assumptions
 
@@ -387,8 +388,13 @@ page read in order would silently move what other documents point at.
 - **The reduced-motion preference is read from the platform.** There is no in-lesson toggle; the
   learner has already stated this preference at the system level and asking again is worse than
   honouring it.
-- **The timing tolerance is the one already defined** for non-streaming elements (FR-PLY-018,
-  NFR-ACC-001), not a new figure introduced here.
+- **Two tolerances, for two different promises.** The lesson timing tolerance is the one already
+  defined for non-streaming elements (FR-PLY-018, NFR-ACC-001) and no new figure is introduced for
+  it. Media synchronisation needs a *separate* and larger one, because a media element owns a clock
+  the framework cannot pause or seek exactly. That second figure is bounded by facts already in the
+  codebase — the cadence a media element reports at, and the smallest scrub the seek control
+  permits — and is stated in contracts/media-port-contract.md rather than here, because it is a
+  consequence of the design rather than a requirement on it.
 - **QA-3 covers MVP Acceptance Scenarios A, B, C, and F only.** D (save recovery) needs the editor
   and its offline queue; E (published-version isolation) needs the publishing pipeline. Both are
   later waves, so claiming "A–F" in this wave would be false.

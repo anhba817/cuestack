@@ -59,9 +59,15 @@ single and stated:
 > **The transport is the only clock. Either side may request a position change; every change is
 > applied to the transport, and the transport then commands the media.**
 
-A reported position within **tolerance** of the last commanded position is an echo and is
-discarded. Outside tolerance, the report is treated as the learner having moved the media
+A reported position within **`MEDIA_SYNC_TOLERANCE_MS` (500 ms)** of the last commanded position is
+an echo and is discarded. Outside it, the report is treated as the learner having moved the media
 directly, and the transport seeks itself to match.
+
+The value is derived rather than chosen: its floor is the ~250 ms cadence a playing media element
+reports at — the same figure Wave 1 picked for `CLAMP_CEILING_MS`, for the same reason — and its
+ceiling is the 1000 ms step Wave 2 fixed for the seek slider, which is the smallest deliberate move
+a learner can make. Both bounds are asserted by tests, so a later change to either fails loudly
+rather than silently making the constant wrong (contracts/media-port-contract.md).
 
 **Rationale.** Wave 1 chose a read-only port and recorded the reason (feature 002 research R-04):
 the kernel decides what a media position means, the adapter decides how it is learned, and one
