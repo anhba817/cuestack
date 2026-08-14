@@ -79,6 +79,49 @@ describe('gate: package direction (dependency-cruiser, graph)', () => {
   })
 })
 
+describe('gate: no-switch-on-element-type', () => {
+  it('rejects dispatching on a type discriminant inside resolution logic', () => {
+    const probe = join(root, 'packages/core/src/resolve/__gate_probe__.ts')
+    try {
+      writeFileSync(
+        probe,
+        [
+          'export function dispatch(element: { type: string }): number {',
+          '  switch (element.type) {',
+          "    case 'text': return 1",
+          '    default: return 0',
+          '  }',
+          '}',
+        ].join('\n'),
+      )
+      const output = runExpectingFailure('pnpm', ['exec', 'eslint', 'packages/core/src'])
+      expect(output).not.toBe('')
+      expect(output).toContain('no-switch-on-element-type')
+    } finally {
+      rmSync(probe, { force: true })
+    }
+  })
+
+  it('permits it inside a registry, which is where dispatch belongs', () => {
+    const probe = join(root, 'packages/core/src/elements/registry.ts')
+    const original = readFileSync(probe, 'utf8')
+    try {
+      writeFileSync(
+        probe,
+        original +
+          '\nexport function probeDispatch(e: { type: string }): number {\n' +
+          '  switch (e.type) {\n    default: return 0\n  }\n}\n',
+      )
+      execFileSync('pnpm', ['exec', 'eslint', 'packages/core/src/elements/registry.ts'], {
+        cwd: root,
+        stdio: 'pipe',
+      })
+    } finally {
+      writeFileSync(probe, original)
+    }
+  })
+})
+
 describe('gate: determinism lint', () => {
   it('rejects a clock read inside the schema package', () => {
     const probe = join(root, 'packages/schema/src/__gate_probe__.ts')
