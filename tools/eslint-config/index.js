@@ -77,8 +77,12 @@ export default tseslint.config(
      * review once the file is long, and the reason a framework stops being
      * extensible. Only the registries may dispatch on a type discriminant.
      */
-    files: ['packages/core/src/**/*.ts'],
-    ignores: ['packages/core/src/elements/registry.ts', 'packages/core/src/effects/registry.ts'],
+    files: ['packages/core/src/**/*.ts', 'packages/react/src/**/*.{ts,tsx}'],
+    ignores: [
+      'packages/core/src/elements/registry.ts',
+      'packages/core/src/effects/registry.ts',
+      'packages/react/src/elements/registry.tsx',
+    ],
     rules: {
       'no-restricted-syntax': [
         'error',
@@ -142,6 +146,32 @@ export default tseslint.config(
                 'no-core-in-schema: dependencies flow schema <- core <- adapters, one direction only. @cuestack/schema is the format contract and must not depend on anything that consumes it.',
             },
           ],
+        },
+      ],
+    },
+  },
+  {
+    /**
+     * Constitution III: all colour, typography, and spacing resolve from theme
+     * tokens (FR-014). A hard-coded `#333` survives review — it is invisible in a
+     * diff and looks deliberate — and then survives every theme anyone applies.
+     * Renderers may only reach values through var(--cs-theme-*).
+     */
+    files: ['packages/react/src/elements/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "Literal[value=/^(#[0-9a-fA-F]{3,8}|rgb|rgba|hsl|hsla)/]",
+          message:
+            'no-theme-literals: colour values must resolve from var(--cs-theme-*), never be written into a renderer (Constitution III, FR-014).',
+        },
+        {
+          selector:
+            "Property[key.name=/^(color|backgroundColor|borderColor|fill|stroke|fontFamily|fontSize|padding|margin|gap)$/] > Literal[value!=/^var\\(/]",
+          message:
+            'no-theme-literals: this style property must resolve from var(--cs-theme-*) with a readable fallback (Constitution III, FR-014).',
         },
       ],
     },

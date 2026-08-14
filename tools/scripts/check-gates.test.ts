@@ -181,17 +181,38 @@ describe('gate: data-model agreement', () => {
   })
 })
 
-describe('gate: placeholders', () => {
-  it('all four placeholder gates exit 0 and name the wave that arms them', () => {
-    const output = execFileSync('node', ['tools/scripts/gates/run-all.mjs'], {
-      cwd: root,
-      encoding: 'utf8',
-    })
+describe('gate: the four gates that began as placeholders', () => {
+  /**
+   * Three of the four are now armed — perf in feature 002, theme-values and a11y in
+   * feature 003. This test tracks that transition deliberately: it asserted all four
+   * were placeholders naming a future wave, and updating it as each one arms is how
+   * the arming becomes visible rather than silent.
+   */
+  const output = () =>
+    execFileSync('node', ['tools/scripts/gates/run-all.mjs'], { cwd: root, encoding: 'utf8' })
+
+  it('all four run and exit 0', () => {
+    const out = output()
     for (const gate of ['theme-values', 'parity', 'a11y', 'perf']) {
-      expect(output).toContain(`gate:${gate}`)
+      expect(out).toContain(`gate:${gate}`)
     }
-    expect(output).toMatch(/Wave 2/)
-    expect(output).toMatch(/Wave 3/)
-    expect(output).toMatch(/Wave 4/)
+  })
+
+  it('parity is still a placeholder and names the wave that arms it', () => {
+    expect(output()).toMatch(/gate:parity — placeholder.*Wave 4/s)
+  })
+
+  it('perf is armed against a real budget', () => {
+    expect(output()).toMatch(/gate:perf — resolution budget met/)
+  })
+
+  it('theme-values and a11y are armed, not placeholders', () => {
+    const out = output()
+    // They report "nothing to check" only while their subject matter is absent; the
+    // word "placeholder" must be gone, because they now fail on real violations.
+    expect(out).toMatch(/gate:theme-values —/)
+    expect(out).toMatch(/gate:a11y —/)
+    expect(out).not.toMatch(/gate:theme-values — placeholder/)
+    expect(out).not.toMatch(/gate:a11y — placeholder/)
   })
 })
