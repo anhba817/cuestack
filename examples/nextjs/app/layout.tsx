@@ -1,17 +1,17 @@
 import type { ReactNode } from 'react'
+import '@cuestack/react/styles.css'
 
 /**
- * TODO(T073): the stylesheet is not imported yet.
+ * The player's stylesheet, imported the way a host would.
  *
- * `import '@cuestack/react/styles.css'` is the intended usage and the exports map
- * declares it, but Turbopack cannot resolve the subpath from the workspace link —
- * not fixed by dropping transpilePackages, nor by declaring the CSS in
- * `sideEffects`. Until it is resolved the stage renders unpositioned here, which
- * makes this page an incomplete demonstration rather than a wrong one.
+ * This import is the demonstration. It failed for most of Wave 2, and the diagnosis was
+ * wrong twice: the export map was blamed, when the actual faults were that `dist/styles.css`
+ * was a copy of a two-line file whose `@import`s pointed at files never placed in dist, and
+ * that attw's complaint was about types, which a stylesheet does not have. Neither had
+ * anything to do with Turbopack.
  *
- * The scaling assertions in packages/react/test/scaling/ (US3) verify the stylesheet
- * itself, so the mechanism is testable without this. Left explicit rather than
- * worked around with a relative dist path, because a consumer would hit the same wall.
+ * Kept here rather than in the page, because a stylesheet belongs to the document and a host
+ * imports it once.
  */
 export const metadata = { title: 'Cuestack — React SSR Player' }
 

@@ -15,6 +15,20 @@ import { visualProperties } from './applyVisual.js'
  */
 export interface FrameWriter {
   register(elementId: string, node: HTMLElement | null): void
+  /**
+   * A stable ref callback for one element.
+   *
+   * Here rather than a `useCallback` in the wrapper, and that is not a style preference.
+   * A hook in the element wrapper makes the wrapper unable to be a React Server
+   * Component, so the static player could not server-render a slide that had any elements
+   * on it — and the failure was hidden twice over: `renderToString` is ordinary SSR where
+   * hooks work fine, and the reference lesson's first slide is empty at time zero, so the
+   * example app rendered zero wrappers and built cleanly.
+   *
+   * Memoised per id because React detaches and reattaches a ref whose identity changed,
+   * which would unregister and re-register every element on every render.
+   */
+  refFor(elementId: string): (node: HTMLElement | null) => void
   write(state: RenderState): void
   clear(): void
 }
@@ -23,8 +37,9 @@ export function createFrameWriter(): FrameWriter {
   const nodes = new Map<string, HTMLElement>()
   /** What was last written per element, so an unchanged frame costs nothing. */
   const written = new Map<string, string>()
+  const refs = new Map<string, (node: HTMLElement | null) => void>()
 
-  return {
+  const writer: FrameWriter = {
     register(elementId, node) {
       if (node) {
         nodes.set(elementId, node)
@@ -32,6 +47,15 @@ export function createFrameWriter(): FrameWriter {
         nodes.delete(elementId)
         written.delete(elementId)
       }
+    },
+
+    refFor(elementId) {
+      let ref = refs.get(elementId)
+      if (!ref) {
+        ref = (node) => writer.register(elementId, node)
+        refs.set(elementId, ref)
+      }
+      return ref
     },
 
     write(state) {
@@ -80,6 +104,10 @@ export function createFrameWriter(): FrameWriter {
     clear() {
       nodes.clear()
       written.clear()
+      // Not `refs`: a cleared writer may be written to again, and discarding the memoised
+      // callbacks would hand React a new identity for every element on the next render.
     },
   }
+
+  return writer
 }

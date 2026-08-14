@@ -10,6 +10,17 @@
  */
 export { LessonPlayerStatic as LessonPlayer } from './player/LessonPlayerStatic.js'
 export type { LessonPlayerStaticProps as LessonPlayerProps } from './player/LessonPlayerStatic.js'
+/**
+ * Also under its own name, matching the client entry.
+ *
+ * The client entry exported both `LessonPlayer` and `LessonPlayerStatic`; this one exported
+ * only the alias — so the static player was unreachable by name from the very context it
+ * exists for, and a Server Component asking for it by name failed to build. Feature 001's
+ * lesson exactly: when the two surfaces diverge, the divergence is invisible until something
+ * that should work does not.
+ */
+export { LessonPlayerStatic } from './player/LessonPlayerStatic.js'
+export type { LessonPlayerStaticProps } from './player/LessonPlayerStatic.js'
 export { Stage } from './player/Stage.js'
 export { SlideView } from './player/SlideView.js'
 export { ElementFrame } from './player/ElementFrame.js'
