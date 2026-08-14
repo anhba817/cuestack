@@ -188,22 +188,22 @@ the rule and confirm the lint gate rejects it.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T060 [P] [US4] Synthetic element type test in `packages/core/test/registry/element.test.ts` — a registered type participates in timing and layering identically to a built-in, and the test is written so it would fail if the resolver had to know about the type (US4 #1, SC-007)
-- [ ] T061 [P] [US4] Synthetic effect test in `packages/core/test/registry/effect.test.ts` — a registered effect composes with built-ins and its motion flag is reported
-- [ ] T062 [P] [US4] Incomplete registration test in `packages/core/test/registry/contract.test.ts` — a plugin missing any of its five members is refused with the missing member named (US4 #2, FR-026)
-- [ ] T063 [P] [US4] Unknown optional type test in `packages/core/test/registry/unknown-optional.test.ts` — the rest of the slide resolves and the element reports `available: false` (US4 #3, FR-027)
-- [ ] T064 [P] [US4] Unknown required interaction test in `packages/core/test/registry/unknown-required.test.ts` — the state reports blocked, because silently skipping a question that gates progression strands the learner (US4 #4, FR-028)
-- [ ] T065 [P] [US4] Plugin isolation test in `packages/core/test/registry/isolation.test.ts` — a plugin's resolve input contains only its own payload, geometry, slide time, and theme; no lesson, no siblings, no learner data (US4 #5, FR-029)
-- [ ] T066 [P] [US4] Lint negative control in `tools/scripts/check-gates.test.ts` — adding `switch (element.type)` to a resolver file is rejected, naming the rule
+- [X] T060 [P] [US4] Synthetic element type test in `packages/core/test/registry/element.test.ts` — a registered type participates in timing and layering identically to a built-in, and the test is written so it would fail if the resolver had to know about the type (US4 #1, SC-007)
+- [X] T061 [P] [US4] Synthetic effect test in `packages/core/test/registry/effect.test.ts` — a registered effect composes with built-ins and its motion flag is reported
+- [X] T062 [P] [US4] Incomplete registration test in `packages/core/test/registry/contract.test.ts` — a plugin missing any of its five members is refused with the missing member named (US4 #2, FR-026)
+- [X] T063 [P] [US4] Unknown optional type test in `packages/core/test/registry/unknown-optional.test.ts` — the rest of the slide resolves and the element reports `available: false` (US4 #3, FR-027)
+- [X] T064 [P] [US4] Unknown required interaction test in `packages/core/test/registry/unknown-required.test.ts` — the state reports blocked, because silently skipping a question that gates progression strands the learner (US4 #4, FR-028)
+- [X] T065 [P] [US4] Plugin isolation test in `packages/core/test/registry/isolation.test.ts` — a plugin's resolve input contains only its own payload, geometry, slide time, and theme; no lesson, no siblings, no learner data (US4 #5, FR-029)
+- [X] T066 [P] [US4] Lint negative control in `tools/scripts/check-gates.test.ts` — adding `switch (element.type)` to a resolver file is rejected, naming the rule
 
-- [ ] T067 [P] [US4] Plugin version compatibility test in `packages/core/test/registry/version.test.ts` — a plugin declaring an incompatible `RenderState` version is refused, with both the plugin's and the kernel's version named (contracts/plugin-contract.md "Versioning")
+- [X] T067 [P] [US4] Plugin version compatibility test in `packages/core/test/registry/version.test.ts` — a plugin declaring an incompatible `RenderState` version is refused, with both the plugin's and the kernel's version named (contracts/plugin-contract.md "Versioning")
 
 ### Implementation for User Story 4
 
-- [ ] T068 [US4] Implement the element registry in `packages/core/src/elements/registry.ts` — typed map, completeness check at registration, missing-member message
-- [ ] T069 [US4] Implement the effect registry in `packages/core/src/effects/registry.ts` with the same completeness discipline
-- [ ] T070 [US4] Implement unknown-type handling in `packages/core/src/resolve/element.ts` — placeholder for optional types, blocking problem for required interaction types
-- [ ] T071 [US4] Implement the plugin version compatibility check in `packages/core/src/elements/registry.ts`, refusing a plugin built against an incompatible `RenderState` shape with both versions named
+- [X] T068 [US4] Implement the element registry in `packages/core/src/elements/registry.ts` — typed map, completeness check at registration, missing-member message
+- [X] T069 [US4] Implement the effect registry in `packages/core/src/effects/registry.ts` with the same completeness discipline
+- [X] T070 [US4] Implement unknown-type handling in `packages/core/src/resolve/element.ts` — placeholder for optional types, blocking problem for required interaction types
+- [X] T071 [US4] Implement the plugin version compatibility check in `packages/core/src/elements/registry.ts`, refusing a plugin built against an incompatible `RenderState` shape with both versions named
 
 **Checkpoint**: US1–US4 work. Extensibility is proven rather than intended.
 
@@ -218,10 +218,10 @@ reference.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T072 [P] [US5] Storage round-trip test in `packages/core/test/adapters/storage.test.ts` — a saved lesson loads back equivalent (US5 #1)
-- [ ] T073 [P] [US5] Conflict test in `packages/core/test/adapters/conflict.test.ts` — a save against a stale token is refused with the current token returned, and the stored manifest is unmodified (US5 #2, SC-008)
-- [ ] T074 [P] [US5] Default-adapters test in `packages/core/test/adapters/defaults.test.ts` — the framework works with no host implementation configured (US5 #3, FR-032)
-- [ ] T075 [P] [US5] Event shape test in `packages/core/test/adapters/analytics.test.ts` — an event carries lesson version, slide, interaction, attempt, and outcome, and the type has no field a learner identifier could occupy (US5 #4, FR-033)
+- [X] T072 [P] [US5] Storage round-trip test in `packages/core/test/adapters/storage.test.ts` — a saved lesson loads back equivalent (US5 #1)
+- [X] T073 [P] [US5] Conflict test in `packages/core/test/adapters/conflict.test.ts` — a save against a stale token is refused with the current token returned, and the stored manifest is unmodified (US5 #2, SC-008)
+- [X] T074 [P] [US5] Default-adapters test in `packages/core/test/adapters/defaults.test.ts` — the framework works with no host implementation configured (US5 #3, FR-032)
+- [X] T075 [P] [US5] Event shape test in `packages/core/test/adapters/analytics.test.ts` — an event carries lesson version, slide, interaction, attempt, and outcome, and the type has no field a learner identifier could occupy (US5 #4, FR-033)
 
 ### Implementation for User Story 5
 
@@ -235,13 +235,13 @@ reference.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T079 Performance test in `packages/core/test/resolve/perf.test.ts` — a 300-element slide resolves under 10 ms on the reference runner, and cost grows roughly linearly with element count (SC-001)
-- [ ] T080 Arm the perf gate for resolution in `tools/scripts/gates/perf.mjs`, replacing the Wave 3 placeholder note with a real check and leaving the playback-frame budgets still deferred
-- [ ] T081 [P] Timing-suite duration assertion in `packages/core/test/harness/duration.test.ts` — the full timing suite completes in under 5 seconds, which only holds while nothing waits in real time (SC-006)
-- [ ] T082 [P] Write `packages/core/README.md` covering `resolve`, the transport, the registries, and the ports a host must supply
-- [ ] T083 [P] Add a Changesets entry at `.changeset/headless-kernel.md` for the `@cuestack/core` minor release
-- [ ] T084 Run every scenario in `specs/002-headless-kernel/quickstart.md` by hand and correct any step that does not work as written
-- [ ] T085 Flip EN-1 through EN-6 and QA-1 to ✅ in `docs/cuestack_framework_plan.md` and confirm the Wave 2 critical path still holds
+- [X] T079 Performance test in `packages/core/test/resolve/perf.test.ts` — a 300-element slide resolves under 10 ms on the reference runner, and cost grows roughly linearly with element count (SC-001)
+- [X] T080 Arm the perf gate for resolution in `tools/scripts/gates/perf.mjs`, replacing the Wave 3 placeholder note with a real check and leaving the playback-frame budgets still deferred
+- [X] T081 [P] Timing-suite duration assertion in `packages/core/test/harness/duration.test.ts` — the full timing suite completes in under 5 seconds, which only holds while nothing waits in real time (SC-006)
+- [X] T082 [P] Write `packages/core/README.md` covering `resolve`, the transport, the registries, and the ports a host must supply
+- [X] T083 [P] Add a Changesets entry at `.changeset/headless-kernel.md` for the `@cuestack/core` minor release
+- [X] T084 Run every scenario in `specs/002-headless-kernel/quickstart.md` by hand and correct any step that does not work as written
+- [X] T085 Flip EN-1 through EN-6 and QA-1 to ✅ in `docs/cuestack_framework_plan.md` and confirm the Wave 2 critical path still holds
 
 ---
 

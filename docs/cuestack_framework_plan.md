@@ -36,12 +36,12 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
       ✅ IN-1 ──→ ✅ SCH-1 ──→ ✅ SCH-2              (critical path starts)
 
     Wave 1 — headless kernel  (after SCH-1)
-      ✅ SCH-1 ──→ 🔲 EN-5 ──→ 🔲 EN-4 ──→ 🔲 EN-1 ──→ 🔲 EN-2 ──→ 🔲 EN-3   (critical path)
-                                                        └──→ 🔲 QA-1
-      ✅ SCH-1 ──→ 🔲 EN-6                             (adapter interfaces; parallel)
+      ✅ SCH-1 ──→ ✅ EN-5 ──→ ✅ EN-4 ──→ ✅ EN-1 ──→ ✅ EN-2 ──→ ✅ EN-3   (critical path)
+                                                        └──→ ✅ QA-1
+      ✅ SCH-1 ──→ ✅ EN-6                             (adapter interfaces; parallel)
 
     Wave 2 — React + SSR  (after EN-3; the headline milestone)
-      🔲 EN-3 ──→ 🔲 RC-1 ──→ 🔲 NX-1 ──→ 🔲 NX-3 ──→ 🔲 QA-2   (critical path)
+      ✅ EN-3 ──→ 🔲 RC-1 ──→ 🔲 NX-1 ──→ 🔲 NX-3 ──→ 🔲 QA-2   (critical path)
                     └──→ 🔲 RC-2 ───────────┘
       🔲 NX-2 ─────────────────→ 🔲 NX-1            (CSS scaling; startable in Wave 0)
 
@@ -52,7 +52,7 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
       🔲 NX-2 ──→ 🔲 PL-4                           (reduced motion, CSS-only)
 
     Wave 4 — Studio editor  (after Wave 3)
-      🔲 EN-5 ──→ 🔲 ED-1 ──→ 🔲 ED-2
+      ✅ EN-5 ──→ 🔲 ED-1 ──→ 🔲 ED-2
                     ├──→ 🔲 ED-3 ──→ 🔲 ED-4
                     └──→ 🔲 ED-5
       🔲 RC-1 ──→ 🔲 ED-6 ──→ 🔲 QA-5               (preview reuses the player — parity by construction)
@@ -60,8 +60,8 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
     Wave 5 — publish, portability, extensibility proof
       ✅ SCH-2 ──→ 🔲 PB-1 ──→ 🔲 PB-2
       ✅ SCH-2 ──→ 🔲 SCH-3                           (portable export/import package)
-      🔲 EN-6 ──→ 🔲 PB-3                           (HTTP reference adapter)
-      🔲 EN-5 ──→ 🔲 DX-1
+      ✅ EN-6 ──→ 🔲 PB-3                           (HTTP reference adapter)
+      ✅ EN-5 ──→ 🔲 DX-1
       🔲 RC-1 ──→ 🔲 DX-2                           (second adapter proves the core is framework-agnostic)
 
     Critical path:
@@ -78,13 +78,13 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 | 0 | IN-1 monorepo, build, exports maps | — | 0 | 3 | 2 | 1 | 7 | ✅ |
 | 0 | SCH-1 manifest schema + types + validators | IN-1 | 0 | 3 | 2 | 2 | 6 | ✅ |
 | 0 | SCH-2 schemaVersion + migration harness | SCH-1 | 0 | 2 | 2 | 1 | 5 | ✅ |
-| 1 | EN-2 monotonic clock + transport | EN-1 | 1 | 3 | 2 | 1 | 8 | 🔲 |
-| 1 | EN-3 advance controller (4 modes) | EN-2 | 2 | 3 | 2 | 2 | 8 | 🔲 |
-| 1 | EN-4 effect registry + 8 MVP effects | EN-5 | 2 | 3 | 1 | 1 | 8 | 🔲 |
-| 1 | QA-1 virtual-clock harness + BR-001..018 suite | EN-2 | 0 | 3 | 2 | 0 | 8 | 🔲 |
-| 1 | EN-6 storage/asset/analytics adapter interfaces | SCH-1 | 1 | 3 | 2 | 1 | 8 | 🔲 |
-| 1 | EN-1 timeline resolver (pure) | EN-4 | 1 | 3 | 2 | 2 | 7 | 🔲 |
-| 1 | EN-5 element registry + plugin contract | SCH-1 | 0 | 3 | 2 | 2 | 6 | 🔲 |
+| 1 | EN-2 monotonic clock + transport | EN-1 | 1 | 3 | 2 | 1 | 8 | ✅ |
+| 1 | EN-3 advance controller (4 modes) | EN-2 | 2 | 3 | 2 | 2 | 8 | ✅ |
+| 1 | EN-4 effect registry + 8 MVP effects | EN-5 | 2 | 3 | 1 | 1 | 8 | ✅ |
+| 1 | QA-1 virtual-clock harness + BR-001..018 suite | EN-2 | 0 | 3 | 2 | 0 | 8 | ✅ |
+| 1 | EN-6 storage/asset/analytics adapter interfaces | SCH-1 | 1 | 3 | 2 | 1 | 8 | ✅ |
+| 1 | EN-1 timeline resolver (pure) | EN-4 | 1 | 3 | 2 | 2 | 7 | ✅ |
+| 1 | EN-5 element registry + plugin contract | SCH-1 | 0 | 3 | 2 | 2 | 6 | ✅ |
 | 2 | RC-1 React player component | EN-3 | 3 | 3 | 2 | 1 | 10 | 🔲 |
 | 2 | NX-2 CSS-driven logical-canvas scaling | IN-1 | 2 | 3 | 2 | 1 | 9 | 🔲 |
 | 2 | NX-3 Next.js App Router example app | NX-1 | 3 | 2 | 2 | 0 | 9 | 🔲 |
@@ -113,19 +113,27 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 
 ## Next steps
 
-**Wave 0 is complete.** Shipped: a pnpm workspace with four packages and a Next.js example,
-CI running the constitution's gates with negative controls proving each would fail, and
-`@cuestack/schema` with two-tier validation, located issues, a forward-only migration chain,
-and 225 tests at 91% branch coverage. See `specs/001-framework-foundation/`.
+**Waves 0 and 1 are complete.** `@cuestack/schema` holds the format; `@cuestack/core` holds
+the kernel. 456 tests. See `specs/001-framework-foundation/` and `specs/002-headless-kernel/`.
 
-**Proposed next tranche: Wave 1 (EN-5, EN-4, EN-1).** The registries, the effect descriptors,
-and the timeline resolver — `resolve(slide, timeMs) -> RenderState`. EN-1 is the single most
-important item in the plan: it is simultaneously the parity guarantee, the seek
-implementation, and the reason SSR works at all.
+The headline result is that **preview-player parity is now proven rather than asserted**: for
+every slide in the corpus at every state-change boundary, playing a transport forward equals
+seeking directly, and it still holds after a pause, after a hidden interval, and when seeking
+backwards. Constitution V is structural from here on — there is one resolver, it has no
+memory, and arriving by a different route cannot produce a different answer.
 
-One carried-forward obligation: `@cuestack/core`'s coverage threshold is present but
-commented out in `vitest.config.ts`, waiting for EN-1 to give the package statements to
-cover. Re-enabling it is one line and belongs in the same change.
+Wave 0's carried-forward obligation is discharged: `@cuestack/core`'s coverage floor is
+enforced, and the perf gate is armed for resolution (300 elements in ~0.02ms against a 10ms
+budget, growth linear).
+
+**Proposed next tranche: Wave 2 (NX-2, RC-1, NX-1).** CSS-driven canvas scaling, the React
+player over the kernel, and the RSC/client boundary. `resolve(slide, 0)` already runs on a
+server with no browser, so the SSR milestone is unblocked — Wave 2 is about rendering what the
+kernel already computes.
+
+One known cost to meet deliberately: the media port is read-only. If Wave 3's timeline
+scrubbing needs to drag media along, that port becomes bidirectional — a design change, not an
+extension. Recorded in `specs/002-headless-kernel/research.md` R-04.
 
 ## Open design questions
 

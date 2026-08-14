@@ -26,9 +26,10 @@ import { resolve } from '@cuestack/core'
 import reference from '@cuestack/schema/fixtures/valid/reference.json' with { type: 'json' }
 
 const slide = reference.slides[0]
-for (const t of [0, 499, 500, 1250, 2000, 8000, 99999, -100]) {
+for (const t of [0, 499, 500, 750, 1250, 8000, 99999, -100]) {
   const state = resolve(slide, t)
-  console.log(t, '→', state.elements.map((e) => `${e.id}@${e.opacity.toFixed(2)}`).join(' '))
+  console.log(String(t).padStart(6), '→',
+    state.elements.map((e) => `${e.id}@${e.opacity.toFixed(2)}`).join(' ') || '(none)')
 }
 ```
 
@@ -36,9 +37,22 @@ for (const t of [0, 499, 500, 1250, 2000, 8000, 99999, -100]) {
 pnpm build && node packages/core/probe.mjs
 ```
 
-**Expected**: the title is absent at 499 ms and present at 500 ms; at 1250 ms it is mid-fade with
-an opacity strictly between 0 and 1. Times outside the slide return a state, not an error. No
-`window`, no clock, no prior call — this runs in bare Node.
+**Expected**, verified against the reference manifest:
+
+| Time | Result |
+|---|---|
+| 0, 499 | `(none)` — the title's window starts at 500 ms |
+| 500 | `element_title@0.00` — present, at the opening value of its fade |
+| 750 | `element_title@0.75` — mid-fade, strictly between 0 and 1 |
+| 1250 | title and accent both at 1.00 — the fade completed at 1000 ms |
+| 8000, 99999, −100 | `(none)`, and a valid state rather than an error |
+
+Mid-fade is **750 ms**, not 1250: the title's fade runs 500–1000 ms, so it is already complete
+by 1250. An earlier draft of this document asserted 1250 and was simply wrong about the
+fixture — caught by running it.
+
+No `window`, no clock, no prior call. This runs in bare Node, which is the property Wave 2's
+server-rendered first frame depends on.
 
 ## Scenario 2 — Playing to a time equals seeking to it (US1 #4, SC-002)
 
@@ -55,7 +69,7 @@ because there is only one function and it has no memory.
 ## Scenario 3 — Determinism (SC-003)
 
 ```bash
-pnpm exec vitest run resolve-determinism
+pnpm exec vitest run determinism
 ```
 
 **Expected**: two consecutive resolutions are byte-identical across the corpus. Watch for the
@@ -64,7 +78,7 @@ same leak feature 001 guarded against — an id or a timestamp generated during 
 ## Scenario 4 — A slide advances exactly once (US2, SC-005)
 
 ```bash
-pnpm exec vitest run advance-combinations
+pnpm exec vitest run combinations
 ```
 
 **Expected**: every combination of simultaneously-satisfied conditions yields exactly one
@@ -118,7 +132,7 @@ afterward.**
 ## Scenario 7 — Unknown types degrade by criticality (US4 #3–4, FR-027/028)
 
 ```bash
-pnpm exec vitest run unknown-types
+pnpm exec vitest run unknown-optional unknown-required
 ```
 
 **Expected**: an unregistered decorative type leaves the rest of the slide resolvable and appears
@@ -151,7 +165,7 @@ is code behind it. The `headless` suite additionally asserts no reference to `wi
 ## Scenario 10 — Resolution stays inside its budget (SC-001)
 
 ```bash
-pnpm exec vitest run resolve-perf
+pnpm exec vitest run perf
 ```
 
 **Expected**: a 300-element slide resolves in under 10 ms on the reference CI runner, leaving the

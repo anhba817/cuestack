@@ -1,14 +1,31 @@
 #!/usr/bin/env node
 /**
- * Placeholder gate — perf.
+ * Performance gate.
  *
- * FR-017 requires gates whose subject matter does not exist yet to be PRESENT
- * AND PASSING, not absent. The reason is narrow: enabling this later must be a
- * change to one script, not the creation of new CI infrastructure under
- * deadline pressure. A gate that does not exist when its feature lands is a
- * gate that gets postponed.
+ * Wave 1 arms the resolution budget: a 300-element slide must resolve inside 10ms,
+ * which is the kernel's share of NFR-PERF-003's 100ms seek budget. The remaining
+ * playback-frame budgets (60fps target, 30fps floor) stay deferred to Wave 3,
+ * because there are no frames yet to drop.
  *
- * This exits 0 because it checked nothing — not because failures are tolerated.
- * It MUST NOT be marked continue-on-error.
+ * Runs the perf suite rather than reimplementing the measurement: one definition
+ * of the budget, in the tests, where it can be read alongside what it protects.
  */
-console.log('gate:perf — placeholder, no playback yet. Gains teeth in Wave 3 (QA-4), when playback exists to regress.')
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
+
+try {
+  execFileSync('pnpm', ['exec', 'vitest', 'run', '--project', '@cuestack/core', 'perf'], {
+    cwd: root,
+    stdio: 'pipe',
+    encoding: 'utf8',
+  })
+  console.log('gate:perf — resolution budget met (300 elements < 10ms, growth linear).')
+  console.log('  Playback-frame budgets remain deferred: Wave 3 (QA-4), when there are frames.')
+} catch (error) {
+  console.error('gate:perf — FAILED. Resolution exceeded its budget or stopped scaling linearly.')
+  console.error(`${error.stdout ?? ''}${error.stderr ?? ''}`)
+  process.exit(1)
+}
