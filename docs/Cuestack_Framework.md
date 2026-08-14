@@ -1,16 +1,16 @@
-# Timed Lesson Builder Framework
+# Cuestack — Timed Lesson Framework
 
 **Document version:** 0.1  
 **Status:** Product-definition draft  
 **Intended audience:** Product managers, UX designers, software architects, developers, and QA engineers  
-**Working product name:** Builder  
+**Product name:** Cuestack (the framework and its engine); Cuestack Studio (the authoring application)  
 **Document scope:** Product Vision, Personas, Journey Map, and Software Requirements Specification
 
 ---
 
 ## 1. Executive Summary
 
-Builder is a web-based lesson-authoring framework that enables teachers to create slide-based, multimedia lessons with timed content, chronological visual effects, interactions, and automatic slide progression.
+Cuestack is a web-based lesson-authoring framework that enables teachers to create slide-based, multimedia lessons with timed content, chronological visual effects, interactions, and automatic slide progression.
 
 The authoring experience should feel as approachable as a presentation tool while adding capabilities specifically designed for teaching:
 
@@ -22,7 +22,7 @@ The authoring experience should feel as approachable as a presentation tool whil
 - An advanced timeline for precise timing
 - Immediate preview of the learner experience
 - Versioned publishing
-- A shared rendering engine between the builder and learner player
+- A shared rendering engine between the editor and the learner player
 
 Teachers create all instructional content themselves. AI-assisted lesson generation is explicitly outside the current product scope.
 
@@ -42,7 +42,7 @@ Enable every teacher to create engaging, paced, multimedia learning experiences 
 
 ### Product mission
 
-Builder will provide teachers with an intuitive visual workspace for combining content, timing, effects, media, and interactions into lessons that play consistently across devices.
+Cuestack will provide teachers with an intuitive visual workspace for combining content, timing, effects, media, and interactions into lessons that play consistently across devices.
 
 ### Product promise
 
@@ -74,7 +74,7 @@ This creates a gap:
 - Animation tools are powerful but inaccessible to ordinary teachers.
 - Video is easy to consume but difficult to update, localize, or make interactive.
 
-Builder addresses this gap by combining:
+Cuestack addresses this gap by combining:
 
 - Presentation-style slide authoring
 - Education-specific interactions
@@ -86,7 +86,7 @@ Builder addresses this gap by combining:
 
 ## 4. Target Users
 
-Builder primarily serves:
+Cuestack primarily serves:
 
 - Classroom teachers
 - Corporate trainers
@@ -126,7 +126,7 @@ Receive clear, paced, multimedia lessons that guide attention and require partic
 
 ## 6. Product Differentiators
 
-Builder should differentiate itself through the following capabilities.
+Cuestack should differentiate itself through the following capabilities.
 
 ### 6.1 Learning-aware slide progression
 
@@ -603,7 +603,7 @@ The teacher must be able to change a draft without unexpectedly changing the liv
 
 ## 18. SRS Purpose
 
-This SRS defines the expected behavior of the Builder authoring application, lesson format, publishing process, and learner playback framework.
+This SRS defines the expected behavior of the Cuestack Studio authoring application, the Cuestack lesson format, the publishing process, and the Cuestack learner playback framework.
 
 The specification is implementation-independent unless a technical constraint is necessary to ensure consistent authoring and playback.
 
@@ -750,7 +750,7 @@ Shared Learner Player
 
 ## 24. Primary User Interface
 
-The main builder interface shall contain five primary regions.
+The main Cuestack Studio interface shall contain five primary regions.
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -1779,7 +1779,7 @@ The following assumptions are treated as product defaults:
 
 # 38. Final Product Definition
 
-Builder is a teacher-first, slide-based lesson-authoring framework that combines the familiarity of presentation software with the timing, progression, interaction, versioning, and accessibility capabilities required for digital learning.
+Cuestack is a teacher-first, slide-based lesson-authoring framework that combines the familiarity of presentation software with the timing, progression, interaction, versioning, and accessibility capabilities required for digital learning.
 
 Its central experience is:
 
