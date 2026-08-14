@@ -1,11 +1,10 @@
 {
   "name": "@cuestack/react",
   "version": "0.0.0",
-  "description": "Cuestack react package (stub \u2014 arrives in a later wave)",
+  "description": "Cuestack React adapter \u2014 server-rendered, hydrating lesson player",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
-    "*.css",
     "./dist/styles.css"
   ],
   "files": [
@@ -20,10 +19,11 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./styles.css": "./dist/styles.css"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && node ../../tools/scripts/bundle-css.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },

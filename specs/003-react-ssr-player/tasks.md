@@ -210,15 +210,15 @@ carries its accessibility obligations, and contains no style literal.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T067 [P] [US5] Minimal-host test in `packages/react/test/embed/minimal-host.test.tsx` — a lesson renders from props alone with no further configuration (US5 #1, SC-012)
-- [ ] T068 [P] [US5] Style-scoping test in `packages/react/test/embed/scoping.test.ts` — the stylesheet contains no `:root`, no bare element selectors, and no `*`, so a host's own styles are untouched (US5 #4, FR-026)
-- [ ] T069 [P] [US5] Client-only test in `packages/react/test/embed/client-only.test.tsx` — the player works with no server rendering at all (US5 #3, FR-025)
-- [ ] T070 [US5] Peer-dependency check in `tools/scripts/check-packaging.mjs` — assert `@cuestack/react` declares React as a peer and does not bundle it (FR-026)
+- [X] T067 [P] [US5] Minimal-host test in `packages/react/test/embed/minimal-host.test.tsx` — a lesson renders from props alone with no further configuration (US5 #1, SC-012)
+- [X] T068 [P] [US5] Style-scoping test in `packages/react/test/embed/scoping.test.ts` — the stylesheet contains no `:root`, no bare element selectors, and no `*`, so a host's own styles are untouched (US5 #4, FR-026)
+- [X] T069 [P] [US5] Client-only test in `packages/react/test/embed/client-only.test.tsx` — the player works with no server rendering at all (US5 #3, FR-025)
+- [X] T070 [US5] Peer-dependency check in `tools/scripts/check-packaging.mjs` — assert `@cuestack/react` declares React as a peer and does not bundle it (FR-026)
 
 ### Implementation for User Story 5
 
-- [ ] T071 [US5] Finalise the `exports` map in `packages/react/package.json` and verify with publint and attw, including the `./styles.css` entry
-- [ ] T072 [US5] Verify in `packages/react/package.json` that the `default` condition resolves independently of `react-server`, so a purely client-side host that never touches the server entry still installs and imports cleanly
+- [X] T071 [US5] Finalise the `exports` map in `packages/react/package.json` and verify with publint and attw, including the `./styles.css` entry
+- [X] T072 [US5] Verify in `packages/react/package.json` that the `default` condition resolves independently of `react-server`, so a purely client-side host that never touches the server entry still installs and imports cleanly
 
 **Checkpoint**: All five stories independently functional.
 

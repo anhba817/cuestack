@@ -101,7 +101,9 @@ function parse(css: string, media?: string): Rule[] {
       out.push(...parse(body, prelude))
     } else if (prelude !== '') {
       out.push({
-        selectors: prelude.split(',').map((s) => s.trim()),
+        // splitTop, not split(','): `:where(p, h1, h2)` is one selector, and a naive split
+        // reported each tag inside it as a separate bare element selector.
+        selectors: splitTop(prelude, ',').map((s) => s.trim()),
         declarations: declarationsOf(body),
         ...(media === undefined ? {} : { media }),
       })

@@ -40,6 +40,136 @@ function run(label, command, args, cwd) {
   }
 }
 
+/**
+ * Extensions that carry no type information by nature. An allow-list, not a deny-list:
+ * the first attempt excluded anything that did not *end* in `.js`/`.json`, which quietly
+ * dropped `@cuestack/schema`'s `./fixtures/*` — a wildcard that was resolving and passing.
+ * Losing a check while fixing an unrelated one is exactly what this shape prevents.
+ */
+const ASSET_EXTENSION = /\.(?:css|s[ac]ss|svg|png|jpe?g|gif|webp|avif|woff2?|ttf|eot|txt|md)$/
+
+/**
+ * Export subpaths that resolve to a non-code asset, without their leading `./`.
+ *
+ * Only string targets count. A conditional object could hide a JavaScript target behind a
+ * condition, and excluding one of those from the types checker would be a real loss of
+ * coverage rather than a correct exemption.
+ */
+function assetSubpaths(manifest) {
+  const exports = manifest.exports ?? {}
+  return Object.entries(exports)
+    .filter(([sub, target]) => sub !== '.' && typeof target === 'string' && ASSET_EXTENSION.test(target))
+    .map(([sub]) => sub.replace(/^\.\//, ''))
+}
+
+/** Frameworks a host owns exactly one copy of. */
+const HOST_OWNED = ['react', 'react-dom', 'vue', 'svelte', '@angular/core']
+
+/**
+ * A UI framework must appear as a peer dependency and nowhere else.
+ *
+ * A devDependency is fine and necessary — the adapter has to build and test against a real
+ * React. What must not happen is a runtime `dependencies` entry, which installs a second
+ * copy beside the host's.
+ */
+function checkPeers(manifest) {
+  process.stdout.write('  peers … ')
+  const problems = []
+  const deps = manifest.dependencies ?? {}
+  const peers = manifest.peerDependencies ?? {}
+
+  for (const framework of HOST_OWNED) {
+    if (deps[framework] !== undefined) {
+      problems.push(
+        `${framework} is a runtime dependency; it must be a peer so the host's copy is the only copy`,
+      )
+    }
+  }
+
+  // The converse: a package that *imports* a framework must declare it, or a consumer
+  // installs the package and gets an unresolvable import at runtime.
+  const importsReact = existsSync(join(packagesDir, manifest.name.replace('@cuestack/', ''), 'src'))
+    ? readdirSync(join(packagesDir, manifest.name.replace('@cuestack/', ''), 'src'), { recursive: true })
+        .filter((f) => /\.tsx?$/.test(String(f)))
+        .some((f) =>
+          /from 'react(?:-dom)?(?:\/[\w./-]+)?'/.test(
+            readFileSync(join(packagesDir, manifest.name.replace('@cuestack/', ''), 'src', String(f)), 'utf8'),
+          ),
+        )
+    : false
+
+  if (importsReact && peers['react'] === undefined) {
+    problems.push('imports react but does not declare it as a peer dependency')
+  }
+
+  if (problems.length > 0) {
+    console.log('FAILED')
+    for (const p of problems) console.error(`      ${p}`)
+    failed = true
+    return
+  }
+  console.log(peers['react'] === undefined ? 'ok (no framework)' : `ok (react ${peers['react']} as peer)`)
+}
+
+/**
+ * Conditional exports resolve in declaration order, which makes their order load-bearing
+ * and invisible.
+ *
+ * `react-server` must come before `default`, or every consumer gets the server build —
+ * including browsers, where a player that never starts a clock simply never plays. And
+ * `default` must exist, or a host that applies no conditions at all (a bundler, a plain
+ * Node import) resolves nothing.
+ *
+ * Neither mistake throws. The first symptom is a player that renders and does not move.
+ */
+function checkConditionOrder(manifest, dir) {
+  const root = manifest.exports?.['.']
+  if (root === undefined || typeof root === 'string') return
+
+  process.stdout.write('  conditions … ')
+  const problems = []
+  const keys = Object.keys(root)
+
+  if (!keys.includes('default')) {
+    problems.push('the "." export declares no `default` condition, so an unconditioned import resolves nothing')
+  }
+
+  const server = keys.indexOf('react-server')
+  const fallback = keys.indexOf('default')
+  if (server > -1 && fallback > -1 && server > fallback) {
+    problems.push('`react-server` is declared after `default`, so it can never be selected')
+  }
+
+  // The two must be different files. A single entry behind both conditions means one of
+  // them is a lie, and the RSC boundary is where that surfaces — as a hook in a server
+  // component, two waves later.
+  const serverTarget = server > -1 ? targetOf(root['react-server']) : undefined
+  const clientTarget = fallback > -1 ? targetOf(root['default']) : undefined
+  if (serverTarget !== undefined && serverTarget === clientTarget) {
+    problems.push(`\`react-server\` and \`default\` both resolve to ${serverTarget}`)
+  }
+
+  for (const target of [serverTarget, clientTarget]) {
+    if (target !== undefined && !existsSync(join(dir, target))) {
+      problems.push(`${target} is declared but not built`)
+    }
+  }
+
+  if (problems.length > 0) {
+    console.log('FAILED')
+    for (const p of problems) console.error(`      ${p}`)
+    failed = true
+    return
+  }
+  console.log(serverTarget === undefined ? 'ok (no server condition)' : `ok (${serverTarget} / ${clientTarget})`)
+}
+
+function targetOf(entry) {
+  if (typeof entry === 'string') return entry
+  if (entry !== null && typeof entry === 'object') return entry.default ?? entry.import
+  return undefined
+}
+
 for (const name of packages) {
   const dir = join(packagesDir, name)
   const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
@@ -54,6 +184,16 @@ for (const name of packages) {
   // T042: exports map well-formedness.
   run('publint', 'pnpm', ['exec', 'publint', '--strict'], dir)
 
+  // T070 (feature 003): a UI framework must be a peer, never a dependency.
+  //
+  // FR-026. Two copies of React in one page is not a slow page, it is a broken one —
+  // hooks throw, context does not match, and the error names neither cause. publint does
+  // not check this, because bundling a framework is legal and merely wrong.
+  checkPeers(manifest)
+
+  // T072 (feature 003): the client path must not depend on the server condition.
+  checkConditionOrder(manifest, dir)
+
   // T043: type resolution as a consumer sees it, not as the author does.
   //
   // The `esm-only` profile is the right one: these packages ship no CommonJS
@@ -61,7 +201,30 @@ for (const name of packages) {
   // profile attw correctly reports "a require call resolved to an ESM file" for
   // every package — a true statement about a choice already made, so treating it
   // as a failure would train everyone to ignore this gate.
-  run('attw', 'pnpm', ['exec', 'attw', '--pack', '.', '--profile', 'esm-only'], dir)
+  //
+  // Asset entrypoints are excluded, because attw checks *types* and a stylesheet has
+  // none. `@cuestack/react/styles.css` reported "Resolution failed" for exactly that
+  // reason, and it was mistaken for a broken export map for most of a wave. Derived from
+  // the manifest rather than listed by hand: a second asset export is then excluded
+  // automatically, and a *JavaScript* export can never be excluded by accident.
+  const assetEntrypoints = assetSubpaths(manifest)
+  if (assetEntrypoints.length > 0) {
+    console.log(`  attw excluding ${assetEntrypoints.join(', ')} — assets carry no types`)
+  }
+  run(
+    'attw',
+    'pnpm',
+    [
+      'exec',
+      'attw',
+      '--pack',
+      '.',
+      '--profile',
+      'esm-only',
+      ...assetEntrypoints.flatMap((sub) => ['--exclude-entrypoints', sub]),
+    ],
+    dir,
+  )
 }
 
 if (failed) {
