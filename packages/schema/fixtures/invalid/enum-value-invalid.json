@@ -1,0 +1,314 @@
+{
+  "schemaVersion": "1.0",
+  "lesson": {
+    "id": "lesson_safety_001",
+    "title": "Workplace Safety",
+    "description": "A short induction on personal protective equipment.",
+    "language": "en-GB",
+    "aspectRatio": "21:9",
+    "themeId": "default"
+  },
+  "slides": [
+    {
+      "id": "slide_intro",
+      "name": "Introduction",
+      "durationMs": 8000,
+      "background": {
+        "kind": "color",
+        "color": "token.surface.default"
+      },
+      "transition": {
+        "type": "fade",
+        "durationMs": 400
+      },
+      "advance": {
+        "mode": "after_duration"
+      },
+      "elements": [
+        {
+          "id": "element_title",
+          "type": "text",
+          "x": 120,
+          "y": 80,
+          "width": 800,
+          "height": 120,
+          "rotation": 0,
+          "zIndex": 1,
+          "startMs": 500,
+          "endMs": 8000,
+          "payload": {
+            "text": "Workplace Safety"
+          },
+          "effects": [
+            {
+              "id": "effect_title_enter",
+              "type": "fade",
+              "phase": "enter",
+              "startMs": 500,
+              "durationMs": 500,
+              "order": 1,
+              "easing": "ease-out"
+            }
+          ]
+        },
+        {
+          "id": "element_accent",
+          "type": "shape",
+          "x": 120,
+          "y": 220,
+          "width": 240,
+          "height": 8,
+          "zIndex": 2,
+          "startMs": 1000,
+          "endMs": 8000,
+          "payload": {
+            "shape": "rect"
+          },
+          "style": {
+            "fill": "token.accent.primary"
+          },
+          "effects": [
+            {
+              "id": "effect_accent_pulse",
+              "type": "pulse",
+              "phase": "emphasis",
+              "startMs": 2000,
+              "durationMs": 600,
+              "order": 1
+            },
+            {
+              "id": "effect_accent_exit",
+              "type": "disappear",
+              "phase": "exit",
+              "startMs": 7600,
+              "durationMs": 400,
+              "order": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "slide_media",
+      "name": "Watch the briefing",
+      "durationMs": 30000,
+      "advance": {
+        "mode": "after_media_ends",
+        "mediaElementId": "element_briefing"
+      },
+      "elements": [
+        {
+          "id": "element_briefing",
+          "type": "video",
+          "x": 160,
+          "y": 100,
+          "width": 960,
+          "height": 540,
+          "zIndex": 1,
+          "startMs": 0,
+          "endMs": 30000,
+          "payload": {
+            "asset": {
+              "assetId": "asset_briefing_video",
+              "mimeType": "video/mp4",
+              "width": 1920,
+              "height": 1080,
+              "durationMs": 28500,
+              "captionTrack": "asset_briefing_captions"
+            },
+            "volume": 1,
+            "showControls": true,
+            "loop": false
+          },
+          "accessibility": {
+            "label": "Safety briefing video"
+          }
+        },
+        {
+          "id": "element_ambient",
+          "type": "audio",
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "zIndex": 0,
+          "hidden": true,
+          "startMs": 0,
+          "endMs": 30000,
+          "payload": {
+            "asset": {
+              "assetId": "asset_ambient_audio",
+              "mimeType": "audio/mpeg",
+              "durationMs": 30000,
+              "transcript": "asset_ambient_transcript"
+            },
+            "volume": 0.2,
+            "showControls": false,
+            "loop": true
+          }
+        },
+        {
+          "id": "element_worker",
+          "type": "image",
+          "x": 1160,
+          "y": 160,
+          "width": 400,
+          "height": 300,
+          "zIndex": 2,
+          "locked": true,
+          "startMs": 2000,
+          "endMs": 30000,
+          "payload": {
+            "asset": {
+              "assetId": "asset_worker_image",
+              "mimeType": "image/webp",
+              "width": 1200,
+              "height": 900
+            },
+            "caption": "Correct use of protective equipment"
+          },
+          "accessibility": {
+            "altText": "Worker wearing safety equipment"
+          },
+          "effects": [
+            {
+              "id": "effect_worker_enter",
+              "type": "slide",
+              "phase": "enter",
+              "startMs": 2000,
+              "durationMs": 450,
+              "order": 1,
+              "easing": "ease-out",
+              "parameters": {
+                "from": "bottom",
+                "distance": 64
+              }
+            }
+          ]
+        },
+        {
+          "id": "element_skip",
+          "type": "button",
+          "x": 1400,
+          "y": 620,
+          "width": 160,
+          "height": 48,
+          "zIndex": 3,
+          "startMs": 5000,
+          "endMs": 30000,
+          "payload": {
+            "label": "Skip briefing",
+            "action": "next_slide"
+          }
+        }
+      ]
+    },
+    {
+      "id": "slide_check",
+      "name": "Knowledge check",
+      "durationMs": 20000,
+      "transition": {
+        "type": "slide",
+        "durationMs": 300
+      },
+      "advance": {
+        "mode": "after_interaction",
+        "interactionElementId": "element_question_ppe"
+      },
+      "elements": [
+        {
+          "id": "element_question_ppe",
+          "type": "question",
+          "x": 200,
+          "y": 140,
+          "width": 1120,
+          "height": 460,
+          "zIndex": 1,
+          "startMs": 0,
+          "endMs": 20000,
+          "payload": {
+            "interactionType": "multiple_choice",
+            "prompt": "Which item must be worn on the workshop floor at all times?",
+            "options": [
+              {
+                "id": "opt_a",
+                "label": "Safety goggles"
+              },
+              {
+                "id": "opt_b",
+                "label": "A high-visibility vest"
+              },
+              {
+                "id": "opt_c",
+                "label": "Steel-toed boots"
+              }
+            ],
+            "correctResponse": "opt_c",
+            "required": true,
+            "maxAttempts": 2,
+            "shuffle": true,
+            "points": 10,
+            "correctFeedback": "Correct — boots are mandatory everywhere on the floor.",
+            "incorrectFeedback": "Not quite. Goggles and vests depend on the zone; boots never do.",
+            "completionPolicy": "on_correct"
+          }
+        }
+      ]
+    },
+    {
+      "id": "slide_wrap",
+      "name": "Wrap up",
+      "durationMs": 15000,
+      "advance": {
+        "mode": "on_click"
+      },
+      "metadata": {
+        "authorNote": "Optional question - does not gate progression"
+      },
+      "elements": [
+        {
+          "id": "element_question_report",
+          "type": "question",
+          "x": 200,
+          "y": 160,
+          "width": 1120,
+          "height": 320,
+          "zIndex": 1,
+          "startMs": 1000,
+          "endMs": 15000,
+          "payload": {
+            "interactionType": "true_false",
+            "prompt": "Near-misses must be reported even when nobody is hurt.",
+            "options": [
+              {
+                "id": "opt_true",
+                "label": "True"
+              },
+              {
+                "id": "opt_false",
+                "label": "False"
+              }
+            ],
+            "correctResponse": "opt_true",
+            "required": false,
+            "correctFeedback": "Right. Near-misses are the cheapest lesson available.",
+            "incorrectFeedback": "They must — a near-miss is a warning you get for free."
+          },
+          "effects": [
+            {
+              "id": "effect_question_enter",
+              "type": "zoom",
+              "phase": "enter",
+              "startMs": 1000,
+              "durationMs": 350,
+              "order": 1,
+              "parameters": {
+                "from": 0.92
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

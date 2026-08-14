@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0",
+  "lesson": {
+    "id": "lesson_safety_001",
+    "title": "Workplace Safety",
+    "description": "A short induction on personal protective equipment.",
+    "language": "en-GB",
+    "aspectRatio": "16:9",
+    "themeId": "default"
+  },
+  "slides": []
+}
