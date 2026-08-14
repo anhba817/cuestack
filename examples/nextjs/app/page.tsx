@@ -1,58 +1,38 @@
-import { validate } from '@cuestack/schema/validate'
+import { LessonPlayer } from '@cuestack/react'
+import reference from '@cuestack/schema/fixtures/valid/reference.json' with { type: 'json' }
 import type { LessonManifest } from '@cuestack/schema'
-import { ENTRY_KIND } from '@cuestack/react'
 import { ClientProbe } from './client-probe'
 
 /**
- * Wave 0's only visible artifact, and it exists for one reason: to prove the
- * `exports` map resolves correctly in both directions of the Next.js boundary.
+ * The first slide, server-rendered.
  *
- * This file is a React Server Component. It imports `@cuestack/react`, and the
- * value it receives must come from the `react-server` condition — the server
- * entry — not the client one. `ClientProbe` sits on the other side of a
- * "use client" boundary and must receive the client entry from the same
- * specifier. Nothing else in Wave 0 can catch a condition-order mistake, and
- * such a mistake does not throw: it silently ships the wrong bundle and
- * surfaces two waves later as an untraceable hydration bug.
+ * This is a React Server Component, so `LessonPlayer` here resolves through the
+ * `react-server` condition. It renders the slide's state at time zero into the HTML
+ * document — reload with JavaScript disabled and the stage is still there.
  *
- * There is no renderer yet. The first real slide arrives in Wave 2.
+ * Note the reference lesson's first slide is deliberately empty at time zero: its
+ * title fades in at 500ms. The stage renders at the authored proportions so nothing
+ * shifts when the content arrives, which is the property that matters, but it does
+ * mean this page shows an empty frame until playback begins. Recorded in
+ * `packages/react/test/ssr/content.test.ts`.
  */
-export default async function Page() {
-  // Imported rather than read from disk: the bundler rewrites module ids, so a
-  // path computed from require.resolve() is meaningless once Turbopack is done.
-  const reference = (await import('@cuestack/schema/fixtures/valid/reference.json')).default
-  const result = validate(reference)
-
-  const lesson: LessonManifest | null = result.ok ? result.lesson : null
+export default function Page() {
+  const lesson = reference as unknown as LessonManifest
 
   return (
     <main style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem', lineHeight: 1.6 }}>
-      <h1>Cuestack — Wave 0</h1>
+      <h1>Cuestack — {lesson.lesson.title}</h1>
 
-      <section>
-        <h2>Server-side validation</h2>
-        {lesson ? (
-          <p>
-            Validated <strong>{lesson.lesson.title}</strong> on the server:{' '}
-            {lesson.slides.length} slides, language {lesson.lesson.language}, aspect ratio{' '}
-            {lesson.lesson.aspectRatio}.
-          </p>
-        ) : (
-          <pre>{JSON.stringify(result.ok ? null : result.issues, null, 2)}</pre>
-        )}
-        <p>
-          This paragraph is in the HTML document before any JavaScript runs — which is the
-          property Wave 2&apos;s server-rendered first frame depends on.
-        </p>
-      </section>
+      <div style={{ maxWidth: '48rem', border: '1px solid #ddd' }}>
+        <LessonPlayer lesson={lesson} />
+      </div>
 
-      <section>
-        <h2>Export condition resolution</h2>
-        <p>
-          Resolved from a server component: <code>ENTRY_KIND = {ENTRY_KIND}</code>
-        </p>
-        <ClientProbe />
-      </section>
+      <p>
+        Rendered on the server: {lesson.slides.length} slides, aspect ratio{' '}
+        {lesson.lesson.aspectRatio}. Disable JavaScript and reload — the stage survives.
+      </p>
+
+      <ClientProbe />
     </main>
   )
 }
