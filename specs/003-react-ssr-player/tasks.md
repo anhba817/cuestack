@@ -151,17 +151,17 @@ preserve the aspect ratio and relative distances — assertions about CSS, not m
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T042 [P] [US3] Aspect-ratio test in `packages/react/test/scaling/aspect-ratio.test.ts` — the authored ratio is preserved for 16:9, 4:3, and 9:16 at container widths from 320 to 2560 px (US3 #1, #5, SC-005)
-- [ ] T043 [P] [US3] Relative-geometry test in `packages/react/test/scaling/relative.test.ts` — two elements 100 logical units apart emit declarations keeping them proportionally that far apart at every width (US3 #3, FR-010)
-- [ ] T044 [P] [US3] No-measurement test in `packages/react/test/scaling/no-measurement.test.ts` — no `getBoundingClientRect`, `offsetWidth`, or `ResizeObserver` appears anywhere in `packages/react/src` (FR-009, SC-004)
-- [ ] T045 [P] [US3] Clipping test in `packages/react/test/scaling/clipping.test.ts` — an element positioned outside the canvas is clipped to the stage and does not create horizontal page overflow (US3 #4, FR-011/012)
-- [ ] T046 [P] [US3] Empty-slide test in `packages/react/test/scaling/empty-slide.test.ts` — a slide with no visible elements renders a stage at the authored proportions rather than collapsing (spec Edge Cases)
+- [X] T042 [P] [US3] Aspect-ratio test in `packages/react/test/scaling/aspect-ratio.test.ts` — the authored ratio is preserved for 16:9, 4:3, and 9:16 at container widths from 320 to 2560 px (US3 #1, #5, SC-005)
+- [X] T043 [P] [US3] Relative-geometry test in `packages/react/test/scaling/relative.test.ts` — two elements 100 logical units apart emit declarations keeping them proportionally that far apart at every width (US3 #3, FR-010)
+- [X] T044 [P] [US3] No-measurement test in `packages/react/test/scaling/no-measurement.test.ts` — no `getBoundingClientRect`, `offsetWidth`, or `ResizeObserver` appears anywhere in `packages/react/src` (FR-009, SC-004)
+- [X] T045 [P] [US3] Clipping test in `packages/react/test/scaling/clipping.test.ts` — an element positioned outside the canvas is clipped to the stage and does not create horizontal page overflow (US3 #4, FR-011/012)
+- [X] T046 [P] [US3] Empty-slide test in `packages/react/test/scaling/empty-slide.test.ts` — a slide with no visible elements renders a stage at the authored proportions rather than collapsing (spec Edge Cases)
 
 ### Implementation for User Story 3
 
-- [ ] T047 [US3] Finalise the container-query positioning in `packages/react/src/styles/stage.css` so every axis, size, and font dimension scales from the container
-- [ ] T048 [US3] Implement aspect-ratio handling in `packages/react/src/player/Stage.tsx` — map the lesson's ratio to canvas dimensions, supporting 16:9, 4:3, and 9:16
-- [ ] T049 [US3] Add overflow clipping and the minimum-legibility floor to `packages/react/src/styles/stage.css` (US3 #4)
+- [X] T047 [US3] Finalise the container-query positioning in `packages/react/src/styles/stage.css` so every axis, size, and font dimension scales from the container
+- [X] T048 [US3] Implement aspect-ratio handling in `packages/react/src/player/Stage.tsx` — map the lesson's ratio to canvas dimensions, supporting 16:9, 4:3, and 9:16
+- [X] T049 [US3] Add overflow clipping and the minimum-legibility floor to `packages/react/src/styles/stage.css` (US3 #4)
 
 **Checkpoint**: US1–US3 work. The lesson renders, plays, and fits any screen.
 

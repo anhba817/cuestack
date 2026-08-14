@@ -15,6 +15,12 @@ export interface StageProps {
  * sets the canvas and theme properties the stylesheet reads. It measures nothing:
  * `container-type: size` lets the browser do the work during layout, which is the
  * only reason the server can emit correct geometry.
+ *
+ * The lesson's aspect ratio reaches the page as two numbers — the logical canvas
+ * dimensions — and the stylesheet builds `aspect-ratio` from them. Not a class per
+ * ratio and not a computed style: a class would need a stylesheet change to support a
+ * new ratio, and the canvas numbers are needed anyway, since every element coordinate
+ * is relative to them.
  */
 export function Stage({ lesson, theme, children }: StageProps): ReactNode {
   return (

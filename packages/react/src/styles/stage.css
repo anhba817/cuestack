@@ -54,7 +54,15 @@
     rotate(calc((var(--cs-rotation, 0) + var(--cs-rotate, 0)) * 1deg));
   transform-origin: center center;
 
-  filter: brightness(var(--cs-brightness, 1)) blur(calc(var(--cs-blur, 0) * 1px));
+  /*
+   * Brightness is a multiplier and stays one. Blur is a *length*, in the same logical
+   * units as everything else, so it scales with the stage like any other size — a blur
+   * fixed at `8px` softens an edge on a desktop and obliterates the same element on a
+   * phone, because the element shrank and the blur did not.
+   */
+  filter:
+    brightness(var(--cs-brightness, 1))
+    blur(calc(var(--cs-blur, 0) / var(--cs-canvas-w) * 100cqw));
 }
 
 /*
@@ -75,12 +83,24 @@
   }
 }
 
-/* Text scales with the stage, so a lesson reads the same proportionally at any size. */
+/*
+ * Text scales with the stage, so a lesson reads the same proportionally at any size —
+ * down to a floor, below which proportion stops being the point.
+ *
+ * A 32-unit heading on a 1600-unit canvas is 2% of the width, which is 6.4px in a 320px
+ * container. That is arithmetically correct and unreadable, and US3 #4 asks for legible
+ * rather than proportional at small sizes. `max()` keeps the proportional value wherever
+ * it is large enough and stops there.
+ *
+ * The consequence is deliberate: below the floor, text is larger than its authored box
+ * and wraps and clips. Unreadable text conveys nothing, whereas clipped text conveys
+ * most of itself and the clipping is visible enough to be reported and fixed.
+ */
 .cs-element-text {
   font-family: var(--cs-theme-font-body, system-ui, sans-serif);
-  font-size: calc(var(--cs-theme-font-size, 32) / var(--cs-canvas-w) * 100cqw);
+  font-size: max(12px, calc(var(--cs-theme-font-size, 32) / var(--cs-canvas-w) * 100cqw));
   line-height: 1.4;
-  /* Large system fonts must not push content out of its element. */
+  /* Large system fonts, and the floor above, must not push content out of its element. */
   overflow-wrap: break-word;
   overflow: hidden;
 }
@@ -100,9 +120,12 @@
 }
 
 .cs-placeholder {
+  /* A hairline stays a hairline: this border is an authoring affordance rather than
+     lesson content, and scaling it would make it a thick frame on a large display. */
   border: 1px dashed var(--cs-theme-border-muted, #999999);
   display: grid;
   place-items: center;
-  font-size: calc(16 / var(--cs-canvas-w) * 100cqw);
+  /* Its text is a message to a human, so it takes the same floor. */
+  font-size: max(12px, calc(16 / var(--cs-canvas-w) * 100cqw));
   color: var(--cs-theme-text-muted, #666666);
 }

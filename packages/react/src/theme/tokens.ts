@@ -1,20 +1,35 @@
-import type { LessonManifest } from '@cuestack/schema'
+import type { AspectRatio, LessonManifest } from '@cuestack/schema'
 import { CANVAS_HEIGHT, CANVAS_WIDTH, themeProperty, type PropertyBag } from '../frame/properties.js'
 
 export interface ThemeValues {
   readonly [token: string]: string | number
 }
 
-/** Logical canvas dimensions per aspect ratio. Arbitrary but fixed: what matters is
- *  that authored coordinates mean the same thing everywhere. */
-const CANVAS: Record<string, { w: number; h: number }> = {
+export interface Canvas {
+  readonly w: number
+  readonly h: number
+}
+
+/**
+ * Logical canvas dimensions per aspect ratio.
+ *
+ * The numbers are arbitrary; what matters is that each pair carries its ratio exactly,
+ * because that is what makes one logical unit the same length on both axes. A canvas
+ * whose ratio disagreed with the stage's would stretch every authored coordinate.
+ *
+ * Keyed by `AspectRatio` rather than `string`, and with no runtime fallback: a ratio
+ * added to the schema is then a compile error here rather than a lesson silently
+ * rendered as 16:9. The previous `?? CANVAS['16:9']` was the sort of defensive default
+ * that turns a new format value into a layout bug with no error attached to it.
+ */
+const CANVAS: Record<AspectRatio, Canvas> = {
   '16:9': { w: 1600, h: 900 },
   '4:3': { w: 1600, h: 1200 },
   '9:16': { w: 900, h: 1600 },
 }
 
-export function canvasFor(aspectRatio: string): { w: number; h: number } {
-  return CANVAS[aspectRatio] ?? CANVAS['16:9']!
+export function canvasFor(aspectRatio: AspectRatio): Canvas {
+  return CANVAS[aspectRatio]
 }
 
 /**

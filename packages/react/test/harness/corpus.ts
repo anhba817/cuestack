@@ -38,7 +38,13 @@ export function slide(elements: Slide['elements'], overrides: Record<string, unk
   } as unknown as Slide
 }
 
-export function lessonOf(slides: Slide[], theme: Record<string, string | number> = {}): LessonManifest {
+export function lessonOf(
+  slides: Slide[],
+  theme: Record<string, string | number> = {},
+  // Lesson-level overrides — `aspectRatio` above all, since US3 #5 is about a lesson
+  // authored at a ratio other than the default.
+  lesson: Record<string, unknown> = {},
+): LessonManifest {
   return {
     schemaVersion: '1.0',
     lesson: {
@@ -47,6 +53,7 @@ export function lessonOf(slides: Slide[], theme: Record<string, string | number>
       language: 'en',
       aspectRatio: '16:9',
       ...(Object.keys(theme).length > 0 ? { themeId: 'test' } : {}),
+      ...lesson,
     },
     slides,
   } as unknown as LessonManifest
