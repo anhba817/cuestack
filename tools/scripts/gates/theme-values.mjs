@@ -8,6 +8,13 @@
  *
  * Runs the lint rule rather than reimplementing the check, so there is one
  * definition of what a theme literal is.
+ *
+ * With `--no-inline-config`, which is the difference between this and `pnpm lint`.
+ * Delegating to ESLint meant inheriting its escape hatch: an inline eslint-disable above
+ * a hard-coded colour silenced the gate as well as the lint run, so the one mechanism
+ * meant to be unbypassable was not.
+ * Found by the negative control in `check-gates.test.ts`, which asserted the gate
+ * caught what lint could be told to ignore, and it did not.
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync } from 'node:fs'
@@ -25,7 +32,7 @@ if (!hasWork) {
 }
 
 try {
-  execFileSync('pnpm', ['exec', 'eslint', 'packages/react/src/elements'], {
+  execFileSync('pnpm', ['exec', 'eslint', '--no-inline-config', 'packages/react/src/elements'], {
     cwd: root,
     stdio: 'pipe',
     encoding: 'utf8',

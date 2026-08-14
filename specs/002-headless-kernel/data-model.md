@@ -47,6 +47,7 @@ class of preview-player divergence Principle V exists to prevent.
 | `filter` | `FilterDelta \| null` | Brightness and blur deltas, for highlight and dim. |
 | `activeEffects` | `ActiveEffect[]` | Which effects are contributing and at what progress. Diagnostic, and what the editor's timeline reads to show a playhead. |
 | `payload` | authored payload | Passed through unchanged. The kernel does not interpret element content. |
+| `accessibility` | `{ altText?, label?, hidden? } \| null` | Passed through unchanged, and never defaulted — an absent block and an empty one mean different things. **Added in Wave 2**, which found it missing: a renderer receives only a `ResolvedElement` and FR-015 requires it to expose an image's alternative text, so without this the alt text was in the manifest and unreachable by the one component that needs it. |
 | `available` | boolean | False when the element's type is not registered — the placeholder case from FR-027. |
 
 `transform` is kept separate from `geometry` rather than folded into it. An element that has been

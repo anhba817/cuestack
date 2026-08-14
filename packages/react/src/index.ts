@@ -14,8 +14,21 @@ export { SlideView } from './player/SlideView.js'
 export { ElementFrame } from './player/ElementFrame.js'
 export { createRendererRegistry } from './elements/registry.js'
 export type { ElementRenderer, ElementRendererProps, ElementRendererRegistry } from './elements/registry.js'
-export { builtinRenderers, textRenderer, shapeRenderer } from './elements/builtin/index.js'
+export {
+  builtinRenderers,
+  textRenderer,
+  shapeRenderer,
+  imageRenderer,
+  videoRenderer,
+  audioRenderer,
+  buttonRenderer,
+  questionRenderer,
+} from './elements/builtin/index.js'
 export { Placeholder } from './elements/Placeholder.js'
+export { AssetFallback } from './elements/AssetFallback.js'
+export type { AssetFallbackProps } from './elements/AssetFallback.js'
+export { defaultAssetResolver } from './elements/assets.js'
+export type { AssetResolver } from './elements/assets.js'
 export { stageProperties, canvasFor } from './theme/tokens.js'
 export type { ThemeValues } from './theme/tokens.js'
 export { elementProperties, geometryProperties, visualProperties } from './frame/applyVisual.js'

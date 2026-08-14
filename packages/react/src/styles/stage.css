@@ -119,6 +119,122 @@
   height: 100%;
 }
 
+/*
+ * The remaining renderers. Every value is a theme property with a readable fallback or a
+ * dimension derived from the container — the two rules the whole stylesheet obeys.
+ */
+
+.cs-element-figure {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  gap: calc(8 / var(--cs-canvas-w) * 100cqw);
+}
+
+.cs-element-figure .cs-element-image {
+  min-height: 0;
+}
+
+.cs-element-caption {
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: max(12px, calc(var(--cs-theme-font-size-caption, 20) / var(--cs-canvas-w) * 100cqw));
+  color: var(--cs-theme-text-muted, #666666);
+  text-align: center;
+}
+
+.cs-element-audio {
+  display: grid;
+  gap: calc(8 / var(--cs-canvas-w) * 100cqw);
+  place-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.cs-element-audio audio {
+  width: 100%;
+}
+
+.cs-element-transcript,
+.cs-element-button {
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: max(12px, calc(var(--cs-theme-font-size-ui, 24) / var(--cs-canvas-w) * 100cqw));
+  color: var(--cs-theme-text-on-accent, #ffffff);
+}
+
+.cs-element-transcript {
+  color: var(--cs-theme-link, #1a4fd6);
+  text-align: center;
+}
+
+.cs-element-button {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: calc(var(--cs-theme-radius, 8) / var(--cs-canvas-w) * 100cqw);
+  background: var(--cs-theme-accent-primary, #1a4fd6);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Focus is the only affordance a keyboard learner has. Never removed, and sized from the
+   container so it stays visible at every scale. */
+.cs-element-button:focus-visible,
+.cs-element-transcript:focus-visible,
+.cs-question-option input:focus-visible {
+  outline: max(2px, calc(3 / var(--cs-canvas-w) * 100cqw)) solid
+    var(--cs-theme-focus-ring, #111111);
+  outline-offset: 2px;
+}
+
+.cs-element-question {
+  display: grid;
+  gap: calc(8 / var(--cs-canvas-w) * 100cqw);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: max(12px, calc(var(--cs-theme-font-size-ui, 24) / var(--cs-canvas-w) * 100cqw));
+  color: var(--cs-theme-text-default, #111111);
+}
+
+.cs-question-prompt {
+  margin: 0;
+  font-weight: var(--cs-theme-font-weight-strong, 600);
+}
+
+.cs-question-option {
+  display: flex;
+  align-items: center;
+  gap: calc(8 / var(--cs-canvas-w) * 100cqw);
+}
+
+/* The inert state, said visually as well as in the accessibility tree — the two must not
+   disagree about whether this can be answered. */
+.cs-question-note {
+  margin: 0;
+  color: var(--cs-theme-text-muted, #666666);
+}
+
+.cs-asset-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  /* The space is the point: FR-018 requires the gap keep its size so the slide does not
+     reflow around a missing asset. */
+  border: 1px dashed var(--cs-theme-border-muted, #999999);
+  background: var(--cs-theme-surface-muted, #f2f2f2);
+  color: var(--cs-theme-text-muted, #666666);
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: max(12px, calc(16 / var(--cs-canvas-w) * 100cqw));
+  text-align: center;
+  overflow: hidden;
+}
+
 .cs-placeholder {
   /* A hairline stays a hairline: this border is an authoring affordance rather than
      lesson content, and scaling it would make it a thick frame on a large display. */

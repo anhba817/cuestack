@@ -10,6 +10,7 @@ import {
 } from '@cuestack/core'
 import { builtinRenderers } from '../elements/builtin/index.js'
 import { createRendererRegistry, type ElementRendererRegistry } from '../elements/registry.js'
+import type { AssetResolver } from '../elements/assets.js'
 import type { ThemeValues } from '../theme/tokens.js'
 import { createFrameWriter } from '../frame/FrameWriter.js'
 import { useFrameLoop } from '../frame/useFrameLoop.js'
@@ -22,6 +23,8 @@ export interface LessonPlayerClientProps {
   readonly slideIndex?: number
   readonly elements?: ElementRendererRegistry
   readonly theme?: ThemeValues
+  /** How to address an asset. See `elements/assets.ts`. */
+  readonly resolveAsset?: AssetResolver
   /**
    * Not in the original data model, and needed: the transport requires a time source,
    * and feature 002's FR-015 requires that source to be substitutable. Real playback
@@ -50,6 +53,7 @@ export function LessonPlayerClient({
   slideIndex = 0,
   elements = DEFAULT_RENDERERS,
   theme,
+  resolveAsset,
   ports,
   autoPlay = false,
   onReady,
@@ -105,7 +109,12 @@ export function LessonPlayerClient({
 
   const content = (
     <Stage lesson={lesson} {...(theme ? { theme } : {})}>
-      <SlideView state={state} renderers={elements} writer={writer} />
+      <SlideView
+        state={state}
+        renderers={elements}
+        writer={writer}
+        {...(resolveAsset ? { resolveAsset } : {})}
+      />
     </Stage>
   )
 

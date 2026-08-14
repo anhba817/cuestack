@@ -176,27 +176,27 @@ carries its accessibility obligations, and contains no style literal.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T050 [P] [US4] All-types test in `packages/react/test/elements/all-types.test.ts` — all seven types produce output with authored geometry and layer order, written so a renderer producing nothing fails (US4 #1, SC-007)
-- [ ] T051 [P] [US4] Image test in `packages/react/test/elements/image.test.ts` — alternative text is exposed, intrinsic dimensions are declared before load, and a failed load leaves reserved space and a description (US4 #3, FR-015/018)
-- [ ] T052 [P] [US4] Media test in `packages/react/test/elements/media.test.ts` — video exposes its caption track and audio its transcript when authored (US4 #4, FR-016)
-- [ ] T053 [P] [US4] Keyboard test in `packages/react/test/elements/keyboard.test.ts` — every interactive element is reachable by keyboard and carries an accessible name, role, and state (US4 #5, FR-017, SC-009)
-- [ ] T054 [P] [US4] Inert-question test in `packages/react/test/elements/question.test.ts` — a question renders as a labelled group, is announced, and is marked `aria-disabled` rather than silently unresponsive
-- [ ] T055 [P] [US4] Theme-only test in `packages/react/test/elements/theme.test.ts` — every renderer's appearance derives from theme properties, and a missing token falls back readably rather than invisibly (US4 #2, #6, FR-014/019, SC-008)
-- [ ] T056 [P] [US4] Accessibility sweep in `packages/react/test/a11y/axe.test.ts` — axe reports no WCAG 2.2 AA violations on any corpus slide (SC-010)
-- [ ] T057 [P] [US4] Large-font test in `packages/react/test/elements/large-font.test.ts` — text remains contained rather than overflowing its element at a large root font size (spec Edge Cases)
+- [X] T050 [P] [US4] All-types test in `packages/react/test/elements/all-types.test.ts` — all seven types produce output with authored geometry and layer order, written so a renderer producing nothing fails (US4 #1, SC-007)
+- [X] T051 [P] [US4] Image test in `packages/react/test/elements/image.test.ts` — alternative text is exposed, intrinsic dimensions are declared before load, and a failed load leaves reserved space and a description (US4 #3, FR-015/018)
+- [X] T052 [P] [US4] Media test in `packages/react/test/elements/media.test.ts` — video exposes its caption track and audio its transcript when authored (US4 #4, FR-016)
+- [X] T053 [P] [US4] Keyboard test in `packages/react/test/elements/keyboard.test.ts` — every interactive element is reachable by keyboard and carries an accessible name, role, and state (US4 #5, FR-017, SC-009)
+- [X] T054 [P] [US4] Inert-question test in `packages/react/test/elements/question.test.ts` — a question renders as a labelled group, is announced, and is marked `aria-disabled` rather than silently unresponsive
+- [X] T055 [P] [US4] Theme-only test in `packages/react/test/elements/theme.test.ts` — every renderer's appearance derives from theme properties, and a missing token falls back readably rather than invisibly (US4 #2, #6, FR-014/019, SC-008)
+- [X] T056 [P] [US4] Accessibility sweep in `packages/react/test/a11y/axe.test.ts` — axe reports no WCAG 2.2 AA violations on any corpus slide (SC-010)
+- [X] T057 [P] [US4] Large-font test in `packages/react/test/elements/large-font.test.ts` — text remains contained rather than overflowing its element at a large root font size (spec Edge Cases)
 
-- [ ] T058 [P] [US4] Theme-gate negative control in `tools/scripts/check-gates.test.ts` — adding `color: '#333'` to an element renderer is rejected, naming the theme rule. A gate that has never been observed failing is not known to be a gate, and feature 001 found a boundary rule that was green while enforcing nothing
-- [ ] T059 [P] [US4] Accessibility-gate negative control in `tools/scripts/check-gates.test.ts` — a corpus slide with an image missing its alternative text is rejected by the axe gate, proving the gate armed in T007 actually fires rather than merely running
+- [X] T058 [P] [US4] Theme-gate negative control in `tools/scripts/check-gates.test.ts` — adding `color: '#333'` to an element renderer is rejected, naming the theme rule. A gate that has never been observed failing is not known to be a gate, and feature 001 found a boundary rule that was green while enforcing nothing
+- [X] T059 [P] [US4] Accessibility-gate negative control in `tools/scripts/check-gates.test.ts` — a corpus slide with an image missing its alternative text is rejected by the axe gate, proving the gate armed in T007 actually fires rather than merely running
 
 ### Implementation for User Story 4
 
-- [ ] T060 [P] [US4] Implement the image renderer in `packages/react/src/elements/builtin/ImageElement.tsx`
-- [ ] T061 [P] [US4] Implement the video renderer in `packages/react/src/elements/builtin/VideoElement.tsx` with native controls and caption track
-- [ ] T062 [P] [US4] Implement the audio renderer in `packages/react/src/elements/builtin/AudioElement.tsx` with native controls and transcript link
-- [ ] T063 [P] [US4] Implement the button renderer in `packages/react/src/elements/builtin/ButtonElement.tsx` as a real `<button>`
-- [ ] T064 [US4] Implement the question renderer in `packages/react/src/elements/builtin/QuestionElement.tsx` — prompt and options as a labelled radio group, `aria-disabled` until Wave 3
-- [ ] T065 [US4] Export `builtinRenderers` from `packages/react/src/elements/builtin/index.ts` and register them as the registry's defaults
-- [ ] T066 [US4] Implement the asset-failure state in `packages/react/src/elements/AssetFallback.tsx`, preserving reserved space and an accessible description
+- [X] T060 [P] [US4] Implement the image renderer in `packages/react/src/elements/builtin/ImageElement.tsx`
+- [X] T061 [P] [US4] Implement the video renderer in `packages/react/src/elements/builtin/VideoElement.tsx` with native controls and caption track
+- [X] T062 [P] [US4] Implement the audio renderer in `packages/react/src/elements/builtin/AudioElement.tsx` with native controls and transcript link
+- [X] T063 [P] [US4] Implement the button renderer in `packages/react/src/elements/builtin/ButtonElement.tsx` as a real `<button>`
+- [X] T064 [US4] Implement the question renderer in `packages/react/src/elements/builtin/QuestionElement.tsx` — prompt and options as a labelled radio group, `aria-disabled` until Wave 3
+- [X] T065 [US4] Export `builtinRenderers` from `packages/react/src/elements/builtin/index.ts` and register them as the registry's defaults
+- [X] T066 [US4] Implement the asset-failure state in `packages/react/src/elements/AssetFallback.tsx`, preserving reserved space and an accessible description
 
 **Checkpoint**: US1–US4 work. A complete lesson renders accessibly.
 

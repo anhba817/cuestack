@@ -152,6 +152,9 @@ export function resolveElement(
       filter: final.filter,
       activeEffects: active,
       payload: element.payload,
+      // Passed through, never defaulted. An absent block and an empty one mean different
+      // things to a renderer: "the author said nothing" versus "the author said none".
+      accessibility: element.accessibility ?? null,
       available: known,
     },
     problems,

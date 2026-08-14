@@ -1,12 +1,34 @@
 import type { ElementRenderer } from '../registry.js'
 import { textRenderer } from './TextElement.js'
 import { shapeRenderer } from './ShapeElement.js'
+import { imageRenderer } from './ImageElement.js'
+import { videoRenderer } from './VideoElement.js'
+import { audioRenderer } from './AudioElement.js'
+import { buttonRenderer } from './ButtonElement.js'
+import { questionRenderer } from './QuestionElement.js'
 
 /**
- * The renderers that exist so far. The remaining five — image, video, audio, button,
- * question — arrive with US4; the reference lesson's first slide needs only these two,
- * which is what makes the server-rendered frame demonstrable before the rest exist.
+ * The built-in seven, matching the format's element types exactly.
+ *
+ * The order is the registration order and carries no meaning — paint order comes from the
+ * kernel, per element, and nothing here may re-decide it.
  */
-export const builtinRenderers: readonly ElementRenderer[] = [textRenderer, shapeRenderer]
+export const builtinRenderers: readonly ElementRenderer[] = [
+  textRenderer,
+  imageRenderer,
+  shapeRenderer,
+  videoRenderer,
+  audioRenderer,
+  buttonRenderer,
+  questionRenderer,
+]
 
-export { textRenderer, shapeRenderer }
+export {
+  textRenderer,
+  shapeRenderer,
+  imageRenderer,
+  videoRenderer,
+  audioRenderer,
+  buttonRenderer,
+  questionRenderer,
+}

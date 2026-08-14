@@ -1,12 +1,23 @@
 import type { ReactNode } from 'react'
 import type { ResolvedElement } from '@cuestack/core'
+import type { AssetResolver } from './assets.js'
 
 export interface ElementRendererProps {
   readonly element: ResolvedElement
+  /**
+   * How to address an asset. A widening of the contract below, and a necessary one: an
+   * `<img>` needs a `src`, and a manifest carries an opaque `assetId`.
+   *
+   * It does not weaken the restriction. The reason a renderer is denied the lesson is that
+   * a renderer *able* to reach it will, coupling third-party renderers to the lesson
+   * shape. A pure `(AssetRef) => string | undefined` gives no route to the lesson, the
+   * slide, the transport, or the time — it is a capability, not access. See `assets.ts`.
+   */
+  readonly resolveAsset: AssetResolver
 }
 
 /**
- * A renderer receives the resolved element and nothing else.
+ * A renderer receives the resolved element and a way to address assets. Nothing else.
  *
  * Not the slide, not the lesson, not its siblings, not the transport, not the time.
  * The same restriction the kernel's plugin contract makes, for the same reason: a

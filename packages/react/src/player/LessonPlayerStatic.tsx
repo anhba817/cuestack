@@ -3,6 +3,7 @@ import type { LessonManifest } from '@cuestack/schema'
 import { resolve } from '@cuestack/core'
 import { builtinRenderers } from '../elements/builtin/index.js'
 import { createRendererRegistry, type ElementRendererRegistry } from '../elements/registry.js'
+import type { AssetResolver } from '../elements/assets.js'
 import type { ThemeValues } from '../theme/tokens.js'
 import { SlideView } from './SlideView.js'
 import { Stage } from './Stage.js'
@@ -12,6 +13,9 @@ export interface LessonPlayerStaticProps {
   readonly slideIndex?: number
   readonly elements?: ElementRendererRegistry
   readonly theme?: ThemeValues
+  /** How to address an asset. See `elements/assets.ts` — the manifest carries opaque ids,
+   *  so a host that hosts its assets anywhere but at those paths must supply this. */
+  readonly resolveAsset?: AssetResolver
 }
 
 const DEFAULT_RENDERERS = createRendererRegistry(builtinRenderers)
@@ -33,13 +37,18 @@ export function LessonPlayerStatic({
   slideIndex = 0,
   elements = DEFAULT_RENDERERS,
   theme,
+  resolveAsset,
 }: LessonPlayerStaticProps): ReactNode {
   const slide = lesson.slides[slideIndex]
   if (!slide) return null
 
   return (
     <Stage lesson={lesson} {...(theme ? { theme } : {})}>
-      <SlideView state={resolve(slide, 0)} renderers={elements} />
+      <SlideView
+        state={resolve(slide, 0)}
+        renderers={elements}
+        {...(resolveAsset ? { resolveAsset } : {})}
+      />
     </Stage>
   )
 }

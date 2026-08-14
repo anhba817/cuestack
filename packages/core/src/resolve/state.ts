@@ -42,8 +42,27 @@ export interface ResolvedElement {
   readonly filter: FilterDelta | null
   readonly activeEffects: readonly ActiveEffect[]
   readonly payload: unknown
+  /**
+   * Authored accessibility metadata, passed through untouched.
+   *
+   * Added in Wave 2, which found it missing: a renderer receives only a
+   * `ResolvedElement`, and FR-015 requires it to expose an image's alternative text.
+   * Without this the alt text was in the manifest and unreachable by the one component
+   * that needs it, so a renderer would have had to be handed the lesson — the exact
+   * coupling the contract exists to prevent.
+   *
+   * Authored and static, like `payload`, so it does not compromise purity: nothing here
+   * varies with time.
+   */
+  readonly accessibility: ElementAccessibility | null
   /** False when the element's type is not registered (FR-027). */
   readonly available: boolean
+}
+
+export interface ElementAccessibility {
+  readonly altText?: string
+  readonly label?: string
+  readonly hidden?: boolean
 }
 
 export interface RenderProblem {

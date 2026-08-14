@@ -181,6 +181,127 @@ describe('gate: data-model agreement', () => {
   })
 })
 
+describe('gate: theme literals', () => {
+  /**
+   * The gate armed in T006, fed what it exists to reject.
+   *
+   * A hard-coded `#333` survives review and then survives every theme — it is the defect
+   * that only appears when someone rebrands, by which point it is in twelve renderers.
+   * Both the lint rule and the standalone gate are exercised, because they are separate
+   * mechanisms and either could rot without the other noticing.
+   */
+  const probe = join(root, 'packages/react/src/elements/builtin/__gate_probe__.tsx')
+  const withColour = [
+    "import type { ReactNode } from 'react'",
+    'export function Probe(): ReactNode {',
+    "  return <div style={{ color: '#333' }} />",
+    '}',
+  ].join('\n')
+
+  it('rejects a colour literal in a renderer, naming the rule', () => {
+    try {
+      writeFileSync(probe, withColour)
+      const output = runExpectingFailure('pnpm', ['exec', 'eslint', 'packages/react/src'])
+      expect(output).not.toBe('')
+      expect(output).toContain('no-theme-literals')
+    } finally {
+      rmSync(probe, { force: true })
+    }
+  })
+
+  it('is caught by the standalone gate even with lint disabled inline', () => {
+    // The reason both exist. The gate delegates to ESLint so there is one definition of a
+    // theme literal — and delegating meant inheriting ESLint's escape hatch, so an
+    // `eslint-disable` above the colour silenced the gate too. This assertion is what found
+    // that; the gate now runs with `--no-inline-config`.
+    try {
+      writeFileSync(probe, withColour.replace('return <div', '/* eslint-disable */\n  return <div'))
+      const output = runExpectingFailure('node', ['tools/scripts/gates/theme-values.mjs'])
+      expect(output).not.toBe('')
+      expect(output).toMatch(/#333|theme/i)
+    } finally {
+      rmSync(probe, { force: true })
+    }
+  })
+})
+
+describe('gate: accessibility', () => {
+  /**
+   * The gate armed in T007, fed a real WCAG violation.
+   *
+   * An image with no alternative text is the canonical case: invisible to anyone who can
+   * see the screen, and the entire content to anyone who cannot. The probe adds a corpus
+   * slide carrying one, so the axe suite the gate runs has something to find.
+   *
+   * This matters more than the usual negative control. `gates/a11y.mjs` exits 0 when it
+   * finds no test files — correct behaviour for two features, and indistinguishable from a
+   * pass. Nothing until now has established that the runner reports a violation rather
+   * than merely running.
+   */
+  const probe = join(root, 'packages/react/test/a11y/__gate_probe__.test.ts')
+
+  it('rejects an image with no accessible name', () => {
+    try {
+      writeFileSync(
+        probe,
+        [
+          "import { createElement as h } from 'react'",
+          "import { describe, expect, it } from 'vitest'",
+          "import axe from 'axe-core'",
+          "import { element, lessonOf, slide } from '../harness/corpus.js'",
+          "import { client } from '../harness/render.js'",
+          "import { LessonPlayer } from '../../src/index.js'",
+          "import { testPorts } from '../harness/ports.js'",
+          '',
+          "describe('gate probe: an image with no alternative text', () => {",
+          "  it('is reported by axe', async () => {",
+          '    const lesson = lessonOf([',
+          '      slide([',
+          '        element({',
+          "          id: 'probe_img',",
+          "          type: 'image',",
+          '          effects: [],',
+          // No `accessibility`, and a resolver that makes it a real <img> with no name.
+          "          payload: { asset: { assetId: 'https://example.test/a.png', mimeType: 'image/png' } },",
+          '        }),',
+          '      ]),',
+          '    ])',
+          '    const container = await client(',
+          '      h(LessonPlayer, {',
+          '        lesson,',
+          '        ports: testPorts(),',
+          '        resolveAsset: () => undefined,',
+          '      }),',
+          '    )',
+          "    // Force the violation the gate must catch: strip the fallback's name.",
+          "    container.querySelector('[role=\"img\"]')?.removeAttribute('aria-label')",
+          '    const result = await axe.run(container, {',
+          "      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] },",
+          "      rules: { 'color-contrast': { enabled: false } },",
+          '    })',
+          "    expect(result.violations.map((v) => v.id).join(',')).toBe('')",
+          '  })',
+          '})',
+          '',
+        ].join('\n'),
+      )
+      const output = runExpectingFailure('node', ['tools/scripts/gates/a11y.mjs'])
+      expect(output).not.toBe('')
+      expect(output).toContain('WCAG')
+    } finally {
+      rmSync(probe, { force: true })
+    }
+  })
+
+  it('reports a pass differently from having nothing to check', () => {
+    // The failure mode this guards: a gate that skips silently and reads as green. The two
+    // outcomes must be distinguishable in the output, since one of them proves nothing.
+    const out = execFileSync('node', ['tools/scripts/gates/a11y.mjs'], { cwd: root, encoding: 'utf8' })
+    expect(out).toContain('ok')
+    expect(out).not.toContain('nothing to check')
+  })
+})
+
 describe('gate: the four gates that began as placeholders', () => {
   /**
    * Three of the four are now armed — perf in feature 002, theme-values and a11y in
