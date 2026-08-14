@@ -71,6 +71,32 @@ export default tseslint.config(
   },
   {
     /**
+     * Constitution I: element and effect types are added by registration, never
+     * by modifying resolution logic (FR-025). A `switch` on element.type is the
+     * exact shape the principle forbids: easy to write in a hurry, invisible in
+     * review once the file is long, and the reason a framework stops being
+     * extensible. Only the registries may dispatch on a type discriminant.
+     */
+    files: ['packages/core/src/**/*.ts'],
+    ignores: ['packages/core/src/elements/registry.ts', 'packages/core/src/effects/registry.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "SwitchStatement > MemberExpression.discriminant[property.name='type']",
+          message:
+            'no-switch-on-element-type: dispatch on a type discriminant belongs in a registry, not in resolution logic (Constitution I, FR-025).',
+        },
+        {
+          selector: "SwitchStatement > MemberExpression.discriminant[property.name='phase']",
+          message:
+            'no-switch-on-element-type: dispatch on an effect phase belongs in a registry, not in resolution logic (Constitution I, FR-025).',
+        },
+      ],
+    },
+  },
+  {
+    /**
      * Constitution I: @cuestack/core must not import a UI framework.
      *
      * This lives in ESLint, not dependency-cruiser, for a reason worth writing

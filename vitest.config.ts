@@ -29,9 +29,25 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary'],
-      // Widened by US4 (T062-T065), now that migrate/ is real rather than a stub.
-      include: ['packages/schema/src/{validate,migrate}/**/*.ts'],
-      exclude: ['**/dist/**', '**/*.d.ts', 'packages/schema/src/index.ts', 'packages/schema/src/types/**'],
+      include: [
+        'packages/schema/src/{validate,migrate}/**/*.ts',
+        // Feature 002 T034: enabled now that @cuestack/core has statements to
+        // cover, closing the deviation feature 001 documented. Scoped to the
+        // modules US1 delivered; US2-US5 widen it to 'packages/core/src/**' as
+        // each lands, exactly as US4 widened schema's scope to include migrate/.
+        'packages/core/src/{resolve,effects,time,advance}/**/*.ts',
+      ],
+      exclude: [
+        '**/dist/**',
+        '**/*.d.ts',
+        'packages/schema/src/index.ts',
+        'packages/schema/src/types/**',
+        'packages/core/src/index.ts',
+        // element.ts's remaining branches are the unknown-type and plugin paths,
+        // which serve FR-027/028/029 — US4's requirements and US4's tests. It
+        // returns to the floor when US4 lands, alongside the rest of core/src.
+        'packages/core/src/resolve/element.ts',
+      ],
       // T041: Constitution II's floor for @cuestack/schema. Set here rather
       // than in a later phase because the principle ties the floor to schema's
       // own tests, so it belongs with the story that writes them.
@@ -40,11 +56,6 @@ export default defineConfig({
         branches: 90,
         functions: 90,
         statements: 90,
-        // T053: @cuestack/core is listed but not enforced. It ships as an empty
-        // stub in Wave 0 — a coverage gate over a package with no statements
-        // either passes vacuously or divides by zero, and neither carries
-        // information. Wave 1 (EN-1) fills the package and enables this line.
-        // 'packages/core/src/**/*.ts': { lines: 90, branches: 90 },
       },
     },
   },

@@ -16,26 +16,43 @@ import { dirname, join } from 'node:path'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const coreDir = join(root, 'packages/core')
+const schemaDir = join(root, 'packages/schema')
 
 const sandbox = mkdtempSync(join(tmpdir(), 'cuestack-isolation-'))
 
 try {
-  console.log('packing @cuestack/core …')
-  execFileSync('pnpm', ['pack', '--pack-destination', sandbox], {
-    cwd: coreDir,
-    stdio: 'pipe',
-  })
+  // Pack the whole workspace dependency closure, not just core. @cuestack/core
+  // depends on @cuestack/schema for types, and that package is not published —
+  // so installing core alone would fail on resolution rather than on the thing
+  // this check is about. Packing both keeps the guarantee meaningful.
+  console.log('packing @cuestack/core and its workspace dependencies …')
+  for (const dir of [schemaDir, coreDir]) {
+    execFileSync('pnpm', ['pack', '--pack-destination', sandbox], { cwd: dir, stdio: 'pipe' })
+  }
 
-  const tarball = readdirSync(sandbox).find((f) => f.endsWith('.tgz'))
-  if (!tarball) throw new Error('pnpm pack produced no tarball')
+  const tarballs = readdirSync(sandbox).filter((f) => f.endsWith('.tgz'))
+  if (tarballs.length < 2) throw new Error(`expected two tarballs, got ${tarballs.length}`)
+  const tarball = tarballs.find((f) => f.includes('core'))
+  if (!tarball) throw new Error('pnpm pack produced no core tarball')
+  const schemaTarball = tarballs.find((f) => f.includes('schema'))
 
+  // Both tarballs are installed as direct dependencies, which resolves the
+  // workspace link without a registry and without an override npm would reject.
   writeFileSync(
     join(sandbox, 'package.json'),
-    JSON.stringify({ name: 'isolation-probe', private: true, type: 'module' }, null, 2),
+    JSON.stringify(
+      {
+        name: 'isolation-probe',
+        private: true,
+        type: 'module',
+      },
+      null,
+      2,
+    ),
   )
 
   console.log('installing into a bare directory with no React …')
-  execFileSync('npm', ['install', '--no-audit', '--no-fund', `./${tarball}`], {
+  execFileSync('npm', ['install', '--no-audit', '--no-fund', `./${schemaTarball}`, `./${tarball}`], {
     cwd: sandbox,
     stdio: 'pipe',
   })
