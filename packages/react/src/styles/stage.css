@@ -1,0 +1,108 @@
+/*
+ * The scaling mechanism.
+ *
+ * Not decoration — this file is why the player can be server-rendered. Every
+ * dimension resolves against the stage's own size through container query units, so
+ * geometry is correct without anything measuring anything.
+ *
+ * A computed `transform: scale(k)` is the obvious alternative and it cannot work
+ * here: k needs a viewport the server does not have, so the server would emit a
+ * guessed layout and the browser would correct it on first paint. That is both the
+ * layout shift SC-004 forbids and a defeat of the server-rendered first frame.
+ * Refused deliberately, not overlooked.
+ */
+
+.cs-stage {
+  container-type: size;
+  container-name: cs-stage;
+  aspect-ratio: var(--cs-canvas-w) / var(--cs-canvas-h);
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+  /* Off-canvas content is clipped to the stage rather than extending the page. */
+  overflow: hidden;
+  /* A stage with no background borrows the host's, which makes authored contrast
+     unpredictable. A token with a readable default fixes the reference frame. */
+  background: var(--cs-theme-surface-default, #ffffff);
+  color: var(--cs-theme-text-default, #111111);
+}
+
+.cs-element {
+  position: absolute;
+  box-sizing: border-box;
+
+  left: calc(var(--cs-x) / var(--cs-canvas-w) * 100cqw);
+  top: calc(var(--cs-y) / var(--cs-canvas-h) * 100cqh);
+  width: calc(var(--cs-w) / var(--cs-canvas-w) * 100cqw);
+  height: calc(var(--cs-h) / var(--cs-canvas-h) * 100cqh);
+
+  z-index: var(--cs-z, 0);
+
+  /*
+   * Every consumed property carries a fallback. Without one, a single absent custom
+   * property invalidates the whole declaration and the element jumps to the origin —
+   * a failure that looks like a positioning bug and is not one.
+   */
+  opacity: var(--cs-opacity, 1);
+
+  transform:
+    translate(
+      calc(var(--cs-tx, 0) / var(--cs-canvas-w) * 100cqw),
+      calc(var(--cs-ty, 0) / var(--cs-canvas-h) * 100cqh)
+    )
+    scale(var(--cs-sx, 1), var(--cs-sy, 1))
+    rotate(calc((var(--cs-rotation, 0) + var(--cs-rotate, 0)) * 1deg));
+  transform-origin: center center;
+
+  filter: brightness(var(--cs-brightness, 1)) blur(calc(var(--cs-blur, 0) * 1px));
+}
+
+/*
+ * Reduced motion, honoured in CSS.
+ *
+ * This is what the custom-property indirection buys: neutralising motion needs no
+ * script, so it works on a server-rendered first frame where the preference cannot
+ * even be read. Wave 3 substitutes reduced alternatives per effect; this is the
+ * blunt floor that holds until then.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .cs-element {
+    --cs-tx: 0;
+    --cs-ty: 0;
+    --cs-sx: 1;
+    --cs-sy: 1;
+    --cs-rotate: 0;
+  }
+}
+
+/* Text scales with the stage, so a lesson reads the same proportionally at any size. */
+.cs-element-text {
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: calc(var(--cs-theme-font-size, 32) / var(--cs-canvas-w) * 100cqw);
+  line-height: 1.4;
+  /* Large system fonts must not push content out of its element. */
+  overflow-wrap: break-word;
+  overflow: hidden;
+}
+
+.cs-element-image,
+.cs-element-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cs-element-shape {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cs-placeholder {
+  border: 1px dashed var(--cs-theme-border-muted, #999999);
+  display: grid;
+  place-items: center;
+  font-size: calc(16 / var(--cs-canvas-w) * 100cqw);
+  color: var(--cs-theme-text-muted, #666666);
+}

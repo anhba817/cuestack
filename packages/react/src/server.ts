@@ -1,15 +1,23 @@
 /**
- * @cuestack/react — **server entry**, selected by the `react-server` export
- * condition.
+ * @cuestack/react — server entry, selected by the `react-server` condition.
  *
- * Same surface as the client entry, different implementation. Kept separate
- * from day one: a malformed condition order does not throw, it silently
- * resolves the client bundle into a server context, and the symptom surfaces
- * two waves later as a hydration bug nobody can trace.
+ * Exports the same names as the client entry. Feature 001 learned why that matters:
+ * when the two surfaces diverged, the server entry's exports were invisible to
+ * TypeScript and the type layer could not see them.
+ *
+ * What differs is behaviour, not shape — nothing here starts a clock, subscribes, or
+ * touches a DOM, so this module renders in a Node process with no browser.
  */
-
-export type { EntryKind } from './index.js'
-
-export const ENTRY_KIND = 'server' as const
-
-export const REACT_WAVE = 0 as const
+export { LessonPlayer } from './player/LessonPlayer.js'
+export type { LessonPlayerProps } from './player/LessonPlayer.js'
+export { Stage } from './player/Stage.js'
+export { SlideView } from './player/SlideView.js'
+export { ElementFrame } from './player/ElementFrame.js'
+export { createRendererRegistry } from './elements/registry.js'
+export type { ElementRenderer, ElementRendererProps, ElementRendererRegistry } from './elements/registry.js'
+export { builtinRenderers, textRenderer, shapeRenderer } from './elements/builtin/index.js'
+export { Placeholder } from './elements/Placeholder.js'
+export { stageProperties, canvasFor } from './theme/tokens.js'
+export type { ThemeValues } from './theme/tokens.js'
+export { elementProperties, geometryProperties, visualProperties } from './frame/applyVisual.js'
+export * from './frame/properties.js'

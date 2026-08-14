@@ -1,0 +1,23 @@
+/*
+ * Scoped entirely beneath the stage.
+ *
+ * No `:root`, no bare element selectors, no `*` — a host's own typography and resets
+ * are untouched (FR-026). A player that reset the document would be unusable inside
+ * anyone else's application, which is most of the point of publishing it.
+ */
+.cs-stage :where(p, h1, h2, h3, h4, h5, h6, figure, blockquote) {
+  margin: 0;
+}
+
+.cs-stage :where(button) {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.cs-stage :where(img, video, audio, svg) {
+  max-width: 100%;
+}

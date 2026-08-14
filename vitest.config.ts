@@ -16,7 +16,18 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     projects: [
-      'packages/*',
+      // Node-environment packages. react is registered separately below with a DOM.
+      'packages/{schema,core,element}',
+      // The React adapter needs a DOM. happy-dom over jsdom for speed, since the
+      // suite has to stay fast enough that nobody is tempted to skip it.
+      {
+        test: {
+          name: '@cuestack/react',
+          root: './packages/react',
+          environment: 'happy-dom',
+          include: ['test/**/*.test.{ts,tsx}'],
+        },
+      },
       // The gate negative-controls live with the scripts they exercise.
       {
         test: {
