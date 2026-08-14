@@ -41,28 +41,30 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
       ✅ SCH-1 ──→ ✅ EN-6                             (adapter interfaces; parallel)
 
     Wave 2 — React + SSR  (after EN-3; the headline milestone)
-      ✅ EN-3 ──→ 🔲 RC-1 ──→ 🔲 NX-1 ──→ 🔲 NX-3 ──→ 🔲 QA-2   (critical path)
-                    └──→ 🔲 RC-2 ───────────┘
-      🔲 NX-2 ─────────────────→ 🔲 NX-1            (CSS scaling; startable in Wave 0)
+      ✅ EN-3 ──→ ✅ RC-1 ──→ ✅ NX-1 ──→ ✅ NX-3 ──→ ✅ QA-2   (critical path)
+                    └──→ ✅ RC-2 ───────────┘
+      ✅ NX-2 ─────────────────→ ✅ NX-1            (CSS scaling; startable in Wave 0)
 
     Wave 3 — player completion  (after Wave 2)
-      🔲 RC-2 ──→ 🔲 PL-1 ──┐
-      🔲 RC-2 ──→ 🔲 PL-2 ──┼──→ 🔲 QA-3 ──→ 🔲 QA-4
-      🔲 RC-2 ──→ 🔲 PL-3 ──┘
-      🔲 NX-2 ──→ 🔲 PL-4                           (reduced motion, CSS-only)
+      ✅ RC-2 ──→ 🔲 PL-1 ──┐
+      ✅ RC-2 ──→ 🔲 PL-2 ──┼──→ 🔲 QA-3 ──→ 🔲 QA-4
+      ✅ RC-2 ──→ 🔲 PL-3 ──┘
+      ✅ NX-2 ──→ 🔄 PL-4                           (reduced motion: the CSS floor landed in
+                                                     Wave 2 for free; per-effect reduced
+                                                     alternatives remain)
 
     Wave 4 — Studio editor  (after Wave 3)
       ✅ EN-5 ──→ 🔲 ED-1 ──→ 🔲 ED-2
                     ├──→ 🔲 ED-3 ──→ 🔲 ED-4
                     └──→ 🔲 ED-5
-      🔲 RC-1 ──→ 🔲 ED-6 ──→ 🔲 QA-5               (preview reuses the player — parity by construction)
+      ✅ RC-1 ──→ 🔲 ED-6 ──→ 🔲 QA-5               (preview reuses the player — parity by construction)
 
     Wave 5 — publish, portability, extensibility proof
       ✅ SCH-2 ──→ 🔲 PB-1 ──→ 🔲 PB-2
       ✅ SCH-2 ──→ 🔲 SCH-3                           (portable export/import package)
       ✅ EN-6 ──→ 🔲 PB-3                           (HTTP reference adapter)
       ✅ EN-5 ──→ 🔲 DX-1
-      🔲 RC-1 ──→ 🔲 DX-2                           (second adapter proves the core is framework-agnostic)
+      ✅ RC-1 ──→ 🔲 DX-2                           (second adapter proves the core is framework-agnostic)
 
     Critical path:
       IN-1 → SCH-1 → EN-5 → EN-4 → EN-1 → EN-2 → EN-3 → RC-1 → NX-1 → NX-3
@@ -85,12 +87,12 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 | 1 | EN-6 storage/asset/analytics adapter interfaces | SCH-1 | 1 | 3 | 2 | 1 | 8 | ✅ |
 | 1 | EN-1 timeline resolver (pure) | EN-4 | 1 | 3 | 2 | 2 | 7 | ✅ |
 | 1 | EN-5 element registry + plugin contract | SCH-1 | 0 | 3 | 2 | 2 | 6 | ✅ |
-| 2 | RC-1 React player component | EN-3 | 3 | 3 | 2 | 1 | 10 | 🔲 |
-| 2 | NX-2 CSS-driven logical-canvas scaling | IN-1 | 2 | 3 | 2 | 1 | 9 | 🔲 |
-| 2 | NX-3 Next.js App Router example app | NX-1 | 3 | 2 | 2 | 0 | 9 | 🔲 |
-| 2 | NX-1 RSC/client boundary + hydration safety | RC-1, NX-2 | 3 | 3 | 1 | 2 | 8 | 🔲 |
-| 2 | RC-2 React renderers for MVP element types | RC-1 | 3 | 2 | 2 | 1 | 8 | 🔲 |
-| 2 | QA-2 SSR + hydration test suite | NX-3 | 0 | 3 | 2 | 0 | 8 | 🔲 |
+| 2 | RC-1 React player component | EN-3 | 3 | 3 | 2 | 1 | 10 | ✅ |
+| 2 | NX-2 CSS-driven logical-canvas scaling | IN-1 | 2 | 3 | 2 | 1 | 9 | ✅ |
+| 2 | NX-3 Next.js App Router example app | NX-1 | 3 | 2 | 2 | 0 | 9 | ✅ |
+| 2 | NX-1 RSC/client boundary + hydration safety | RC-1, NX-2 | 3 | 3 | 1 | 2 | 8 | ✅ |
+| 2 | RC-2 React renderers for MVP element types | RC-1 | 3 | 2 | 2 | 1 | 8 | ✅ |
+| 2 | QA-2 SSR + hydration test suite | NX-3 | 0 | 3 | 2 | 0 | 8 | ✅ |
 | 3 | PL-4 reduced-motion (CSS-only, SSR-safe) | NX-2 | 2 | 1 | 3 | 0 | 7 | 🔲 |
 | 3 | QA-3 §34 A–F acceptance e2e | PL-1..3 | 0 | 3 | 1 | 0 | 7 | 🔲 |
 | 3 | QA-4 perf fixture + budget gates | QA-3 | 0 | 3 | 1 | 0 | 7 | 🔲 |
@@ -113,27 +115,51 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 
 ## Next steps
 
-**Waves 0 and 1 are complete.** `@cuestack/schema` holds the format; `@cuestack/core` holds
-the kernel. 456 tests. See `specs/001-framework-foundation/` and `specs/002-headless-kernel/`.
+**Waves 0, 1, and 2 are complete.** `@cuestack/schema` holds the format, `@cuestack/core` holds
+the kernel, and `@cuestack/react` renders it — on a server and in a browser, from the same
+computation. 790 tests. See `specs/001-framework-foundation/`, `specs/002-headless-kernel/`, and
+`specs/003-react-ssr-player/`.
 
-The headline result is that **preview-player parity is now proven rather than asserted**: for
-every slide in the corpus at every state-change boundary, playing a transport forward equals
-seeking directly, and it still holds after a pause, after a hidden interval, and when seeking
-backwards. Constitution V is structural from here on — there is one resolver, it has no
-memory, and arriving by a different route cannot produce a different answer.
+**The headline milestone is met: the first slide is in the HTML document.** Real content, at the
+authored geometry, readable with JavaScript disabled, hydrating into playback without moving.
+The single decision that bought it is that scaling lives in CSS — every visual value is a custom
+property and every dimension a container query unit — so nothing measures anything and a server
+can emit a layout for a viewport it cannot know. The same indirection gave reduced motion two
+waves early, for free and without script.
 
-Wave 0's carried-forward obligation is discharged: `@cuestack/core`'s coverage floor is
-enforced, and the perf gate is armed for resolution (300 elements in ~0.02ms against a 10ms
-budget, growth linear).
+Parity gained its second consumer and held. Feature 002 proved the *computed* state of seeking
+equals playing; Wave 2 proves it of the rendered output, with the renderer in the path. That
+sweep earned its keep immediately by finding a `will-change` hint applied on React's schedule
+rather than the kernel's, which would otherwise have shipped.
 
-**Proposed next tranche: Wave 2 (NX-2, RC-1, NX-1).** CSS-driven canvas scaling, the React
-player over the kernel, and the RSC/client boundary. `resolve(slide, 0)` already runs on a
-server with no browser, so the SSR milestone is unblocked — Wave 2 is about rendering what the
-kernel already computes.
+Constitution III went live: WCAG 2.2 AA is a merge gate, and the accessibility and theme-literal
+gates that had been passing placeholders since Wave 0 are armed and negative-controlled. Arming
+them found the theme gate silenceable by an inline `eslint-disable` — a gate green for three
+tasks while enforcing nothing that a comment could not switch off.
 
-One known cost to meet deliberately: the media port is read-only. If Wave 3's timeline
-scrubbing needs to drag media along, that port becomes bidirectional — a design change, not an
-extension. Recorded in `specs/002-headless-kernel/research.md` R-04.
+Three defects in earlier waves surfaced only because Wave 2 consumed them, which is the argument
+for building in this order: `@cuestack/core` never exported its transport or advance controller;
+`ResolvedElement` carried no accessibility metadata, putting an image's alt text out of reach of
+the only component that needs it; and the static player used a hook, so it could not have
+rendered any slide with an element on it as a Server Component. The last was invisible twice
+over — `renderToString` is not RSC, and the reference lesson's first slide is empty at time zero.
+
+**Proposed next tranche: Wave 3 (PL-1, PL-2, PL-3).** Interactions that can be answered, media
+synchronised to lesson time, and slide transitions. RC-2 is done, so all three are unblocked.
+PL-4 is already partly in place: the reduced-motion floor is honoured in CSS, and what remains is
+per-effect reduced alternatives rather than the mechanism.
+
+Two costs to meet deliberately in Wave 3:
+
+- **The media port is read-only.** Dragging media along a timeline makes it bidirectional — a
+  design change, not an extension. `specs/002-headless-kernel/research.md` R-04.
+- **The 60 fps playback budget is still deferred.** The architecture that makes it reachable was
+  decided in Wave 2 by keeping the frame loop out of React; Wave 3 is when there are transitions
+  and media to drop frames on, and therefore when the budget can be armed (QA-4).
+
+Two smaller obligations carried forward: navigation buttons render their action but do not act,
+awaiting the delegation seam through the player; and asset ids are resolved by a host-supplied
+function, with BR-018's publishing rule left to Wave 5.
 
 ## Open design questions
 

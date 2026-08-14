@@ -1,8 +1,8 @@
 'use client'
 
-import { useContext, useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { TransportSnapshot } from '@cuestack/core'
-import { PlayerContext } from '../usePlayer.js'
+import { usePlayer } from '../usePlayer.js'
 
 export interface PlaybackControlsProps {
   /** Seconds a step moves. Small enough to be useful, large enough to be reachable. */
@@ -30,25 +30,17 @@ export interface PlaybackControlsProps {
  */
 export function PlaybackControls({ stepSeconds = 5 }: PlaybackControlsProps): ReactNode {
   /**
-   * The context directly, rather than `usePlayer()`, which throws when it is absent.
-   *
-   * Absent is a legitimate state here and not a mistake: the transport is created in a mount
-   * effect, so there is none during the server render or during the hydration pass. Throwing
-   * would make the player unrenderable on a server the moment a host added controls, and
-   * rendering them early would make the hydration pass disagree with the server. Returning
-   * nothing until the transport exists is what keeps both true.
+   * Null transport until the player has mounted, which is a state and not a mistake: there
+   * is none during a server render or a hydration pass. Rendering nothing until it arrives is
+   * what keeps the hydration pass matching the server.
    */
-  const player = useContext(PlayerContext)
-  // Read, never called. `transport.pause()` would have been the obvious way to get a
-  // snapshot and would have stopped playback on mount — an initialiser with a side effect,
-  // in a component whose job is to not fight the transport.
+  const { transport, slideDurationMs: durationMs } = usePlayer()
   const [snapshot, setSnapshot] = useState<TransportSnapshot | null>(null)
 
-  useEffect(() => player?.transport.subscribe(setSnapshot), [player])
+  useEffect(() => transport?.subscribe(setSnapshot), [transport])
 
-  if (!player) return null
+  if (!transport) return null
 
-  const { transport, slideDurationMs: durationMs } = player
   // Read, never called. `transport.pause()` would have been the obvious way to obtain a
   // snapshot and would have stopped playback on mount — a side effect in an initialiser, in
   // a component whose whole job is not to fight the transport.

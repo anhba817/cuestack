@@ -47,6 +47,10 @@ export default defineConfig({
         // modules US1 delivered; US2-US5 widen it to 'packages/core/src/**' as
         // each lands, exactly as US4 widened schema's scope to include migrate/.
         'packages/core/src/{resolve,effects,time,advance}/**/*.ts',
+        // Feature 003 T078: the adapter joins the floor now that it has behaviour to
+        // cover. Components are included, not excluded as "hard to cover" — a renderer
+        // with no test is a renderer nobody has seen output from.
+        'packages/react/src/**/*.{ts,tsx}',
       ],
       exclude: [
         '**/dist/**',
@@ -58,6 +62,15 @@ export default defineConfig({
         // which serve FR-027/028/029 — US4's requirements and US4's tests. It
         // returns to the floor when US4 lands, alongside the rest of core/src.
         'packages/core/src/resolve/element.ts',
+        // Entry points: re-export lists with no statements of their own.
+        'packages/react/src/index.ts',
+        'packages/react/src/server.ts',
+        'packages/react/src/elements/builtin/index.ts',
+        // Real browser ports. Exercised by the example app and by any host, and coverable
+        // here only by asserting that happy-dom's `document` behaves like a browser's —
+        // which would test happy-dom. The substitutability this file exists to serve is
+        // itself covered: every playback test supplies its own ports.
+        'packages/react/src/player/browserPorts.ts',
       ],
       // T041: Constitution II's floor for @cuestack/schema. Set here rather
       // than in a later phase because the principle ties the floor to schema's

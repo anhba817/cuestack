@@ -228,13 +228,13 @@ carries its accessibility obligations, and contains no style literal.
 
 - [X] T073 Promote `examples/nextjs/app/page.tsx` from a resolution probe to a real player — server-render the reference lesson's first slide and hydrate into playback, **and assert the `react-server` condition resolved in the server component** (FR-024). The example app is the only real RSC boundary in the repository, so it is the only place this is observable; a malformed condition order does not throw, it silently resolves the client bundle into a server context and surfaces later as an untraceable hydration bug
 - [X] T074 Add playback controls at `packages/react/src/player/controls/PlaybackControls.tsx` and `controls.css`, keyboard-operable with accessible names (FR-020)
-- [ ] T075 First-slide timing test in `packages/react/test/ssr/timing.test.ts` — the first slide is renderable within 2 seconds of lesson data being available, excluding media download (SC-006, NFR-PERF-006)
-- [ ] T076 [P] Write `packages/react/README.md` covering the player, the entry points, the stylesheet requirement, and the renderer contract
-- [ ] T077 [P] Add a Changesets entry at `.changeset/react-ssr-player.md` for the `@cuestack/react` minor release
-- [ ] T078 Widen the coverage floor in root `vitest.config.ts` to include `packages/react/src`, at the same 90% line and branch threshold
-- [ ] T079 Add the newly armed gates to `.github/workflows/ci.yml` — the a11y and theme-value gates now check real subject matter, and `check-rule-coverage.mjs` joins the blocking set
-- [ ] T080 Run every scenario in `specs/003-react-ssr-player/quickstart.md` by hand, **including opening the page with JavaScript disabled**, and correct any step that does not work as written
-- [ ] T081 Flip NX-1, NX-2, NX-3, RC-1, RC-2, and QA-2 to ✅ in `docs/cuestack_framework_plan.md` and confirm the Wave 3 critical path still holds
+- [X] T075 First-slide timing test in `packages/react/test/ssr/timing.test.ts` — the first slide is renderable within 2 seconds of lesson data being available, excluding media download (SC-006, NFR-PERF-006)
+- [X] T076 [P] Write `packages/react/README.md` covering the player, the entry points, the stylesheet requirement, and the renderer contract
+- [X] T077 [P] Add a Changesets entry at `.changeset/react-ssr-player.md` for the `@cuestack/react` minor release
+- [X] T078 Widen the coverage floor in root `vitest.config.ts` to include `packages/react/src`, at the same 90% line and branch threshold
+- [X] T079 Add the newly armed gates to `.github/workflows/ci.yml` — the a11y and theme-value gates now check real subject matter, and `check-rule-coverage.mjs` joins the blocking set
+- [X] T080 Run every scenario in `specs/003-react-ssr-player/quickstart.md` by hand, **including opening the page with JavaScript disabled**, and correct any step that does not work as written
+- [X] T081 Flip NX-1, NX-2, NX-3, RC-1, RC-2, and QA-2 to ✅ in `docs/cuestack_framework_plan.md` and confirm the Wave 3 critical path still holds
 
 ---
 

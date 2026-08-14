@@ -17,9 +17,17 @@ level; this feature adds test-environment dependencies only.
 pnpm --filter @cuestack/example-nextjs dev
 ```
 
-Open the page. **Expected**: the reference lesson's first slide, rendered — title text, the
-accent shape, positioned as authored. Resize the window and the slide scales with it, keeping its
-proportions.
+Open the page. **Expected**: two stages.
+
+The first is **slide 2, server-rendered and never hydrated** — its video element showing a
+reserved-space fallback, because the reference lesson's assets are opaque ids with nothing
+serving them and the page supplies no resolver. That is the honest behaviour, not a defect.
+
+The second is **slide 1, hydrated and playing**, with controls beneath it. It is empty for its
+first 500 ms by design: the title fades in, and the stage holds its shape so nothing shifts when
+it arrives.
+
+Resize the window. Both scale with it, keeping their proportions.
 
 Then the part that matters:
 
@@ -27,9 +35,26 @@ Then the part that matters:
 # Disable JavaScript in devtools, reload.
 ```
 
-**Expected**: the slide is still there. Not a spinner, not a blank stage — the actual first frame.
-That is the property no other tool in this category has, and it is worth seeing once by hand
-before trusting the tests.
+**Expected**: the first stage is unchanged — the actual frame, not a spinner and not a blank box.
+The second is an empty stage at the right proportions, which is what slide 1 correctly looks like
+at time zero. Worth seeing once by hand before trusting the tests.
+
+Slide 2 is the one to look at rather than slide 1 precisely because slide 1 at time zero
+demonstrates nothing: a correctly shaped empty rectangle proves the stage works and says nothing
+about content. If you want the assertion without a browser:
+
+```bash
+pnpm --filter @cuestack/example-nextjs build
+python3 - <<'EOF'
+import re
+h = open('examples/nextjs/.next/server/app/index.html').read()
+nojs = re.sub(r'<script[^>]*>.*?</script>', '', h, flags=re.S)
+print(nojs.count('class="cs-stage"'), 'stages,',
+      len(re.findall(r'data-cs-element-type', nojs)), 'elements, with every script removed')
+EOF
+```
+
+**Expected**: `2 stages, 1 elements, with every script removed`.
 
 ## Scenario 2 — The first slide is in the markup (US1, SC-001)
 
@@ -91,6 +116,19 @@ pnpm exec vitest run --project @cuestack/react scaling
 The mechanism is CSS, so these are assertions about emitted style declarations rather than
 measured pixels. That is the point: if the test had to measure, the implementation would have had
 to measure too.
+
+## Scenario 5b — Playback controls (FR-020)
+
+```bash
+pnpm exec vitest run --project @cuestack/react controls
+```
+
+**Expected**: a labelled group of real buttons and a real range input, every one with an
+accessible name; the seek control stepping in whole seconds so an arrow key moves it visibly; and
+rendering the controls does not pause the lesson.
+
+That last one is not hypothetical. `transport.pause()` is the obvious way to obtain an initial
+snapshot, and it stops playback — a control that halts the thing it controls by existing.
 
 ## Scenario 6 — Every element type renders (US4, SC-007)
 
@@ -158,10 +196,19 @@ the player applies no styles outside its own stage; and it works with no server 
 
 ## What this feature still does not do
 
-Questions render but cannot be answered. Media renders with native controls but is not
-synchronised to lesson time. There are no slide transitions, no progress display, and no
-reduced-motion substitution — though the custom-property mechanism is what makes that last one
-possible in Wave 3 without script.
+Questions render, are announced, and cannot be answered. Media renders with native controls and
+is not synchronised to lesson time. **Navigation buttons carry their action and do not act** —
+advancing needs the transport, which the renderer contract withholds, so the action reaches the
+markup as a data attribute for Wave 3 to wire through the player. There are no slide transitions
+and no progress display.
+
+Reduced motion *is* honoured, ahead of schedule: neutralising a custom property inside a media
+query needs no script, so the floor works on the server-rendered first frame. What remains for
+Wave 3 is per-effect reduced alternatives rather than the mechanism.
+
+Assets are addressed by a host-supplied `resolveAsset`. Without one, an id that is already a
+locator is used as such and anything else renders a described, space-reserving fallback. A
+publishing pipeline that resolves ids properly is BR-018, in Wave 5.
 
 If you press play and reach the end of a slide, it advances. If you click a question, nothing
 happens, and it says so.

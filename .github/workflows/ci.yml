@@ -123,16 +123,56 @@ jobs:
         env:
           BASE_REF: origin/${{ github.base_ref || 'main' }}
 
-  # Gates 2c, 5, 6, 7 — placeholders. Present and passing per FR-017.
-  placeholder-gates:
-    name: 'Gates 2c,5,6,7 · placeholders'
+  # Gates 2c, 5, 6, 7. Three of the four are armed as of feature 003 — the accessibility
+  # and theme-value gates now check real subject matter, so this job needs a built
+  # workspace and the installed dependencies it previously did without. Only parity is
+  # still a placeholder, and it names the wave that arms it.
+  quality-gates:
+    name: 'Gates 2c,5,6,7 · a11y, theme, perf, parity'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
       - run: node tools/scripts/gates/run-all.mjs
+
+  # Feature 003 T008: the business-rule tally, derived from the filesystem rather than
+  # asserted in prose. Blocking, because four analysis passes found that count wrong and
+  # two of those errors were introduced while correcting the previous one.
+  rule-coverage:
+    name: 'Gate 11 · business-rule coverage'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:rules
+
+  # The published example, built the way a consumer's app is. The only real RSC boundary in
+  # the repository, and therefore the only place a wrongly ordered exports map or a hook on
+  # the server path is observable — neither of which throws in a unit test.
+  example-build:
+    name: 'Gate 12 · the example app builds'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter @cuestack/example-nextjs build
 
   # The gates' own negative controls: proof each gate would go red.
   gate-self-test:

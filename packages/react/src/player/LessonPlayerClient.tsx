@@ -135,18 +135,18 @@ export function LessonPlayerClient({
     </Stage>
   )
 
-  return transport ? (
+  /*
+   * The provider is always present, even before the transport exists.
+   *
+   * Providing it conditionally meant `usePlayer()` threw for every child on its first
+   * render — the documented way for a host to drive playback, unusable by a host. The
+   * transport is nullable instead, which is what it genuinely is during a server render and
+   * during the hydration pass, and callers check it.
+   */
+  return (
     <PlayerContext.Provider value={{ transport, slideDurationMs: slide.durationMs }}>
       {content}
       {children}
     </PlayerContext.Provider>
-  ) : (
-    /* Before the mount effect, and on the server: no transport, so no provider. Children
-       still render, so non-hook chrome is server-rendered too — PlaybackControls renders
-       nothing without a provider, which is what keeps the hydration pass matching. */
-    <>
-      {content}
-      {children}
-    </>
   )
 }
