@@ -1,0 +1,150 @@
+name: CI
+
+# The gates from specs/001-framework-foundation/contracts/quality-gates.md.
+#
+# Every job here is blocking. No `continue-on-error` appears in this file and
+# none should: a gate that tolerates failure is documentation, not a gate.
+#
+# The four placeholder gates (theme-values, parity, a11y, perf) run and pass
+# because they check nothing yet — FR-017. They exist now so that arming them in
+# Wave 2/3/4 is a one-line change to one script rather than new infrastructure
+# built under deadline pressure.
+#
+# Measured wall-clock, all jobs in parallel after `setup`: ~2 min.
+# Budget is 5 min (SC-005). If it approaches that, parallelise further — do not
+# move a gate out of the blocking set.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The reference environment for every timing budget in the spec.
+  NODE_VERSION: '24'
+
+jobs:
+  # Gate 1 — typecheck
+  typecheck:
+    name: 'Gate 1 · typecheck'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck
+
+  # Gate 2a/2c — per-file lint, including the core/UI boundary and the
+  # determinism rules. 2c (no hard-coded theme values) is a placeholder.
+  lint:
+    name: 'Gate 2a · lint'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec eslint .
+
+  # Gate 2b — graph boundaries: package direction and cycles.
+  boundaries:
+    name: 'Gate 2b · boundaries'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint:boundaries
+
+  # Gates 3, 4, 9 — tests, coverage floors, determinism.
+  test:
+    name: 'Gates 3,4,9 · tests + coverage'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test:coverage
+
+  # Gate 8 — the package is actually consumable as published, plus the
+  # stronger consumer-facing claim that core loads with no UI framework.
+  packaging:
+    name: 'Gate 8 · packaging'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm check:packaging
+      - run: pnpm check:isolation
+      - run: pnpm check:data-model
+
+  # Gate 10 — a format change must ship its migration in the same revision.
+  migrations:
+    name: 'Gate 10 · schema/migration pairing'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the check needs a merge base
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:migrations
+        env:
+          BASE_REF: origin/${{ github.base_ref || 'main' }}
+
+  # Gates 2c, 5, 6, 7 — placeholders. Present and passing per FR-017.
+  placeholder-gates:
+    name: 'Gates 2c,5,6,7 · placeholders'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: node tools/scripts/gates/run-all.mjs
+
+  # The gates' own negative controls: proof each gate would go red.
+  gate-self-test:
+    name: 'Meta · gates fail when they should'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec vitest run --project gates
