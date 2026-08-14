@@ -1,0 +1,42 @@
+{
+  "name": "cuestack",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cuestack \u2014 a timed lesson authoring and playback framework",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "lint": "eslint . && pnpm lint:boundaries",
+    "lint:boundaries": "depcruise packages tools --config .dependency-cruiser.cjs",
+    "check:packaging": "node tools/scripts/check-packaging.mjs",
+    "check:isolation": "node tools/scripts/check-core-isolation.mjs",
+    "check:data-model": "node tools/scripts/check-data-model.mjs",
+    "check:migrations": "node tools/scripts/check-migrations.mjs",
+    "gates": "node tools/scripts/gates/run-all.mjs"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@changesets/cli": "3.0.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.15.0",
+    "@vitest/coverage-v8": "4.1.10",
+    "dependency-cruiser": "18.2.0",
+    "eslint": "10.8.1",
+    "publint": "0.3.23",
+    "tsdown": "0.22.14",
+    "turbo": "2.10.9",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.67.0",
+    "vitest": "4.1.10",
+    "@types/react": "^19.2.0",
+    "globals": "^16.0.0"
+  }
+}

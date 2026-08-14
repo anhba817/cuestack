@@ -1,0 +1,80 @@
+# Cuestack
+
+A timed lesson authoring and playback framework. Headless core, React-first, with
+server rendering under Next.js.
+
+A *cue stack* is the stage manager's ordered list of timed triggers for running a show.
+That is what a Cuestack lesson is: slides whose elements enter, emphasise, and exit on a
+clock, and which advance on a duration, a click, a media end, or a learner's answer.
+
+## Status
+
+**Wave 0 — Framework Foundation.** The lesson format contract and the workspace that
+publishes it. No renderer, no editor, nothing to look at yet. See
+[`docs/cuestack_framework_plan.md`](docs/cuestack_framework_plan.md) for what comes next.
+
+## Setup
+
+Requires **Node 22.12+** (CI runs Node 24 LTS) and **pnpm 11**.
+
+```bash
+corepack enable
+git clone <repo> && cd cuestack
+pnpm install
+pnpm build
+```
+
+That is the whole setup. No global TypeScript, no editor plugin, no environment
+variables. If a step beyond these is ever needed, that is a defect against SC-001.
+
+```bash
+pnpm test          # run the suite
+pnpm typecheck     # strict, zero errors expected
+pnpm lint          # per-file rules + architectural boundaries
+```
+
+### Build timing
+
+SC-001 budgets clone-to-build at **under 10 minutes**, measured on the reference
+environment — the project's standard CI runner (4 vCPU, 16 GB) — and excluding
+`pnpm install` download time, which depends on network conditions the project does not
+control. A local timing is indicative, not authoritative.
+
+| Measurement | Budget | Recorded |
+|---|---|---|
+| `pnpm install` (excluded from budget) | — | ~8 s warm store |
+| `pnpm build`, cold cache, 5 workspace projects | < 10 min | **5.5 s** |
+| `pnpm test` (189 tests) | — | < 1 s |
+
+Measured on a developer machine, not the reference runner — CI records the authoritative
+number. The budget has three orders of magnitude of headroom, so the interesting question is
+not whether it passes but when it starts to move.
+
+## Packages
+
+| Package | What it is |
+|---|---|
+| `@cuestack/schema` | The lesson format: types, validators, migrations |
+| `@cuestack/core` | Headless kernel — clock, resolver, registries (Wave 1) |
+| `@cuestack/react` | React adapter, server-renderable (Wave 2) |
+| `@cuestack/element` | Web components adapter (Wave 5) |
+
+`@cuestack/schema` has two entry points and the split is load-bearing:
+
+```ts
+import type { LessonManifest } from '@cuestack/schema'      // zero runtime bytes
+import { validate } from '@cuestack/schema/validate'        // pulls in Zod
+```
+
+A learner's browser receives a manifest that was validated at author time. Shipping a
+validation library to the player would tax every lesson load for a check that already
+happened, so validation lives behind its own specifier and the player never imports it.
+
+## Governance
+
+[`.specify/memory/constitution.md`](.specify/memory/constitution.md) holds the
+non-negotiables — test-first on the timing rules, the core/UI boundary, performance as a
+contract, preview-player parity. CI enforces them; a green build is necessary, not
+sufficient.
+
+Requirements live in [`docs/Cuestack_Framework.md`](docs/Cuestack_Framework.md).

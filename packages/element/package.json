@@ -1,0 +1,22 @@
+{
+  "name": "@cuestack/element",
+  "version": "0.0.0",
+  "description": "Cuestack element package (stub — arrives in a later wave)",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "publishConfig": { "access": "public" }
+}
