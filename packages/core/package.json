@@ -1,11 +1,13 @@
 {
   "name": "@cuestack/core",
   "version": "0.0.0",
-  "description": "Cuestack core package (stub — arrives in a later wave)",
+  "description": "Cuestack core package (stub \u2014 arrives in a later wave)",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,5 +20,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
-  "publishConfig": { "access": "public" }
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@cuestack/schema": "workspace:*"
+  }
 }
