@@ -24,7 +24,6 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
  * The remaining rules have no code to test yet:
  *   BR-008, BR-009  publishing and immutable versions   — Wave 5
  *   BR-012          accessibility policy enforcement    — organisation policy, Wave 5
- *   BR-014          autoplay gesture                    — Wave 3
  *   BR-015          reduced-motion substitution          — Wave 3
  *   BR-016          Simple Sequence resolution           — Wave 4
  *   BR-017          duration reduced below event end     — Wave 4 editor warning
@@ -41,14 +40,20 @@ const EXPECTED = {
   'BR-010': 'core',
   'BR-011': 'core',
   'BR-013': 'core',
+  'BR-014': 'react',
 }
 
 function rulesIn(pkg) {
   const dir = join(root, 'packages', pkg, 'test', 'rules')
   if (!existsSync(dir)) return []
   return readdirSync(dir)
-    .filter((f) => /^BR-\d+\.test\.ts$/.test(f))
-    .map((f) => f.replace('.test.ts', ''))
+    // `.tsx` as well as `.ts`. BR-014 is the first rule whose subject matter lives in an
+    // adapter rather than in the kernel, and a rule about what a player renders has to be a
+    // rendering test. The gate was written when every rule test was in core and would have
+    // reported a covered rule as uncovered — reporting the wrong answer confidently, which
+    // is the exact failure it exists to prevent.
+    .filter((f) => /^BR-\d+\.test\.tsx?$/.test(f))
+    .map((f) => f.replace(/\.test\.tsx?$/, ''))
 }
 
 const found = new Map()

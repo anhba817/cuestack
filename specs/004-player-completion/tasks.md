@@ -155,14 +155,14 @@ once when the end is reported twice.
 - [X] T039 [P] [US2] Single-reconciler scan in `packages/core/test/media/one-rule.test.ts` — the position comparison that decides which clock wins appears in `reconcile.ts` and nowhere else, and no other module compares a reported position against a commanded one. FR-037 says one rule applied everywhere; every other one-place rule in this repository is machine-enforced (`no-switch-on-element-type`, `no-ui-in-core`, `no-theme-literals`) and feature 001 found a boundary rule green while enforcing nothing
 - [X] T040 [P] [US2] Media-link tests in `packages/core/test/media/link.test.ts` — commands reach the port, `durationMs` from the file wins over the manifest's, and `failed` is reported rather than waited on
 - [X] T041 [P] [US2] BR-014 test in `packages/react/test/rules/BR-014.test.tsx` — a lesson with audible media does not begin playback without a learner action, a silent lesson does, and the requirement is not asked twice (research R-08)
-- [ ] T042 [P] [US2] Media-cued visibility test in `packages/react/test/media/cued-elements.test.tsx` — an element tied to media position appears within tolerance of its cue, measured against reported position rather than wall clock (FR-013, SC-006)
+- [X] T042 [P] [US2] Media-cued visibility test in `packages/react/test/media/cued-elements.test.tsx` — an element tied to media position appears within tolerance of its cue, measured against reported position rather than wall clock (FR-013, SC-006)
 - [X] T043 [P] [US2] Lesson-seeks-media test in `packages/react/test/media/seek.test.tsx` — seeking the lesson commands the media; scrubbing the media moves the lesson; an unhonoured seek leaves the displayed position honest (FR-034, FR-035, FR-036, SC-014)
-- [ ] T044 [P] [US2] Pause-and-resume test in `packages/react/test/media/pause.test.tsx` — pausing the lesson pauses its media, and resuming continues from the stopped position (FR-016)
-- [ ] T045 [P] [US2] Hidden-document test in `packages/react/test/media/hidden.test.tsx` — hiding the document pauses the visual timeline *and* its media, and returning resumes both from the same position (FR-018, FR-016, BR-013). Includes hiding mid-transition, which must settle rather than strand two slides visible — one hidden-document concern, one test, rather than split across two stories. The transport half has held since Wave 1; the media half is new and is the reason this is not covered by the existing BR-013 test
-- [ ] T046 [P] [US2] Degenerate-media test in `packages/react/test/media/degenerate.test.tsx` — a slide gated on media that is muted, or reports zero duration, still advances rather than waiting on an end that never comes (spec Edge Cases)
-- [ ] T047 [P] [US2] Media-failure test in `packages/react/test/media/failure.test.tsx` — a slide gated on media that fails reaches `ADVANCE_MEDIA_FAILED` and offers a way on rather than stalling (FR-017)
-- [ ] T048 [P] [US2] Gesture-prompt accessibility test in `packages/react/test/media/gesture-a11y.test.tsx` — the prompt is announced, keyboard-reachable, and names the action
-- [ ] T049 [P] [US2] **MVP Acceptance Scenario C** end-to-end in `packages/react/test/acceptance/scenario-c.test.tsx`, written from §34 C verbatim including the duplicate-end-event row
+- [X] T044 [P] [US2] Pause-and-resume test in `packages/react/test/media/pause.test.tsx` — pausing the lesson pauses its media, and resuming continues from the stopped position (FR-016)
+- [X] T045 [P] [US2] Hidden-document test in `packages/react/test/media/hidden.test.tsx` — hiding the document pauses the visual timeline *and* its media, and returning resumes both from the same position (FR-018, FR-016, BR-013). Includes hiding mid-transition, which must settle rather than strand two slides visible — one hidden-document concern, one test, rather than split across two stories. The transport half has held since Wave 1; the media half is new and is the reason this is not covered by the existing BR-013 test
+- [X] T046 [P] [US2] Degenerate-media test in `packages/react/test/media/degenerate.test.tsx` — a slide gated on media that is muted, or reports zero duration, still advances rather than waiting on an end that never comes (spec Edge Cases)
+- [X] T047 [P] [US2] Media-failure test in `packages/react/test/media/failure.test.tsx` — a slide gated on media that fails reaches `ADVANCE_MEDIA_FAILED` and offers a way on rather than stalling (FR-017)
+- [X] T048 [P] [US2] Gesture-prompt accessibility test in `packages/react/test/media/gesture-a11y.test.tsx` — the prompt is announced, keyboard-reachable, and names the action
+- [X] T049 [P] [US2] **MVP Acceptance Scenario C** end-to-end in `packages/react/test/acceptance/scenario-c.test.tsx`, written from §34 C verbatim including the duplicate-end-event row
 
 ### Implementation for User Story 2
 
@@ -174,8 +174,8 @@ once when the end is reported twice.
 - [X] T055 [US2] Attach `packages/react/src/elements/builtin/VideoElement.tsx` and `AudioElement.tsx` to the media link by element id (depends on T054)
 - [X] T056 [US2] Implement the lesson-level gesture latch and `packages/react/src/player/GesturePrompt.tsx` (research R-08)
 - [X] T057 [US2] Wire lesson seek and pause to media commands in `packages/react/src/player/LessonPlayerClient.tsx`, and export the seek control's step as `SEEK_STEP_MS` from `packages/react/src/player/controls/PlaybackControls.tsx` instead of inlining `1000` — T038 asserts the media tolerance against it, and an inlined literal cannot be asserted against (depends on T052)
-- [ ] T058 [US2] Add gesture-prompt styles to `packages/react/src/styles/stage.css`, chrome-sized rather than stage-scaled for the same reason the controls are
-- [ ] T059 [US2] Add BR-014 to `EXPECTED` in `tools/scripts/check-rule-coverage.mjs` and move it out of the "no code to test yet" comment block
+- [X] T058 [US2] Add gesture-prompt styles to `packages/react/src/styles/stage.css`, chrome-sized rather than stage-scaled for the same reason the controls are
+- [X] T059 [US2] Add BR-014 to `EXPECTED` in `tools/scripts/check-rule-coverage.mjs` and move it out of the "no code to test yet" comment block
 
 **Checkpoint**: US1 and US2 work. Scenarios B and C pass. Media and the lesson share one time.
 

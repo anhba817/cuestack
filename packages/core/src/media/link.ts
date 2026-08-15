@@ -25,7 +25,15 @@ export interface MediaLinkController {
   seek(elementId: string, positionMs: number): void
   /** Pause every attached element — the lesson pausing takes its media with it (FR-016). */
   pauseAll(): void
-  /** Resume, from where each element stopped rather than from the beginning. */
+  /**
+   * Play every attached element, from where it stopped rather than from the beginning.
+   *
+   * Every element, not only those this link paused. A first version kept a learner's own
+   * pause across a lesson resume, which is defensible UX and is not what FR-016 says —
+   * "resuming MUST pause or resume its media" — and it had a worse consequence: at start-up
+   * nothing had been paused by the lesson, so nothing ever started. A refinement with no
+   * requirement behind it, breaking the requirement that exists.
+   */
   resumeAll(): void
   /** What the media says about itself. Null when nothing is attached. */
   statusOf(elementId: string): MediaStatus | null
@@ -37,8 +45,6 @@ export interface MediaLinkController {
 export function createMediaLink(port: MediaPort): MediaLinkController {
   const links = new Map<string, MediaLink>()
   const listeners = new Set<(elementId: string, positionMs: number) => void>()
-  /** Which elements the lesson paused, so resuming does not start ones already paused. */
-  const pausedByLesson = new Set<string>()
 
   const linkFor = (elementId: string): MediaLink => links.get(elementId) ?? emptyLink(elementId)
 
@@ -59,7 +65,6 @@ export function createMediaLink(port: MediaPort): MediaLinkController {
 
     detach(elementId) {
       links.delete(elementId)
-      pausedByLesson.delete(elementId)
     },
 
     seek(elementId, positionMs) {
@@ -70,16 +75,15 @@ export function createMediaLink(port: MediaPort): MediaLinkController {
     pauseAll() {
       for (const elementId of attached(port, links)) {
         if (port.query(elementId)?.paused === true) continue
-        pausedByLesson.add(elementId)
         port.pause(elementId)
       }
     },
 
     resumeAll() {
-      // Only what the lesson paused. An element the learner paused themselves stays paused —
-      // resuming it would override a choice they made deliberately.
-      for (const elementId of pausedByLesson) port.play(elementId)
-      pausedByLesson.clear()
+      for (const elementId of attached(port, links)) {
+        if (port.query(elementId)?.paused === false) continue
+        port.play(elementId)
+      }
     },
 
     statusOf: (elementId) => port.query(elementId),
@@ -93,7 +97,6 @@ export function createMediaLink(port: MediaPort): MediaLinkController {
       unsubscribe()
       listeners.clear()
       links.clear()
-      pausedByLesson.clear()
     },
   }
 }

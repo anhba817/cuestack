@@ -284,3 +284,44 @@
   font-size: max(12px, calc(16 / var(--cs-canvas-w) * 100cqw));
   color: var(--cs-theme-text-muted, #666666);
 }
+
+/*
+ * The gesture prompt (BR-014).
+ *
+ * Chrome, not stage content, so it is sized in absolute units for the same reason the
+ * playback controls are: a learner on a phone needs a target their finger can hit, and a
+ * control that shrank with a small stage would become unusable exactly where a large target
+ * matters most. WCAG 2.2 2.5.8 puts the floor at 24px; 44 is the comfortable figure.
+ */
+.cs-gesture {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 12px;
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: 14px;
+  color: var(--cs-theme-text-default, #111111);
+  background: var(--cs-theme-surface-muted, #f2f2f2);
+}
+
+.cs-gesture-message {
+  margin: 0;
+}
+
+.cs-gesture-button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--cs-theme-accent-primary, #1a4fd6);
+  color: var(--cs-theme-text-on-accent, #ffffff);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Never removed. Focus is the only affordance a keyboard learner has, and this is the one
+   control standing between them and the lesson. */
+.cs-gesture-button:focus-visible {
+  outline: 3px solid var(--cs-theme-focus-ring, #111111);
+  outline-offset: 2px;
+}

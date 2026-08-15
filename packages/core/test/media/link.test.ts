@@ -55,21 +55,6 @@ describe('commands reach the port', () => {
   })
 })
 
-describe('an element the learner paused themselves', () => {
-  it('stays paused when the lesson resumes', () => {
-    // Resuming it would override a choice the learner made deliberately. Only what the
-    // lesson paused is what the lesson restarts.
-    const media = fakeMedia()
-    media.attach('el', { durationMs: 5000, paused: true })
-    const link = createMediaLink(media)
-    link.attach('el')
-
-    link.pauseAll()
-    link.resumeAll()
-    expect(media.query('el')?.paused).toBe(true)
-  })
-})
-
 describe('what the link knows about the media', () => {
   it('takes the duration from the file, not the manifest', () => {
     // The manifest's figure is authoring metadata and may be wrong; the learner watches the
