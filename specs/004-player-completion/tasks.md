@@ -190,26 +190,26 @@ authored duration, progress advances, and a completion state appears and is anno
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T060 [P] [US3] Transition tests in `packages/react/test/playback/transition.test.tsx` — both slides present for the authored duration, each resolved at its own slide time, then only the incoming one (research R-06)
-- [ ] T061 [US3] No-transition test in `packages/react/test/playback/transition.test.tsx` — `type: 'none'` and `durationMs: 0` both change immediately and animate nothing, since the format permits either
-- [ ] T062 [P] [US3] Transition-interruption test in `packages/react/test/playback/transition-interrupt.test.tsx` — a seek mid-transition settles to the incoming slide and never leaves two slides visible (US3 #8)
-- [ ] T063 [P] [US3] Progress tests in `packages/react/test/playback/progress.test.tsx` — shown only when the host enables it, counts slides visited so seeking backwards does not reduce it, and is absent otherwise
-- [ ] T064 [P] [US3] Completion tests in `packages/react/test/playback/completion.test.tsx` — a completion state after the final slide, announced, with a way back into the lesson (FR-021, FR-022)
-- [ ] T065 [P] [US3] Decorative-failure test in `packages/react/test/playback/decorative-failure.test.tsx` — a failed decorative asset does not interrupt the slide (FR-023)
-- [ ] T066 [P] [US3] Degenerate-transition test in `packages/react/test/playback/transition-degenerate.test.tsx` — a transition longer than the slide it moves to, and a lesson of exactly one slide: progress and completion both have to mean something at n=1 (spec Edge Cases)
-- [ ] T067 [P] [US3] Gated-final-slide test in `packages/react/test/playback/final-gate.test.tsx` — a final slide carrying an unanswered required question does not reach the completion state, and says why rather than appearing finished (spec Edge Cases, SC-010)
-- [ ] T068 [P] [US3] **MVP Acceptance Scenario A** end-to-end in `packages/react/test/acceptance/scenario-a.test.tsx` — the authored sequence at 0.5 s, 2 s, 4 s, and the transition at 8 s, asserted both by playing and by seeking
+- [X] T060 [P] [US3] Transition tests in `packages/react/test/playback/transition.test.tsx` — both slides present for the authored duration, each resolved at its own slide time, then only the incoming one (research R-06)
+- [X] T061 [US3] No-transition test in `packages/react/test/playback/transition.test.tsx` — `type: 'none'` and `durationMs: 0` both change immediately and animate nothing, since the format permits either
+- [X] T062 [P] [US3] Transition-interruption test in `packages/react/test/playback/transition-interrupt.test.tsx` — a seek mid-transition settles to the incoming slide and never leaves two slides visible (US3 #8)
+- [X] T063 [P] [US3] Progress tests in `packages/react/test/playback/progress.test.tsx` — shown only when the host enables it, counts slides visited so seeking backwards does not reduce it, and is absent otherwise
+- [X] T064 [P] [US3] Completion tests in `packages/react/test/playback/completion.test.tsx` — a completion state after the final slide, announced, with a way back into the lesson (FR-021, FR-022)
+- [X] T065 [P] [US3] Decorative-failure test in `packages/react/test/playback/decorative-failure.test.tsx` — a failed decorative asset does not interrupt the slide (FR-023)
+- [X] T066 [P] [US3] Degenerate-transition test in `packages/react/test/playback/transition-degenerate.test.tsx` — a transition longer than the slide it moves to, and a lesson of exactly one slide: progress and completion both have to mean something at n=1 (spec Edge Cases)
+- [X] T067 [P] [US3] Gated-final-slide test in `packages/react/test/playback/final-gate.test.tsx` — a final slide carrying an unanswered required question does not reach the completion state, and says why rather than appearing finished (spec Edge Cases, SC-010)
+- [X] T068 [P] [US3] **MVP Acceptance Scenario A** end-to-end in `packages/react/test/acceptance/scenario-a.test.tsx` — the authored sequence at 0.5 s, 2 s, 4 s, and the transition at 8 s, asserted both by playing and by seeking
 
 ### Implementation for User Story 3
 
-- [ ] T069 [P] [US3] Implement `packages/react/src/player/SlideTransition.tsx` rendering outgoing and incoming slides, each resolved at its own slide time
-- [ ] T070 [P] [US3] Add `packages/react/src/styles/transition.css` for fade, slide, and zoom, driven by custom properties like everything else and scoped beneath the stage, **and register it in `packages/react/src/styles/styles.css` and the `ORDER` list in `tools/scripts/bundle-css.mjs`** — that script fails the build when the two disagree, so a new stylesheet that is not registered breaks the build in the task that creates it
-- [ ] T071 [US3] Drive transitions from slide changes in `packages/react/src/player/LessonPlayerClient.tsx`, settling immediately on interruption (depends on T069)
-- [ ] T072 [P] [US3] Implement `packages/react/src/player/LessonProgress.tsx`, counting visited slides
-- [ ] T073 [P] [US3] Implement `packages/react/src/player/LessonComplete.tsx`, announced and offering a return
-- [ ] T074 [US3] Add a `progress` option to the player props in `packages/react/src/player/LessonPlayerClient.tsx` and document why it is a host option rather than a manifest field (spec Assumptions)
-- [ ] T075 [US3] Export `SlideTransition`, `LessonProgress`, and `LessonComplete` from `packages/react/src/index.ts`, and from `server.ts` where they are hook-free — feature 003 found the two entries diverged twice
-- [ ] T076 [US3] Add progress and completion styles to `packages/react/src/player/controls/controls.css` — the existing chrome stylesheet, already registered and already sized as chrome rather than scaled to the stage
+- [X] T069 [P] [US3] Implement `packages/react/src/player/SlideTransition.tsx` rendering outgoing and incoming slides, each resolved at its own slide time
+- [X] T070 [P] [US3] Add `packages/react/src/styles/transition.css` for fade, slide, and zoom, driven by custom properties like everything else and scoped beneath the stage, **and register it in `packages/react/src/styles/styles.css` and the `ORDER` list in `tools/scripts/bundle-css.mjs`** — that script fails the build when the two disagree, so a new stylesheet that is not registered breaks the build in the task that creates it
+- [X] T071 [US3] Drive transitions from slide changes in `packages/react/src/player/LessonPlayerClient.tsx`, settling immediately on interruption (depends on T069)
+- [X] T072 [P] [US3] Implement `packages/react/src/player/LessonProgress.tsx`, counting visited slides
+- [X] T073 [P] [US3] Implement `packages/react/src/player/LessonComplete.tsx`, announced and offering a return
+- [X] T074 [US3] Add a `progress` option to the player props in `packages/react/src/player/LessonPlayerClient.tsx` and document why it is a host option rather than a manifest field (spec Assumptions)
+- [X] T075 [US3] Export `SlideTransition`, `LessonProgress`, and `LessonComplete` from `packages/react/src/index.ts`, and from `server.ts` where they are hook-free — feature 003 found the two entries diverged twice
+- [X] T076 [US3] Add progress and completion styles to `packages/react/src/player/controls/controls.css` — the existing chrome stylesheet, already registered and already sized as chrome rather than scaled to the stage
 
 **Checkpoint**: US1–US3 work. Scenarios A, B, and C pass. A lesson runs start to finish.
 

@@ -30,6 +30,8 @@ export interface Rule {
   readonly declarations: Readonly<Record<string, string>>
   /** The `@media (...)` prelude this rule sits inside, if any. */
   readonly media?: string
+  /** Set when this "rule" is an `@keyframes` block; the value is its name. */
+  readonly keyframes?: string
 }
 
 export interface Box {
@@ -97,7 +99,16 @@ function parse(css: string, media?: string): Rule[] {
     const prelude = css.slice(i, open).trim()
     const close = matchBrace(css, open)
     const body = css.slice(open + 1, close)
-    if (prelude.startsWith('@')) {
+    if (prelude.startsWith('@keyframes')) {
+      /**
+       * Keyframe stops are not selectors.
+       *
+       * `from`, `to`, and `50%` name points in an animation, not elements, so feeding them
+       * to a scoping check reports every keyframe as an unscoped bare selector. What *is*
+       * worth checking about a keyframe is its name, which `keyframeNames()` exposes.
+       */
+      out.push({ selectors: [], declarations: {}, keyframes: prelude.slice('@keyframes'.length).trim() })
+    } else if (prelude.startsWith('@')) {
       out.push(...parse(body, prelude))
     } else if (prelude !== '') {
       out.push({
@@ -306,4 +317,11 @@ export function elementBox(
     return resolveValue(value, vars, container)
   }
   return { left: read('left'), top: read('top'), width: read('width'), height: read('height') }
+}
+
+/** Every `@keyframes` name declared in a stylesheet. */
+export function keyframeNames(css: string = stylesheet()): string[] {
+  return rules(css)
+    .filter((r) => r.keyframes !== undefined)
+    .map((r) => r.keyframes!)
 }

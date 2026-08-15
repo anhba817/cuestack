@@ -26,8 +26,9 @@ import { createDomMediaPort } from '../media/domMediaPort.js'
 import { GesturePrompt, hasAudibleMedia } from './GesturePrompt.js'
 import { useInteractions } from './useInteractions.js'
 import { PlayerContext } from './usePlayer.js'
-import { SlideView } from './SlideView.js'
-import { Stage } from './Stage.js'
+import { SlideTransition, type TransitionType } from './SlideTransition.js'
+import { LessonComplete } from './LessonComplete.js'
+import { LessonProgress } from './LessonProgress.js'
 
 export interface LessonPlayerClientProps {
   readonly lesson: LessonManifest
@@ -50,6 +51,18 @@ export interface LessonPlayerClientProps {
    */
   readonly ports?: Ports
   readonly autoPlay?: boolean
+  /**
+   * Whether to show lesson progress.
+   *
+   * A **host** option, not a manifest field. FR-PLY-013 says "where enabled by the teacher or
+   * organization"; the format carries no such field, adding one is a migration, and the
+   * organisation half is BR-012 in Wave 5. A host option satisfies the requirement now
+   * without freezing a format decision early — and a host that already knows its policy is
+   * the right place to hold it.
+   *
+   * Not a boolean, so a third option later — time-based, chapters — is not a breaking change.
+   */
+  readonly progress?: 'none' | 'slides'
   /**
    * Chrome the host places inside the player — `<PlaybackControls />` above all.
    *
@@ -80,6 +93,35 @@ const DEFAULT_RENDERERS = createRendererRegistry(builtinRenderers)
  * out its own duration with nothing to read is unaffected.
  */
 const FEEDBACK_DWELL_MS = 1500
+
+interface Leaving {
+  readonly state: RenderState
+  readonly type: TransitionType
+  readonly durationMs: number
+  /** Lesson time on the incoming slide at which the transition is over. */
+  readonly untilMs: number
+  /**
+   * The slide it is entering.
+   *
+   * Needed because `untilMs` is on that slide's clock, and navigating elsewhere resets the
+   * clock to zero — leaving the comparison permanently unsatisfied and two slides on screen
+   * forever. Arriving at a different slide ends the transition outright, whatever the time
+   * says.
+   */
+  readonly toIndex: number
+}
+
+/** The transition authored on the slide being *entered*, or none. */
+function transitionOf(
+  lesson: LessonManifest,
+  slideIndex: number,
+): { type: TransitionType; durationMs: number } {
+  const authored = lesson.slides[slideIndex]?.transition
+  return {
+    type: (authored?.type ?? 'none') as TransitionType,
+    durationMs: authored?.durationMs ?? 0,
+  }
+}
 
 /**
  * When an element begins, in slide time.
@@ -127,6 +169,7 @@ export function LessonPlayerClient({
   resolveAsset,
   ports,
   autoPlay = false,
+  progress = 'none',
   onReady,
   children,
 }: LessonPlayerClientProps): ReactNode {
@@ -188,6 +231,18 @@ export function LessonPlayerClient({
   const [gestureGiven, setGestureGiven] = useState(!needsGesture)
   gestureGivenRef.current = gestureGiven
 
+  /**
+   * Back into the lesson from the completion state (FR-022).
+   *
+   * Returns to the first slide and plays. Trapping a learner at the end so they must reload
+   * to review is worse than having no end state at all.
+   */
+  const review = useCallback(() => {
+    setComplete(false)
+    transportRef.current?.goToSlide(0)
+    transportRef.current?.play()
+  }, [])
+
   /** The learner's action. Starts playback and is never asked for again (FR-015). */
   const givePermission = useCallback(() => {
     gestureGivenRef.current = true
@@ -207,6 +262,21 @@ export function LessonPlayerClient({
 
   const latest = useRef<RenderState | null>(initial)
   const state = visibleIds === '' ? initial : latest.current
+
+  /**
+   * The slide leaving, while a transition runs.
+   *
+   * Held as state because it is structural — React must render a second stage — and cleared
+   * on a timer rather than per frame, since the animation itself is CSS and needs no
+   * per-frame involvement from React.
+   */
+  /** Slides reached, so seeking backwards does not un-earn progress already made. */
+  const [visited, setVisited] = useState<ReadonlySet<number>>(() => new Set([slideIndex]))
+  const [complete, setComplete] = useState(false)
+  const [leaving, setLeaving] = useState<Leaving | null>(null)
+  /** Read by the frame loop, which does not re-render and cannot see React state. */
+  const leavingRef = useRef<Leaving | null>(null)
+  leavingRef.current = leaving
 
   /** Reset the fallback when the slide changes, so a new slide starts at its own time zero
    *  rather than showing the previous slide's last frame. */
@@ -259,8 +329,55 @@ export function LessonPlayerClient({
       if (!active) return
 
       if (announced !== snapshot.slideIndex) {
+        /**
+         * Capture the outgoing slide here, where it still exists.
+         *
+         * A first version read it during render, from the ref — by which point `step` had
+         * already overwritten it with the *incoming* slide's state, so the transition
+         * rendered the same slide twice. The old state is only in hand for the moment
+         * between one `resolve` and the next, and this is that moment.
+         *
+         * `type: 'none'` and `durationMs: 0` are both authorable and both mean "change
+         * immediately"; rendering two stages for either would leave a frame of doubled
+         * content.
+         */
+        const authored = transitionOf(lesson, snapshot.slideIndex)
+        const previous = latest.current
+        if (announced !== -1 && previous && authored.durationMs > 0 && authored.type !== 'none') {
+          // `untilMs` is on the *incoming* slide's clock, which starts at zero.
+          const next: Leaving = {
+            state: previous,
+            type: authored.type,
+            durationMs: authored.durationMs,
+            untilMs: snapshot.slideTimeMs + authored.durationMs,
+            toIndex: snapshot.slideIndex,
+          }
+          leavingRef.current = next
+          setLeaving(next)
+        }
         announced = snapshot.slideIndex
+        setVisited((seen) => (seen.has(snapshot.slideIndex) ? seen : new Set([...seen, snapshot.slideIndex])))
         activePorts.analytics.record(event(lesson, 'slide_started', active.id))
+      }
+
+      /**
+       * End the transition on **lesson** time, not wall-clock.
+       *
+       * A first version used `setTimeout`, which made a paused lesson finish its crossfade
+       * while everything else was frozen — and made the behaviour untestable without waiting
+       * out real durations, which Constitution II forbids. Lesson time is the clock
+       * everything else in the player runs on, and a transition is part of the lesson.
+       *
+       * It also gives US3 #8 for free: a seek past the transition's end settles it, because
+       * the new slide's time is already beyond it.
+       */
+      const outgoing = leavingRef.current
+      if (
+        outgoing &&
+        (snapshot.slideIndex !== outgoing.toIndex || snapshot.slideTimeMs >= outgoing.untilMs)
+      ) {
+        leavingRef.current = null
+        setLeaving(null)
       }
 
       const next = resolve(active, snapshot.slideTimeMs)
@@ -315,6 +432,7 @@ export function LessonPlayerClient({
         t.goToSlide(following)
       } else if (!completed) {
         completed = true
+        setComplete(true)
         activePorts.analytics.record(event(lesson, 'lesson_completed', active.id))
       }
     }
@@ -416,15 +534,18 @@ export function LessonPlayerClient({
   }
 
   const content = (
-    <Stage lesson={lesson} {...(theme ? { theme } : {})}>
-      <SlideView
-        state={state}
-        renderers={elements}
-        writer={writer}
-        interactionFor={interactionFor}
-        {...(resolveAsset ? { resolveAsset } : {})}
-      />
-    </Stage>
+    <SlideTransition
+      lesson={lesson}
+      incoming={state}
+      outgoing={leaving?.state ?? null}
+      type={leaving?.type ?? 'none'}
+      durationMs={leaving?.durationMs ?? 0}
+      renderers={elements}
+      writer={writer}
+      interactionFor={interactionFor}
+      {...(theme ? { theme } : {})}
+      {...(resolveAsset ? { resolveAsset } : {})}
+    />
   )
 
   /*
@@ -441,7 +562,20 @@ export function LessonPlayerClient({
       {/* Before the gesture, in place of the controls: audible media has not been permitted
           to start, and offering transport controls that cannot honour a press is worse than
           asking plainly. */}
-      {gestureGiven ? children : <GesturePrompt onStart={givePermission} />}
+      {progress === 'slides' ? (
+        <LessonProgress
+          slideIndex={currentIndex}
+          slideCount={lesson.slides.length}
+          visited={visited}
+        />
+      ) : null}
+      {complete ? (
+        <LessonComplete title={lesson.lesson.title} onReview={review} />
+      ) : gestureGiven ? (
+        children
+      ) : (
+        <GesturePrompt onStart={givePermission} />
+      )}
     </PlayerContext.Provider>
   )
 }

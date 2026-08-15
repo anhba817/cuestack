@@ -22,6 +22,16 @@ export type { LessonPlayerStaticProps as LessonPlayerProps } from './player/Less
 export { LessonPlayerStatic } from './player/LessonPlayerStatic.js'
 export type { LessonPlayerStaticProps } from './player/LessonPlayerStatic.js'
 export { Stage } from './player/Stage.js'
+export type { StageProps, StageTransition } from './player/Stage.js'
+/**
+ * `SlideTransition` is hook-free, so it belongs to both entries.
+ *
+ * `LessonProgress` and `LessonComplete` are not: both use hooks, and a Server Component may
+ * have none. They are client-entry only, which is the same split `LessonPlayer` makes and for
+ * the same reason.
+ */
+export { SlideTransition } from './player/SlideTransition.js'
+export type { SlideTransitionProps, TransitionType } from './player/SlideTransition.js'
 export { SlideView } from './player/SlideView.js'
 export { ElementFrame } from './player/ElementFrame.js'
 export { createRendererRegistry } from './elements/registry.js'

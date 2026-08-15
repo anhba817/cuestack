@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { rules, stylesheet } from '../harness/css.js'
+import { keyframeNames, rules, stylesheet } from '../harness/css.js'
 
 /**
  * US5 #4 · FR-026.
@@ -20,7 +20,7 @@ import { rules, stylesheet } from '../harness/css.js'
 
 const DIST = join(dirname(dirname(fileURLToPath(import.meta.url))), '..', 'dist', 'styles.css')
 
-const SHEETS = ['reset.css', 'stage.css'] as const
+const SHEETS = ['reset.css', 'stage.css', 'transition.css'] as const
 
 describe('every rule is scoped beneath the stage', () => {
   for (const sheet of SHEETS) {
@@ -34,9 +34,19 @@ describe('every rule is scoped beneath the stage', () => {
       it('names no bare element or universal selector', () => {
         const offenders = parsed()
           .flatMap((r) => r.selectors)
-          // Every selector must be anchored on a `cs-` class somewhere in it.
-          .filter((s) => !/\.cs-/.test(s))
+          // Anchored on a `cs-` class, or on a `data-cs-*` attribute — both are namespaced
+          // to this package and cannot match a host's markup. The attribute form was added
+          // when transitions arrived: `[data-cs-transition='entering']` is exactly as
+          // scoped as `.cs-stage`, and a rule accepting only classes reported it as a leak.
+          .filter((s) => !/\.cs-|\[data-cs-/.test(s))
         expect(offenders).toEqual([])
+      })
+
+      it('namespaces every animation it declares', () => {
+        // `@keyframes` names are global. Two packages declaring `fade-in` is a collision
+        // with no error and no obvious cause.
+        const unnamespaced = keyframeNames(stylesheet(sheet)).filter((n) => !n.startsWith('cs-'))
+        expect(unnamespaced).toEqual([])
       })
 
       it('never uses :root, html, or body', () => {
@@ -83,7 +93,11 @@ describe('the published stylesheet', () => {
   it('is scoped, like its sources', () => {
     const offenders = rules(published())
       .flatMap((r) => r.selectors)
-      .filter((s) => !/\.cs-/.test(s))
+      .filter((s) => !/\.cs-|\[data-cs-/.test(s))
     expect(offenders).toEqual([])
+  })
+
+  it('namespaces every animation, so a host cannot collide with it', () => {
+    expect(keyframeNames(published()).filter((n) => !n.startsWith('cs-'))).toEqual([])
   })
 })

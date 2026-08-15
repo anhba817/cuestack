@@ -129,11 +129,20 @@ const QUESTION_OPTIONS = [
   { id: 'b', label: 'Nothing' },
 ]
 
-/** A question element. Required and unlimited-attempts unless overridden. */
+/**
+ * A question element. Required and unlimited-attempts unless overridden.
+ *
+ * **Outlasts its slide by default.** Element windows are half-open, so a question whose
+ * `endMs` equals its slide's duration has already gone at the instant the timer fires — which
+ * is the deadlock edge case, not the ordinary one. That collision caught four separate tests
+ * before the default moved here; `vanishingQuestionLesson` is where it is wanted, and it says
+ * so explicitly.
+ */
 export function questionElement(overrides: Record<string, unknown> = {}): Slide['elements'][number] {
   const { payload = {}, ...rest } = overrides as { payload?: Record<string, unknown> }
   return element({
     type: 'question',
+    endMs: 60_000,
     effects: [],
     payload: {
       interactionType: 'multiple_choice',
@@ -202,8 +211,12 @@ export const mediaGatedLesson = (): LessonManifest =>
 /** Two slides, the second arriving with an authored transition. */
 export const transitionLesson = (): LessonManifest =>
   lessonOf([
-    slide([element({ id: 'first', effects: [] })], { durationMs: 8000 }),
-    slide([element({ id: 'second', effects: [] })], {
+    // `endMs` outlasts the slide deliberately. Element windows are half-open, so an element
+    // ending exactly at the slide's duration has already gone at the instant the slide
+    // leaves — and the outgoing half of a transition would render an empty stage. Correct
+    // behaviour, and useless as a fixture for testing that both slides are visible.
+    slide([element({ id: 'first', endMs: 60_000, effects: [] })], { durationMs: 8000 }),
+    slide([element({ id: 'second', endMs: 60_000, effects: [] })], {
       durationMs: 8000,
       transition: { type: 'slide', durationMs: 400 },
     }),

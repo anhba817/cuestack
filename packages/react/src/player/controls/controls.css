@@ -53,3 +53,71 @@
   font-variant-numeric: tabular-nums;
   color: var(--cs-theme-text-muted, #666666);
 }
+
+/*
+ * Progress and completion.
+ *
+ * Chrome, like the controls above, so absolute units rather than container units: a learner
+ * on a phone needs a readable label and a hittable button whatever size the stage is.
+ */
+
+.cs-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: 14px;
+  color: var(--cs-theme-text-muted, #666666);
+}
+
+.cs-progress-bar {
+  flex: 1 1 auto;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cs-theme-surface-muted, #f2f2f2);
+  overflow: hidden;
+}
+
+.cs-progress-fill {
+  width: calc(var(--cs-progress, 0) * 1%);
+  height: 100%;
+  background: var(--cs-theme-accent-primary, #1a4fd6);
+}
+
+/* The bar is decoration; the label is the information. A learner who cannot see the fill
+   still reads the position, which is why the number is rendered rather than implied. */
+.cs-progress-label {
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-complete {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 12px;
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: 14px;
+  color: var(--cs-theme-text-default, #111111);
+  background: var(--cs-theme-surface-muted, #f2f2f2);
+}
+
+.cs-complete-message {
+  margin: 0;
+}
+
+.cs-complete-button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--cs-theme-accent-primary, #1a4fd6);
+  color: var(--cs-theme-text-on-accent, #ffffff);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cs-complete-button:focus-visible {
+  outline: 3px solid var(--cs-theme-focus-ring, #111111);
+  outline-offset: 2px;
+}

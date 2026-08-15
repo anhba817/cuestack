@@ -1,0 +1,99 @@
+/*
+ * Slide transitions.
+ *
+ * The duration arrives as `--cs-transition-ms`, set on each stage by React, and the type as a
+ * data attribute. Nothing here is stepped by JavaScript: a transition driven by React state
+ * would re-render sixty times a second, which is exactly the cost the frame loop was kept out
+ * of React to avoid.
+ *
+ * Both stages occupy the same grid cell so the leaving slide does not push the arriving one
+ * down the page. Scoped beneath `.cs-transition`, which exists only while one is running.
+ */
+
+.cs-transition {
+  display: grid;
+  width: 100%;
+}
+
+.cs-transition > .cs-stage {
+  grid-area: 1 / 1;
+}
+
+/* The leaving slide sits beneath, so the arriving one is what a learner reads. */
+.cs-transition > [data-cs-transition='leaving'] {
+  z-index: 0;
+}
+
+.cs-transition > [data-cs-transition='entering'] {
+  z-index: 1;
+}
+
+@keyframes cs-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cs-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes cs-slide-in {
+  from { opacity: 0; transform: translateX(6%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes cs-slide-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-6%); }
+}
+
+@keyframes cs-zoom-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes cs-zoom-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.04); }
+}
+
+[data-cs-transition='entering'][data-cs-transition-type='fade'] {
+  animation: cs-fade-in calc(var(--cs-transition-ms, 0) * 1ms) ease-out both;
+}
+[data-cs-transition='leaving'][data-cs-transition-type='fade'] {
+  animation: cs-fade-out calc(var(--cs-transition-ms, 0) * 1ms) ease-out both;
+}
+
+[data-cs-transition='entering'][data-cs-transition-type='slide'] {
+  animation: cs-slide-in calc(var(--cs-transition-ms, 0) * 1ms) ease-out both;
+}
+[data-cs-transition='leaving'][data-cs-transition-type='slide'] {
+  animation: cs-slide-out calc(var(--cs-transition-ms, 0) * 1ms) ease-out both;
+}
+
+[data-cs-transition='entering'][data-cs-transition-type='zoom'] {
+  animation: cs-zoom-in calc(var(--cs-transition-ms, 0) * 1ms) ease-out both;
+}
+[data-cs-transition='leaving'][data-cs-transition-type='zoom'] {
+  animation: cs-zoom-out calc(var(--cs-transition-ms, 0) * 1ms) ease-out both;
+}
+
+/*
+ * Reduced motion: **replaced, not shortened**.
+ *
+ * A learner who asked for no motion did not ask for briefer motion, so slide and zoom become
+ * a fade rather than a faster slide (BR-015, US4 #4). Fade is already the reduced form of
+ * itself and is left alone — cross-fading is not movement.
+ *
+ * In CSS rather than in the component, for the same reason as everything else here: the
+ * preference cannot be read on a server, and this way the very first painted frame is correct.
+ */
+@media (prefers-reduced-motion: reduce) {
+  [data-cs-transition='entering'] {
+    animation-name: cs-fade-in;
+  }
+  [data-cs-transition='leaving'] {
+    animation-name: cs-fade-out;
+  }
+}

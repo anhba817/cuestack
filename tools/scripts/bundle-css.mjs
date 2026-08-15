@@ -21,7 +21,7 @@ import { dirname, join } from 'node:path'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const styles = join(root, 'packages/react/src/styles')
 
-const ORDER = ['reset.css', 'stage.css', '../player/controls/controls.css']
+const ORDER = ['reset.css', 'stage.css', 'transition.css', '../player/controls/controls.css']
 
 /** The entry file must import exactly what is concatenated, in the same order. A file
  *  added to one and not the other is the drift this check exists to stop. */
