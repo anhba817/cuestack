@@ -242,7 +242,7 @@ becomes invisible or unreachable.
 - [ ] T088 [US4] Write the reduced set from `packages/react/src/frame/FrameWriter.ts`, skipping it entirely when `reduced` is null
 - [ ] T089 [US4] Replace Wave 2's blunt neutralisation in `packages/react/src/styles/stage.css` with the nested-fallback selection, and apply the same substitution to slide transitions in `transition.css` — replaced, not shortened (US4 #4)
 - [ ] T090 [US4] Update `specs/002-headless-kernel/data-model.md` for `ResolvedElement.reduced`, as feature 003 did for `accessibility` — the document is checked against reality by review, and drift there has been found before
-- [ ] T091 [US4] Arm the **effect half** of the parity gate in `tools/scripts/gates/parity.mjs` — every registered effect must have parity fixtures covering `at` *and* `reduced`, so a substitution cannot be added without one. Constitution CI gate 5 requires parity fixtures across every registered element and effect; it has been a placeholder since Wave 0, and US4 changes every moving effect's contract, which is what makes the effect half overdue now. The editor-versus-player half stays deferred to Wave 4, and the gate's output must say which half is armed
+- [ ] T091 [US4] Record the widened exposure in `tools/scripts/gates/parity.mjs` — the gate stays inert and its message must now name what US4 added that it does not guard: every moving effect gained a `reduced` contribution, and nothing checks that the two agree. **Do not arm it.** FR-FWK-013 is *"registered elements render consistently in editor preview and learner playback"* — entirely editor-versus-player, and there is no editor. An earlier draft of this task invented an "effect half" of a requirement that has no effect-only component, and would have demanded parity fixtures for eight registered effects that have none. A gate cannot be armed against a requirement that is not yet satisfiable; Wave 4 (QA-5) is when it becomes one
 - [ ] T092 [US4] Add BR-015 to `EXPECTED` in `tools/scripts/check-rule-coverage.mjs`
 
 **Checkpoint**: US1–US4 work. Scenarios A, B, C, and F all pass.
@@ -281,7 +281,7 @@ stated, announced, recoverable state rather than a blank stage or a silent stall
 
 - [ ] T104 Extend the rendered-parity sweep in `packages/react/test/hydration/rendered-parity.test.ts` to cover recorded interaction state and media position — seeking equals playing for every corpus slide and every answered state (SC-009)
 - [ ] T105 Arm the playback budgets in `tools/scripts/gates/perf.mjs` against T005's fixture: frame cost under 16.7 ms and seek-to-rendered-state under 100 ms, each failing on a 10% regression, and **state in the gate's output that this measures the player's per-frame work rather than paint** so a pass is not mistaken for a full answer (research R-09)
-- [ ] T106 [P] Add negative controls for **both** gates armed in this wave to `tools/scripts/check-gates.test.ts` — an artificially slowed resolve fails the frame budget, and an effect declaring `reduced` with no parity fixture fails the parity gate. A gate that has never been observed failing is not known to be a gate, and feature 003 found the theme gate silenceable by an inline comment three tasks after arming it
+- [ ] T106 [P] Add a perf negative control to `tools/scripts/check-gates.test.ts` — an artificially slowed resolve fails the frame budget, proving the one gate this wave arms actually fires. A gate that has never been observed failing is not known to be a gate, and feature 003 found the theme gate silenceable by an inline comment three tasks after arming it. The parity gate gets no control here because T091 leaves it inert — a negative control for a gate that checks nothing would assert nothing
 - [ ] T107 [P] Add an a11y sweep over the new states to `packages/react/test/a11y/axe.test.ts` — question answered and unanswered, feedback, gesture prompt, mid-transition, progress, completion, and every error state (SC-011)
 - [ ] T108 [P] Update `packages/react/README.md` for interactions, media, progress, completion, and the reduced-motion contract
 - [ ] T109 [P] Add a Changesets entry at `.changeset/player-completion.md` covering the `@cuestack/core` minor (media commands, interactions, `ResolvedElement.reduced`) and the `@cuestack/react` minor
@@ -452,7 +452,9 @@ Three tracks after Phase 2, converging at Polish:
   10 of 18 to 12 of 18. BR-005, BR-006, and BR-007 are already covered and gain their first
   *end-to-end* exercise, which is a different thing
 - The playback budgets arm in T105, discharging the Constitution's 50-slide/300-element fixture
-  requirement that Wave 2 deferred with a reason that no longer holds
+  requirement that Wave 2 deferred with a reason that no longer holds. It is the **only** gate this
+  wave arms: the parity gate stays inert (T091) because FR-FWK-013 is about editor-versus-player
+  parity and there is still no editor
 - Interaction state and media position are **inputs** to resolution, never state inside it — that
   is what keeps seeking a recomputation and parity structural (research R-01)
 - Commit after each task or logical group
