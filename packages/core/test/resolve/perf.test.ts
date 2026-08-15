@@ -55,9 +55,17 @@ describe('resolution performance', () => {
   })
 
   it('a 50-slide lesson resolves every slide within budget', () => {
+    // A median, like the two above it. This was a single wall-clock reading, which on a
+    // shared runner is a coin toss rather than a measurement — and it is about to matter
+    // more, since Wave 3 arms two further timing budgets alongside it. One slow sample is
+    // now outvoted instead of failing the build.
     const slides = Array.from({ length: 50 }, () => largeSlide(6))
-    const start = performance.now()
-    for (const slide of slides) resolve(slide, 4000)
-    expect(performance.now() - start).toBeLessThan(50)
+    const pass = (): number => {
+      const start = performance.now()
+      for (const slide of slides) resolve(slide, 4000)
+      return performance.now() - start
+    }
+    for (let i = 0; i < 3; i += 1) pass() // warm
+    expect(median(Array.from({ length: 15 }, pass))).toBeLessThan(50)
   })
 })

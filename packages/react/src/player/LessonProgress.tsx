@@ -35,6 +35,12 @@ export function LessonProgress({ slideIndex, slideCount, visited }: LessonProgre
       <div
         className="cs-progress-bar"
         role="progressbar"
+        /* A name as well as a value. `aria-valuetext` says "Slide 3 of 10" and never says
+           what is being counted, so a learner arriving on the bar by itself hears a
+           position with no subject. Caught by the axe sweep over Wave 3's new states —
+           the corpus sweep renders at time zero with progress switched off, so nothing had
+           ever looked at this. */
+        aria-label="Lesson progress"
         aria-valuemin={0}
         aria-valuemax={slideCount}
         aria-valuenow={reached}

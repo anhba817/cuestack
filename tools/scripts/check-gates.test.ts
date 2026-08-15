@@ -302,6 +302,73 @@ describe('gate: accessibility', () => {
   })
 })
 
+describe('gate: playback performance', () => {
+  /**
+   * The one gate this wave arms, fed a frame that costs more than a frame.
+   *
+   * Written because feature 003 found the theme gate silenceable by an inline comment three
+   * tasks after arming it — a gate nobody has watched fail is not known to be a gate. The
+   * probe measures the same thing the real budget measures and does the same arithmetic; the
+   * only difference is that its per-frame work deliberately takes 20 ms, which is more than
+   * one 60 fps frame. If the gate stays green against that, the budget is decoration.
+   *
+   * A busy loop rather than a timer: the budget is about *work*, and an awaited delay would
+   * measure the event loop instead. It is also the only way to be slow synchronously, which
+   * is what a frame is.
+   */
+  const probe = join(root, 'packages/react/test/perf/__gate_probe__.test.ts')
+
+  it('rejects a frame that costs more than one frame', () => {
+    try {
+      writeFileSync(
+        probe,
+        [
+          "import { describe, expect, it } from 'vitest'",
+          "import { resolve } from '@cuestack/core'",
+          "import { heavy } from '../harness/heavy.js'",
+          '',
+          'const FRAME_BUDGET_MS = 16.7',
+          '',
+          'function median(samples: readonly number[]): number {',
+          '  const sorted = [...samples].sort((a, b) => a - b)',
+          '  return sorted[Math.floor(sorted.length / 2)]!',
+          '}',
+          '',
+          "describe('gate probe: a frame that costs more than a frame', () => {",
+          "  it('exceeds the frame budget', () => {",
+          '    const slide = heavy().slides[0]!',
+          '    const tick = (timeMs: number): number => {',
+          '      const start = performance.now()',
+          '      resolve(slide, timeMs)',
+          '      while (performance.now() - start < 20) {',
+          '        /* a frame that does 20ms of work, which is more than a frame */',
+          '      }',
+          '      return performance.now() - start',
+          '    }',
+          '    const samples = Array.from({ length: 5 }, (_, i) => tick(1000 + i * 41))',
+          '    expect(median(samples)).toBeLessThan(FRAME_BUDGET_MS)',
+          '  })',
+          '})',
+          '',
+        ].join('\n'),
+      )
+      const output = runExpectingFailure('node', ['tools/scripts/gates/perf.mjs'])
+      expect(output).not.toBe('')
+      expect(output).toContain('Playback exceeded its frame or seek budget')
+    } finally {
+      rmSync(probe, { force: true })
+    }
+  })
+
+  it('says what it does not measure, so a pass is not read as a full answer', () => {
+    // The gate covers the player's own work and cannot cover paint — happy-dom has no
+    // compositor. A green line that did not say so would be read as a frame-rate claim.
+    const out = execFileSync('node', ['tools/scripts/gates/perf.mjs'], { cwd: root, encoding: 'utf8' })
+    expect(out).toContain('NOT paint')
+    expect(out).toMatch(/browser-based check is still required/)
+  })
+})
+
 describe('gate: the four gates that began as placeholders', () => {
   /**
    * Three of the four are now armed — perf in feature 002, theme-values and a11y in
@@ -323,8 +390,12 @@ describe('gate: the four gates that began as placeholders', () => {
     expect(output()).toMatch(/gate:parity — placeholder.*Wave 4/s)
   })
 
-  it('perf is armed against a real budget', () => {
-    expect(output()).toMatch(/gate:perf — resolution budget met/)
+  it('perf is armed against both its budgets', () => {
+    // Resolution since feature 002; playback since this wave. Asserting both is how the
+    // second arming stays visible rather than being absorbed into a line that already passed.
+    const out = output()
+    expect(out).toMatch(/gate:perf — resolution budget met/)
+    expect(out).toMatch(/gate:perf — playback budgets met/)
   })
 
   it('theme-values and a11y are armed, not placeholders', () => {

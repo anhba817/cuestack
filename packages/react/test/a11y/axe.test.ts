@@ -1,10 +1,20 @@
-import { createElement as h } from 'react'
+import { act, createElement as h } from 'react'
 import { describe, expect, it } from 'vitest'
 import axe from 'axe-core'
-import { corpus } from '../harness/corpus.js'
+import {
+  corpus,
+  deadEndQuestionLesson,
+  mediaGatedLesson,
+  requiredQuestionLesson,
+  singleSlideLesson,
+  transitionLesson,
+} from '../harness/corpus.js'
 import { client } from '../harness/render.js'
-import { LessonPlayer } from '../../src/index.js'
+import { LessonPlayer, createRendererRegistry } from '../../src/index.js'
+import { builtinRenderers } from '../../src/elements/builtin/index.js'
 import { testPorts } from '../harness/ports.js'
+import { mediaPorts, degenerate } from '../harness/media.js'
+import { runFrames } from '../harness/frames.js'
 
 /**
  * SC-010 · Constitution III.
@@ -70,4 +80,152 @@ describe('every corpus slide passes axe at WCAG 2.2 AA', () => {
     const found = await violations(container)
     expect(found.map(describeViolation).join('\n')).toBe('')
   })
+})
+
+/**
+ * SC-011 — the states Wave 3 added, each swept as its own case.
+ *
+ * The corpus sweep above renders every lesson at time zero, which is precisely the moment
+ * none of these exist. A question that has been answered, a verdict, a gesture prompt, two
+ * slides mid-crossfade, a progress indicator, an ending, and each of the three ways a lesson
+ * can stop are all states a learner reaches and none of them were reachable when the sweep
+ * was written. Every one is chrome the learner is expected to read or operate, which is where
+ * an unnamed control or an unlabelled region does the most damage.
+ *
+ * Enumerated rather than generated: each state needs a different route to reach it, and a
+ * sweep that quietly failed to reach one would report a pass over an empty container. Each
+ * builder therefore asserts it arrived before axe is asked anything.
+ */
+describe('every state Wave 3 added passes axe at WCAG 2.2 AA', () => {
+  async function answered(): Promise<HTMLElement> {
+    const container = await client(
+      h(LessonPlayer, { lesson: requiredQuestionLesson(), ports: testPorts(), resolveAsset }),
+    )
+    await act(async () => {
+      container.querySelectorAll<HTMLInputElement>('input[type="radio"]')[1]!.click()
+    })
+    await act(async () => {
+      ;[...container.querySelectorAll('button')]
+        .find((b) => /submit|answer/i.test(b.textContent ?? ''))!
+        .click()
+    })
+    return container
+  }
+
+  const STATES: Record<string, () => Promise<HTMLElement>> = {
+    /* A question nobody has touched: radios, a group label, a submit control. */
+    async 'question unanswered'() {
+      const container = await client(
+        h(LessonPlayer, { lesson: requiredQuestionLesson(), ports: testPorts(), resolveAsset }),
+      )
+      expect(container.querySelector('input[type="radio"]')).not.toBeNull()
+      return container
+    },
+
+    /* Answered, which is also the feedback state — the verdict is what answering produces. */
+    async 'question answered, with feedback'() {
+      const container = await answered()
+      expect(container.querySelector('.cs-question-status')?.textContent?.trim()).toBeTruthy()
+      return container
+    },
+
+    /* BR-014. The one control standing between the learner and the lesson. */
+    async 'gesture prompt'() {
+      const container = await client(
+        h(LessonPlayer, {
+          lesson: mediaGatedLesson(),
+          ports: mediaPorts(),
+          autoPlay: true,
+          resolveAsset,
+        }),
+      )
+      expect(container.querySelector('.cs-gesture')).not.toBeNull()
+      return container
+    },
+
+    /* Two stages on screen at once, which is two of everything for axe to disagree about. */
+    async 'mid-transition'() {
+      const ports = testPorts()
+      const container = await client(
+        h(LessonPlayer, { lesson: transitionLesson(), ports, autoPlay: true, resolveAsset }),
+      )
+      await runFrames(ports, 8100)
+      expect(container.querySelectorAll('.cs-stage').length).toBe(2)
+      return container
+    },
+
+    async 'progress indicator'() {
+      const container = await client(
+        h(LessonPlayer, {
+          lesson: transitionLesson(),
+          ports: testPorts(),
+          progress: 'slides',
+          resolveAsset,
+        }),
+      )
+      expect(container.querySelector('.cs-progress')).not.toBeNull()
+      return container
+    },
+
+    async 'lesson complete'() {
+      const ports = testPorts()
+      const container = await client(
+        h(LessonPlayer, { lesson: singleSlideLesson(), ports, autoPlay: true, resolveAsset }),
+      )
+      await runFrames(ports, 5000)
+      expect(container.querySelector('.cs-complete')).not.toBeNull()
+      return container
+    },
+
+    /* ADVANCE_MEDIA_FAILED — the retryable one, so this is the state with two buttons. */
+    async 'error: media failed'() {
+      const ports = mediaPorts()
+      degenerate.fails(ports.media, 'el_video')
+      const container = await client(
+        h(LessonPlayer, { lesson: mediaGatedLesson(), ports, autoPlay: true, resolveAsset }),
+      )
+      await runFrames(ports, 1200)
+      expect(container.querySelector('.cs-problem')).not.toBeNull()
+      return container
+    },
+
+    /* ADVANCE_UNSATISFIABLE — one attempt, spent wrongly, on an `on_correct` question. */
+    async 'error: dead-end question'() {
+      const container = await client(
+        h(LessonPlayer, { lesson: deadEndQuestionLesson(), ports: testPorts(), resolveAsset }),
+      )
+      await act(async () => {
+        container.querySelectorAll<HTMLInputElement>('input[type="radio"]')[1]!.click()
+      })
+      await act(async () => {
+        ;[...container.querySelectorAll('button')]
+          .find((b) => /submit|answer/i.test(b.textContent ?? ''))!
+          .click()
+      })
+      expect(container.querySelector('.cs-problem')).not.toBeNull()
+      return container
+    },
+
+    /* UNKNOWN_REQUIRED_INTERACTION — a renderer set with no question in it. */
+    async 'error: unrenderable required question'() {
+      const container = await client(
+        h(LessonPlayer, {
+          lesson: requiredQuestionLesson(),
+          ports: testPorts(),
+          elements: createRendererRegistry(builtinRenderers.filter((r) => r.type !== 'question')),
+          resolveAsset,
+        }),
+      )
+      expect(container.querySelector('.cs-problem')).not.toBeNull()
+      return container
+    },
+  }
+
+  for (const [name, build] of Object.entries(STATES)) {
+    it(`has no violations: ${name}`, async () => {
+      const container = await build()
+      const found = await violations(container)
+      expect(found.map(describeViolation).join('\n'), `${found.length} violation(s)`).toBe('')
+    })
+  }
 })
