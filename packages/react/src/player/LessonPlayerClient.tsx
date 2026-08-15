@@ -8,6 +8,7 @@ import {
   MEDIA_SYNC_TOLERANCE_MS,
   resolve,
   type Ports,
+  type BlockingProblem,
   type MediaLinkController,
   type RenderState,
   type ResolvedElement,
@@ -28,6 +29,8 @@ import { useInteractions } from './useInteractions.js'
 import { PlayerContext } from './usePlayer.js'
 import { SlideTransition, type TransitionType } from './SlideTransition.js'
 import { LessonComplete } from './LessonComplete.js'
+import { PlaybackProblem } from './PlaybackProblem.js'
+import { describeProblem, detectAdapterProblem, detectMediaAttachFailure } from './problems.js'
 import { LessonProgress } from './LessonProgress.js'
 
 export interface LessonPlayerClientProps {
@@ -273,6 +276,17 @@ export function LessonPlayerClient({
   /** Slides reached, so seeking backwards does not un-earn progress already made. */
   const [visited, setVisited] = useState<ReadonlySet<number>>(() => new Set([slideIndex]))
   const [complete, setComplete] = useState(false)
+  /** Bumped to make the renderers ask for their assets again, without restarting anything. */
+  const [retryToken, setRetryToken] = useState(0)
+  /**
+   * Why the lesson cannot continue, from the advance controller.
+   *
+   * Separate from `RenderState.blocked` because the kernel splits the detections: `resolve`
+   * knows about an unrenderable required interaction, while whether an advance *rule* can
+   * ever be satisfied is the controller's question and needs the media port to answer. Two
+   * detections, one presentation.
+   */
+  const [unreachable, setUnreachable] = useState<BlockingProblem | null>(null)
   const [leaving, setLeaving] = useState<Leaving | null>(null)
   /** Read by the frame loop, which does not re-render and cannot see React state. */
   const leavingRef = useRef<Leaving | null>(null)
@@ -315,6 +329,8 @@ export function LessonPlayerClient({
     /** Lesson time at which the completion set last grew, or null if it has not. */
     let completedAtMs: number | null = null
     let seenCompletions = 0
+    /** The blocking code last handed to React, so an unchanged one costs no render. */
+    let reportedCode: BlockingProblem['code'] | null = null
 
     /**
      * One step of the lesson, whatever caused it.
@@ -380,8 +396,33 @@ export function LessonPlayerClient({
         setLeaving(null)
       }
 
+      /**
+       * Ask whether this slide's advance rule can ever be satisfied.
+       *
+       * Per tick rather than once per slide: media can fail at any moment, and a question
+       * becomes unsatisfiable at the instant its last attempt is spent. A one-off check at
+       * slide entry would report the world as it was when the learner arrived.
+       *
+       * Compared **by code**, not by identity. `reachability` builds a fresh object each
+       * call, so setting state unconditionally re-rendered React on every frame — the exact
+       * per-frame reconciliation the frame loop exists to avoid, and enough to hang a test.
+       */
       const next = resolve(active, snapshot.slideTimeMs)
       latest.current = next
+
+      /**
+       * Then the one blocking condition that needs a clock, which is why it is asked here
+       * and not where the player renders: the player does not re-render as time passes, so
+       * a render-time `slideTimeMs` is whatever it was at the last commit — zero, forever,
+       * on exactly the stalled slide this exists to catch.
+       */
+      const reach =
+        advance.reachability(active, activePorts.media) ??
+        detectMediaAttachFailure(next, active, activePorts.media, snapshot.slideTimeMs)
+      if ((reach?.code ?? null) !== reportedCode) {
+        reportedCode = reach?.code ?? null
+        setUnreachable(reach)
+      }
       setCurrentIndex(snapshot.slideIndex)
 
       // Register this slide's media so the link has something to pause and command. The
@@ -533,6 +574,29 @@ export function LessonPlayerClient({
     }
   }
 
+  /**
+   * What the learner is shown when the lesson cannot continue.
+   *
+   * Derived from `RenderState.blocked` — and deliberately **not** from `RenderState.problems`.
+   * A `RenderProblem` like `EFFECT_BEYOND_SLIDE` is a note to an author about a lesson the
+   * learner cannot fix, and showing it would breach FR-024 and NFR-USA-004 at once: a
+   * learner can take no action on it. A `BlockingProblem` is the opposite — they are stuck,
+   * and they are the only person who can be told.
+   */
+  /**
+   * The first blocking condition from any of the three detections, described once.
+   *
+   * Order is deliberate: the kernel's own answer first, then the advance rule's reachability,
+   * then what only this adapter can see. A learner is shown one problem — the most
+   * fundamental — rather than a list they have to triage.
+   */
+  const blocking =
+    state.blocked ??
+    unreachable ??
+    detectAdapterProblem(state, elements, interactions.state)
+  const blocked = blocking ? describeProblem(blocking) : null
+  const canSkip = currentIndex + 1 < lesson.slides.length
+
   const content = (
     <SlideTransition
       lesson={lesson}
@@ -543,6 +607,7 @@ export function LessonPlayerClient({
       renderers={elements}
       writer={writer}
       interactionFor={interactionFor}
+      retryToken={retryToken}
       {...(theme ? { theme } : {})}
       {...(resolveAsset ? { resolveAsset } : {})}
     />
@@ -567,6 +632,14 @@ export function LessonPlayerClient({
           slideIndex={currentIndex}
           slideCount={lesson.slides.length}
           visited={visited}
+        />
+      ) : null}
+      {blocked ? (
+        <PlaybackProblem
+          problem={blocked}
+          canSkip={canSkip}
+          onRetry={() => setRetryToken((n) => n + 1)}
+          onSkip={() => transportRef.current?.goToSlide(currentIndex + 1)}
         />
       ) : null}
       {complete ? (

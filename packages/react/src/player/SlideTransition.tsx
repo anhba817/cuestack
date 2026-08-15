@@ -24,6 +24,8 @@ export interface SlideTransitionProps {
   readonly theme?: ThemeValues
   readonly resolveAsset?: AssetResolver
   readonly interactionFor?: (element: ResolvedElement) => InteractionAccess | undefined
+  /** Changes when the learner retries a failed asset, remounting the elements that hold them. */
+  readonly retryToken?: number
 }
 
 /**
@@ -54,11 +56,13 @@ export function SlideTransition({
   theme,
   resolveAsset,
   interactionFor,
+  retryToken,
 }: SlideTransitionProps): ReactNode {
   const view = (state: RenderState, live: boolean): ReactNode => (
     <SlideView
       state={state}
       renderers={renderers}
+      {...(retryToken === undefined ? {} : { retryToken })}
       // Only the live slide registers with the frame writer. The outgoing one is leaving and
       // its elements are about to be unmounted; registering them would have the writer
       // addressing nodes that vanish mid-frame.

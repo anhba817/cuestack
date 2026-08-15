@@ -156,11 +156,19 @@ export function questionElement(overrides: Record<string, unknown> = {}): Slide[
   })
 }
 
-/** A media element, with the manifest-side settings the edge cases need. */
+/**
+ * A media element, with the manifest-side settings the edge cases need.
+ *
+ * **Outlasts its slide by default**, for the same reason `questionElement` does: element
+ * windows are half-open, so media ending exactly at its slide's duration has already gone
+ * when anything checks on it. A media-gated slide whose media vanishes is a distinct edge
+ * case and deserves to be written out rather than arrived at by accident.
+ */
 export function mediaElement(overrides: Record<string, unknown> = {}): Slide['elements'][number] {
   const { payload = {}, ...rest } = overrides as { payload?: Record<string, unknown> }
   return element({
     type: 'video',
+    endMs: 60_000,
     effects: [],
     payload: {
       asset: {

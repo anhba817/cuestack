@@ -337,3 +337,62 @@
   outline: 3px solid var(--cs-theme-focus-ring, #111111);
   outline-offset: 2px;
 }
+
+/*
+ * A blocking condition (FR-030, FR-031).
+ *
+ * Chrome, like the gesture prompt, and sized in absolute units for the same reason: this is
+ * what a learner reads when the lesson has stopped, and a message that shrank with a small
+ * stage would be least legible exactly where the stage is smallest.
+ *
+ * Deliberately quiet — bordered and set apart rather than red and alarming. The learner has
+ * not done anything wrong, and the useful part is the sentence saying what to try next, not
+ * the fact that something failed. `role="alert"` already carries the urgency to anyone
+ * listening; colour would only add it for people who are not.
+ */
+.cs-problem {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 12px;
+  border: 1px solid var(--cs-theme-border-muted, #999999);
+  border-radius: 6px;
+  background: var(--cs-theme-surface-muted, #f2f2f2);
+  color: var(--cs-theme-text-default, #111111);
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: 14px;
+}
+
+.cs-problem-message,
+.cs-problem-action {
+  margin: 0;
+}
+
+/* The action is the part worth acting on, so it is not the part that fades. */
+.cs-problem-action {
+  color: var(--cs-theme-text-muted, #666666);
+}
+
+.cs-problem-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 44px for the same WCAG 2.2 2.5.8 reason as the gesture button: these are the only two
+   controls a learner has when nothing else on the page will help them. */
+.cs-problem-button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--cs-theme-border-muted, #999999);
+  border-radius: 6px;
+  background: var(--cs-theme-surface-default, #ffffff);
+  color: var(--cs-theme-text-default, #111111);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cs-problem-button:focus-visible {
+  outline: 3px solid var(--cs-theme-focus-ring, #111111);
+  outline-offset: 2px;
+}

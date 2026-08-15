@@ -18,6 +18,16 @@ export interface SlideViewProps {
    * "interactions are available somewhere".
    */
   readonly interactionFor?: (element: ResolvedElement) => InteractionAccess | undefined
+  /**
+   * Changes when the learner retries a failed asset.
+   *
+   * Used as part of each element's React key, so retrying remounts the elements and their
+   * `<img>` and `<video>` nodes request their sources again. A browser will not re-fetch a
+   * `src` it already failed on unless the element is new — so the alternative is a cache-
+   * busting query parameter, which changes the URL a host gave us and would defeat their
+   * caching for every subsequent load.
+   */
+  readonly retryToken?: number
 }
 
 /**
@@ -37,13 +47,18 @@ export function SlideView({
   writer,
   resolveAsset = defaultAssetResolver,
   interactionFor,
+  retryToken = 0,
 }: SlideViewProps): ReactNode {
   return (
     <>
       {state.elements.map((element) => {
         const renderer = renderers.get(element.type)
         return (
-          <ElementFrame key={element.id} element={element} {...(writer ? { writer } : {})}>
+          <ElementFrame
+            key={`${element.id}#${retryToken}`}
+            element={element}
+            {...(writer ? { writer } : {})}
+          >
             {renderer ? (
               <renderer.Component
                 element={element}

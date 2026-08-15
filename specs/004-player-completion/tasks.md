@@ -258,20 +258,20 @@ stated, announced, recoverable state rather than a blank stage or a silent stall
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T093 [P] [US5] Blocking-condition tests in `packages/react/test/playback/problems.test.tsx` — each of `ADVANCE_UNSATISFIABLE`, `ADVANCE_MEDIA_FAILED`, and `UNKNOWN_REQUIRED_INTERACTION` produces a learner-facing state naming problem, object, and action (FR-030, NFR-USA-004)
-- [ ] T094 [US5] Leak test in `packages/react/test/playback/problems.test.tsx` — no internal identifier, element id, or error code appears in learner-facing output, and `RenderState.problems` appear nowhere at all (FR-024, research R-07)
-- [ ] T095 [P] [US5] Retry test in `packages/react/test/playback/asset-retry.test.tsx` — a failed required asset can be retried without restarting the lesson, and a non-retryable condition offers a different way forward (FR-029)
-- [ ] T096 [P] [US5] Error accessibility test in `packages/react/test/playback/problem-a11y.test.tsx` — every error state is announced and keyboard-reachable (FR-031)
-- [ ] T097 [P] [US5] Dead-end test in `packages/react/test/playback/dead-end.test.tsx` — the corpus's `on_correct` one-attempt required question reaches `unsatisfiable` and the learner is offered a way on rather than waiting (research R-05)
-- [ ] T098 [P] [US5] No-stranding sweep in `packages/react/test/playback/no-stranding.test.tsx` — for every corpus lesson, no reachable state leaves the learner unable to progress and unable to learn why (SC-010)
+- [X] T093 [P] [US5] Blocking-condition tests in `packages/react/test/playback/problems.test.tsx` — each of `ADVANCE_UNSATISFIABLE`, `ADVANCE_MEDIA_FAILED`, and `UNKNOWN_REQUIRED_INTERACTION` produces a learner-facing state naming problem, object, and action (FR-030, NFR-USA-004)
+- [X] T094 [US5] Leak test in `packages/react/test/playback/problems.test.tsx` — no internal identifier, element id, or error code appears in learner-facing output, and `RenderState.problems` appear nowhere at all (FR-024, research R-07)
+- [X] T095 [P] [US5] Retry test in `packages/react/test/playback/asset-retry.test.tsx` — a failed required asset can be retried without restarting the lesson, and a non-retryable condition offers a different way forward (FR-029)
+- [X] T096 [P] [US5] Error accessibility test in `packages/react/test/playback/problem-a11y.test.tsx` — every error state is announced and keyboard-reachable (FR-031)
+- [X] T097 [P] [US5] Dead-end test in `packages/react/test/playback/dead-end.test.tsx` — the corpus's `on_correct` one-attempt required question reaches `unsatisfiable` and the learner is offered a way on rather than waiting (research R-05)
+- [X] T098 [P] [US5] No-stranding sweep in `packages/react/test/playback/no-stranding.test.tsx` — for every corpus lesson, no reachable state leaves the learner unable to progress and unable to learn why (SC-010)
 
 ### Implementation for User Story 5
 
-- [ ] T099 [US5] Implement the code-to-message mapping in `packages/react/src/player/problems.ts`, one place, with retryability per code
-- [ ] T100 [US5] Implement `packages/react/src/player/PlaybackProblem.tsx` — announced, keyboard-reachable, naming problem, object, and action in learner terms
-- [ ] T101 [US5] Present `RenderState.blocked` from `packages/react/src/player/LessonPlayerClient.tsx`, and deliberately not `RenderState.problems` (depends on T100)
-- [ ] T102 [US5] Wire asset retry through the asset port in `packages/react/src/elements/AssetFallback.tsx` without restarting the lesson
-- [ ] T103 [US5] Add problem-state styles to `packages/react/src/styles/stage.css`
+- [X] T099 [US5] Implement the code-to-message mapping in `packages/react/src/player/problems.ts`, one place, with retryability per code
+- [X] T100 [US5] Implement `packages/react/src/player/PlaybackProblem.tsx` — announced, keyboard-reachable, naming problem, object, and action in learner terms
+- [X] T101 [US5] Present `RenderState.blocked` from `packages/react/src/player/LessonPlayerClient.tsx`, and deliberately not `RenderState.problems` (depends on T100)
+- [X] T102 [US5] Wire asset retry through the asset port in `packages/react/src/elements/AssetFallback.tsx` without restarting the lesson
+- [X] T103 [US5] Add problem-state styles to `packages/react/src/styles/stage.css`
 
 **Checkpoint**: All five stories independently functional.
 
