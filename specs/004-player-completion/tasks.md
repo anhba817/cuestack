@@ -283,12 +283,21 @@ stated, announced, recoverable state rather than a blank stage or a silent stall
 - [X] T105 Arm the playback budgets in `tools/scripts/gates/perf.mjs` against T005's fixture: frame cost under 16.7 ms and seek-to-rendered-state under 100 ms, each failing on a 10% regression, and **state in the gate's output that this measures the player's per-frame work rather than paint** so a pass is not mistaken for a full answer (research R-09)
 - [X] T106 [P] Add a perf negative control to `tools/scripts/check-gates.test.ts` — an artificially slowed resolve fails the frame budget, proving the one gate this wave arms actually fires. A gate that has never been observed failing is not known to be a gate, and feature 003 found the theme gate silenceable by an inline comment three tasks after arming it. The parity gate gets no control here because T091 leaves it inert — a negative control for a gate that checks nothing would assert nothing
 - [X] T107 [P] Add an a11y sweep over the new states to `packages/react/test/a11y/axe.test.ts` — question answered and unanswered, feedback, gesture prompt, mid-transition, progress, completion, and every error state (SC-011)
-- [ ] T108 [P] Update `packages/react/README.md` for interactions, media, progress, completion, and the reduced-motion contract
-- [ ] T109 [P] Add a Changesets entry at `.changeset/player-completion.md` covering the `@cuestack/core` minor (media commands, interactions, `ResolvedElement.reduced`) and the `@cuestack/react` minor
-- [ ] T110 Promote the example in `examples/nextjs/app/` to a lesson worth completing — a question to answer, progress, and a completion state, so the wave's claim is demonstrable in a browser
-- [ ] T111 Add the acceptance suite to `.github/workflows/ci.yml` as a named job, so §34 A/B/C/F are visible as a gate rather than buried in the test run
-- [ ] T112 Run every scenario in `specs/004-player-completion/quickstart.md` by hand, **including the reduced-motion emulation and the keyboard pass over an answered question**, and correct any step that does not work as written
-- [ ] T113 Flip PL-1, PL-2, PL-3, PL-4, QA-3, and QA-4 in `docs/cuestack_framework_plan.md`, note that QA-3 covers A/B/C/F only, and confirm the Wave 4 critical path still holds
+- [X] T108 [P] Update `packages/react/README.md` for interactions, media, progress, completion, and the reduced-motion contract
+- [X] T109 [P] Add a Changesets entry at `.changeset/player-completion.md` covering the `@cuestack/core` minor (media commands, interactions, `ResolvedElement.reduced`) and the `@cuestack/react` minor
+- [X] T110 Promote the example in `examples/nextjs/app/` to a lesson worth completing — a question to answer, progress, and a completion state, so the wave's claim is demonstrable in a browser
+- [X] T111 Add the acceptance suite to `.github/workflows/ci.yml` as a named job, so §34 A/B/C/F are visible as a gate rather than buried in the test run
+- [X] T112 Run every scenario in `specs/004-player-completion/quickstart.md` by hand, **including the reduced-motion emulation and the keyboard pass over an answered question**, and correct any step that does not work as written
+- [X] T113 Flip PL-1, PL-2, PL-3, PL-4, QA-3, and QA-4 in `docs/cuestack_framework_plan.md`, note that QA-3 covers A/B/C/F only, and confirm the Wave 4 critical path still holds
+
+> **One thing in this phase is not done, and cannot be done by the machine that wrote it.**
+> T110 and T112 both carry a manual keyboard-and-screen-reader pass. Every automated command in
+> `quickstart.md` has been run as written and three were wrong — `questions` matched no files,
+> the §34 F section did not run `acceptance/scenario-f`, and the errors section reached only
+> one of its four suites. All three are corrected. What remains is the checklist under **The
+> manual pass** in that document: eight steps, one sitting, with a screen reader running. It is
+> not a formality. The a11y sweep added in T107 found the progress bar announcing a position
+> with no subject, and step 5 of that checklist is the step that would have found it first.
 
 ---
 

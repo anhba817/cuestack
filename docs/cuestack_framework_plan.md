@@ -46,12 +46,10 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
       ✅ NX-2 ─────────────────→ ✅ NX-1            (CSS scaling; startable in Wave 0)
 
     Wave 3 — player completion  (after Wave 2)
-      ✅ RC-2 ──→ 🔲 PL-1 ──┐
-      ✅ RC-2 ──→ 🔲 PL-2 ──┼──→ 🔲 QA-3 ──→ 🔲 QA-4
-      ✅ RC-2 ──→ 🔲 PL-3 ──┘
-      ✅ NX-2 ──→ 🔄 PL-4                           (reduced motion: the CSS floor landed in
-                                                     Wave 2 for free; per-effect reduced
-                                                     alternatives remain)
+      ✅ RC-2 ──→ ✅ PL-1 ──┐
+      ✅ RC-2 ──→ ✅ PL-2 ──┼──→ ✅ QA-3 ──→ ✅ QA-4   (QA-3 covers §34 A/B/C/F only —
+      ✅ RC-2 ──→ ✅ PL-3 ──┘                          D and E need an editor and a
+      ✅ NX-2 ──→ ✅ PL-4                              publishing pipeline)
 
     Wave 4 — Studio editor  (after Wave 3)
       ✅ EN-5 ──→ 🔲 ED-1 ──→ 🔲 ED-2
@@ -93,12 +91,12 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 | 2 | NX-1 RSC/client boundary + hydration safety | RC-1, NX-2 | 3 | 3 | 1 | 2 | 8 | ✅ |
 | 2 | RC-2 React renderers for MVP element types | RC-1 | 3 | 2 | 2 | 1 | 8 | ✅ |
 | 2 | QA-2 SSR + hydration test suite | NX-3 | 0 | 3 | 2 | 0 | 8 | ✅ |
-| 3 | PL-4 reduced-motion (CSS-only, SSR-safe) | NX-2 | 2 | 1 | 3 | 0 | 7 | 🔲 |
-| 3 | QA-3 §34 A–F acceptance e2e | PL-1..3 | 0 | 3 | 1 | 0 | 7 | 🔲 |
-| 3 | QA-4 perf fixture + budget gates | QA-3 | 0 | 3 | 1 | 0 | 7 | 🔲 |
-| 3 | PL-1 interactions (MC, true/false) + gating | RC-2 | 3 | 2 | 1 | 2 | 6 | 🔲 |
-| 3 | PL-2 media sync, gesture gate, media-end advance | RC-2 | 3 | 2 | 1 | 2 | 6 | 🔲 |
-| 3 | PL-3 transitions, progress, completion, errors | RC-2 | 2 | 1 | 2 | 1 | 5 | 🔲 |
+| 3 | PL-4 reduced-motion (CSS-only, SSR-safe) | NX-2 | 2 | 1 | 3 | 0 | 7 | ✅ |
+| 3 | QA-3 §34 **A/B/C/F** acceptance e2e | PL-1..3 | 0 | 3 | 1 | 0 | 7 | ✅ |
+| 3 | QA-4 perf fixture + budget gates | QA-3 | 0 | 3 | 1 | 0 | 7 | ✅ |
+| 3 | PL-1 interactions (MC, true/false) + gating | RC-2 | 3 | 2 | 1 | 2 | 6 | ✅ |
+| 3 | PL-2 media sync, gesture gate, media-end advance | RC-2 | 3 | 2 | 1 | 2 | 6 | ✅ |
+| 3 | PL-3 transitions, progress, completion, errors | RC-2 | 2 | 1 | 2 | 1 | 5 | ✅ |
 | 4 | ED-6 preview harness (from start/slide/time) | RC-1 | 3 | 2 | 2 | 0 | 9 | 🔲 |
 | 4 | ED-4 Simple Sequence Mode ↔ timeline | ED-3 | 3 | 2 | 1 | 1 | 7 | 🔲 |
 | 4 | QA-5 editor↔player parity harness | ED-6 | 0 | 3 | 1 | 0 | 7 | 🔲 |
@@ -115,10 +113,10 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 
 ## Next steps
 
-**Waves 0, 1, and 2 are complete.** `@cuestack/schema` holds the format, `@cuestack/core` holds
-the kernel, and `@cuestack/react` renders it — on a server and in a browser, from the same
-computation. 790 tests. See `specs/001-framework-foundation/`, `specs/002-headless-kernel/`, and
-`specs/003-react-ssr-player/`.
+**Waves 0 through 3 are complete.** `@cuestack/schema` holds the format, `@cuestack/core` holds
+the kernel, and `@cuestack/react` plays it — on a server and in a browser, from the same
+computation. 1,168 tests. See `specs/001-framework-foundation/`, `specs/002-headless-kernel/`,
+`specs/003-react-ssr-player/`, and `specs/004-player-completion/`.
 
 **The headline milestone is met: the first slide is in the HTML document.** Real content, at the
 authored geometry, readable with JavaScript disabled, hydrating into playback without moving.
@@ -144,22 +142,38 @@ the only component that needs it; and the static player used a hook, so it could
 rendered any slide with an element on it as a Server Component. The last was invisible twice
 over — `renderToString` is not RSC, and the reference lesson's first slide is empty at time zero.
 
-**Proposed next tranche: Wave 3 (PL-1, PL-2, PL-3).** Interactions that can be answered, media
-synchronised to lesson time, and slide transitions. RC-2 is done, so all three are unblocked.
-PL-4 is already partly in place: the reduced-motion floor is honoured in CSS, and what remains is
-per-effect reduced alternatives rather than the mechanism.
+**Wave 3 closed both costs it opened with.** The media port became bidirectional — the design
+change R-04 flagged, not an extension — with a reconciliation rule deciding who is authoritative
+when the lesson and an element disagree about position. And the playback budgets armed against the
+Constitution's 50-slide/300-element fixture, which Wave 2 deferred on the stated grounds that there
+were no frames to drop.
 
-Two costs to meet deliberately in Wave 3:
+**QA-3 covers §34 A, B, C, and F — not D and E.** D needs an editor and E needs a publishing
+pipeline, so the four that are automatable are automated and the tally says which. Marking QA-3
+complete as "A–F" would have been false.
 
-- **The media port is read-only.** Dragging media along a timeline makes it bidirectional — a
-  design change, not an extension. `specs/002-headless-kernel/research.md` R-04.
-- **The 60 fps playback budget is still deferred.** The architecture that makes it reachable was
-  decided in Wave 2 by keeping the frame loop out of React; Wave 3 is when there are transitions
-  and media to drop frames on, and therefore when the budget can be armed (QA-4).
+Wave 3 repeated Wave 2's lesson about ordering. Defects invisible in their own wave surfaced the
+moment this one consumed them: **no element ever appeared or disappeared during playback**, because
+the transport emits on command rather than on a timer and every player test drove `seek()`. The
+lesson also never advanced. Both had shipped green.
 
-Two smaller obligations carried forward: navigation buttons render their action but do not act,
-awaiting the delegation seam through the player; and asset ids are resolved by a host-supplied
-function, with BR-018's publishing rule left to Wave 5.
+**Proposed next tranche: Wave 4 (ED-1..6, QA-5).** The critical path still holds — `EN-5 → ED-1`
+and `RC-1 → ED-6` are both satisfied, and nothing Wave 3 built moved either. QA-5 is the one to
+watch: the parity gate has been an inert placeholder since Wave 0 and stays inert until an editor
+exists to diverge from a player, which is exactly what ED-6 creates. Wave 3 widened what it will
+have to check — every moving effect now declares a reduced alternative alongside its normal one,
+and nothing yet verifies the two agree about timing.
+
+Obligations carried forward, now three:
+
+- **Navigation buttons render their action but do not act**, and `on_click` advance is therefore
+  unreachable. The reference lesson's last slide uses it, which is why the example app ships a
+  second, completable lesson beside it. Awaiting the delegation seam through the player.
+- **Asset ids are resolved by a host-supplied function**, with BR-018's publishing rule left to
+  Wave 5.
+- **A dead-end lesson is authorable.** A required `on_correct` question with one attempt can be
+  written, reached, and is now reported to the *learner*. Reporting it to the author is Wave 5's
+  validation engine (PB-1).
 
 ## Open design questions
 

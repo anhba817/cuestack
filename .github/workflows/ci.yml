@@ -5,10 +5,12 @@ name: CI
 # Every job here is blocking. No `continue-on-error` appears in this file and
 # none should: a gate that tolerates failure is documentation, not a gate.
 #
-# The four placeholder gates (theme-values, parity, a11y, perf) run and pass
-# because they check nothing yet — FR-017. They exist now so that arming them in
-# Wave 2/3/4 is a one-line change to one script rather than new infrastructure
-# built under deadline pressure.
+# The four gates that began as placeholders (theme-values, parity, a11y, perf)
+# existed from Wave 1 so that arming them later was a one-line change to one
+# script rather than new infrastructure built under deadline pressure. Three are
+# now armed — perf in Wave 1 and again in Wave 3, theme-values and a11y in Wave 2.
+# Only parity is still inert, and it names the wave that arms it: there is no
+# editor yet, so there is nothing for a player to diverge from.
 #
 # Measured wall-clock, all jobs in parallel after `setup`: ~2 min.
 # Budget is 5 min (SC-005). If it approaches that, parallelise further — do not
@@ -173,6 +175,29 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm --filter @cuestack/example-nextjs build
+
+  # The MVP acceptance scenarios from the framework specification, §34.
+  #
+  # A named job rather than four files inside the test run, because these are the promises
+  # the product was specified against and "the tests passed" does not say whether *they*
+  # did. A/B/C/F only: D and E need an editor and a publishing pipeline, and listing this
+  # job as "A–F" would be false.
+  #
+  # It re-runs four files the `test` job already ran, which is deliberate duplication. The
+  # cost is seconds; what it buys is a red check whose name says which promise broke.
+  acceptance:
+    name: 'Acceptance · MVP scenarios A, B, C, F'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec vitest run --project @cuestack/react test/acceptance
 
   # The gates' own negative controls: proof each gate would go red.
   gate-self-test:

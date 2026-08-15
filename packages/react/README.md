@@ -58,6 +58,7 @@ be server-rendered by anyone, which is most of the point of this one.
 | `theme` | `ThemeValues` | Merged over the lesson's own, so a host can brand a lesson it did not author. |
 | `resolveAsset` | `(ref: AssetRef) => string \| undefined` | How to address an asset. See below. |
 | `ports` | `Ports` | Time, visibility, storage. Defaults to real browser ports; supply your own to control the clock. |
+| `progress` | `'none' \| 'slides'` | Defaults to `'none'`. A host option, not a manifest field — see below. |
 | `onReady` | `(transport) => void` | The kernel's transport, for driving playback yourself. |
 | `children` | `ReactNode` | Chrome inside the player — `<PlaybackControls />` above all. |
 
@@ -138,11 +139,114 @@ The same indirection pays twice: because every visual value is a custom property
 motion is honoured by a media query, with no script — so it works on the first frame, before
 any JavaScript has run.
 
+## Questions
+
+A question renders as a labelled radio group with a submit control, and answering it is
+handled for you. What a host may care about is that **the rule lives in the kernel, not in
+the renderer**: whether a required question releases the slide is a fact about lessons, and a
+second adapter must reach the same conclusion from the same answer.
+
+Three completion policies, authored per question:
+
+| `completionPolicy` | Complete when |
+|---|---|
+| `on_first_attempt` (default) | Anything is submitted. |
+| `on_correct` | A correct answer is given. |
+| `on_attempts_exhausted` | Attempts run out — or a correct answer arrives first, because holding a learner who got it right is a punishment for being right. |
+
+`on_first_attempt` is the default deliberately. A question whose author did not say it must
+be answered *correctly* should not trap a learner who got it wrong.
+
+An answer is recorded against the element, not against the visit, so seeking backwards and
+returning does not ask again or spend an attempt. The verdict is announced through a live
+region and stays on screen briefly before a completed question is allowed to advance the
+slide — otherwise the feedback is rendered and replaced within one frame, which is invisible
+to everyone including a screen-reader user.
+
+Every answer emits a `LessonEvent` carrying no learner identifier of any kind. A host that
+wants attribution correlates on its own side; the framework never sees it.
+
+## Media
+
+Media and the lesson share one clock, and the lesson holds it.
+
+- Seeking the lesson commands the media to the corresponding position, minus the element's
+  own start offset.
+- Pausing the lesson pauses attached media; hiding the document does the same.
+- A learner scrubbing with the element's native controls moves the *lesson* to match — the
+  media is not overruled for doing what the learner asked.
+
+Between the two there is a tolerance: media within `MEDIA_SYNC_TOLERANCE_MS` of where it
+should be is left alone. Without it, an element's own position reports and the lesson's
+corrections chase each other indefinitely.
+
+**Audible media needs a gesture.** Browsers refuse to start it otherwise, so a lesson with
+audible media shows a prompt instead of pretending to play and failing silently. Muted media
+(`volume: 0` in the manifest) needs no prompt.
+
+## Progress and completion
+
+```tsx
+<LessonPlayer lesson={lesson} progress="slides" />
+```
+
+Progress counts **slides visited**, not the current index: seeking backwards to re-read
+something must not un-earn progress, and a bar that goes down when a learner reviews
+punishes reviewing. It is a host option rather than a manifest field because the format
+carries no such field and the specification says "where enabled by the teacher or
+organization" — a decision that belongs to whoever knows the policy.
+
+After the final slide the player shows a completion state, announced through a live region,
+with a way back into the lesson. A lesson that simply stopped would be indistinguishable
+from one that broke.
+
+## When a lesson cannot continue
+
+Some lessons stop: media that will not load, a required question this player has no renderer
+for, a question that can no longer be completed. The player says so, in the learner's terms —
+"the video on this slide", never an element id — and offers what can actually help. A retry
+appears only where retrying can change something; where it cannot, the honest answer is a way
+past instead.
+
+Authoring problems (`RenderState.problems`) are deliberately *not* shown. A learner can take
+no action on an effect that runs past its slide, and being told about it teaches them the
+software is talking to somebody else.
+
+## Reduced motion
+
+`prefers-reduced-motion: reduce` is honoured on the **first rendered frame**, including the
+one produced on a server that cannot read the preference. That constrains the design more
+than it sounds: the choice has to be made by CSS at paint time, and CSS can only choose
+between things already in the markup.
+
+So the resolver emits both answers and branches on neither. Every element with an active
+moving effect carries its normal visual *and* its reduced one, and a media query picks. This
+also keeps `resolve(slide, timeMs)` a pure function of its arguments, which is what makes
+seeking equal to playing.
+
+For a custom effect, declare what it becomes:
+
+```ts
+const slideIn = {
+  type: 'slide-in',
+  phases: ['enter'],
+  motion: true,
+  at: (progress, params) => ({ translate: { x: (1 - progress) * params.distance, y: 0 } }),
+  // Substitution, not suppression: a slide-in becomes a fade rather than an
+  // instant appearance, and reaches its end state at the same moment.
+  reduced: (progress) => ({ opacity: progress }),
+}
+```
+
+`reduced` is optional three ways: an effect that does not move declares none, a moving one
+without it falls back to no motion at all, and one with it gets real substitution. Declaring
+`reduced` on a non-moving effect is rejected, since it could never be consulted.
+
 ## What this does not do yet
 
-Questions render, are announced, and cannot be answered. Media renders with native controls
-and is not synchronised to lesson time. Navigation buttons carry their action but do not act.
-There are no slide transitions and no progress display.
+There is no editor and no publishing pipeline. Asset ids are resolved by a host-supplied
+function. A lesson is authored as JSON and validated by `@cuestack/schema` before it reaches
+the player — the player is not a second validator.
 
 Each of those is a later wave, and each renders something honest in the meantime rather than
 appearing to work.

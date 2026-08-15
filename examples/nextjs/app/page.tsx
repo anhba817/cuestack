@@ -1,13 +1,23 @@
 import { LessonPlayerStatic, builtinRenderers } from '@cuestack/react'
 import reference from '@cuestack/schema/fixtures/valid/reference.json' with { type: 'json' }
 import type { LessonManifest } from '@cuestack/schema'
+import { validate } from '@cuestack/schema/validate'
 import { ClientProbe } from './client-probe'
 import { LessonView } from './lesson-view'
+import { TourView } from './tour-view'
+import { tourLesson } from './tour'
 
 /**
- * The reference lesson, server-rendered and then playing.
+ * A lesson worth finishing, plus the reference lesson's two server-rendering demonstrations.
  *
- * Two players on purpose, showing the two halves of the wave's claim:
+ * **The tour, first.** Three slides that can actually be completed: one that plays itself
+ * out, a required question that holds the lesson until it is answered, progress throughout,
+ * and a completion state at the end. It carries no assets, so every state it reaches is a
+ * state of the player rather than of a missing file.
+ *
+ * The reference lesson cannot do that job, and the reasons are all honest ones: its second
+ * slide waits for a video this repository does not serve, and its last advances `on_click`,
+ * which no player supports yet. What it demonstrates instead — below — is the RSC boundary:
  *
  *  - **Slide 2, static.** Rendered by this Server Component through the `react-server`
  *    condition, at time zero, and never hydrated. Reload with JavaScript disabled and it is
@@ -24,6 +34,14 @@ import { LessonView } from './lesson-view'
 export default function Page() {
   const lesson = reference as unknown as LessonManifest
 
+  /*
+   * The tour lesson is hand-authored TypeScript, so nothing else would tell us it is still a
+   * lesson. Checked here, in a Server Component, where the validator costs a visitor nothing
+   * — and where a format change makes this page say so instead of rendering something subtly
+   * wrong.
+   */
+  const tourValid = validate(tourLesson).ok
+
   // The server entry withholds the frame loop and the transport, because an effect never
   // runs during server rendering. Its absence here is the condition having resolved.
   const surface = { LessonPlayerStatic, builtinRenderers } as Record<string, unknown>
@@ -32,6 +50,20 @@ export default function Page() {
   return (
     <main style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem', lineHeight: 1.6 }}>
       <h1>Cuestack — {lesson.lesson.title}</h1>
+
+      <h2>A lesson worth finishing</h2>
+      <p>
+        Answer the question on slide 2 — the lesson waits for it. Progress counts slides you
+        have reached, and an ending appears once the last slide runs out. Turn on your
+        system&rsquo;s reduced-motion setting and reload: the title on slide 1 fades in
+        instead of sliding, at the same moment and to the same place.
+      </p>
+      <div style={{ maxWidth: '48rem', border: '1px solid #ddd' }}>
+        <TourView lesson={tourLesson} />
+      </div>
+      <p>
+        Valid against the schema: <code>{String(tourValid)}</code>.
+      </p>
 
       <h2>Server-rendered, never hydrated</h2>
       <p>
@@ -58,7 +90,8 @@ export default function Page() {
       <p>
         The lesson&rsquo;s media assets are opaque ids with nothing serving them, so video,
         audio, and image elements show their reserved-space fallback. That is the real
-        behaviour when a host has not said where its assets live.
+        behaviour when a host has not said where its assets live — and the slide that waits
+        for the video says so and offers a way past, rather than stopping in silence.
       </p>
 
       <ClientProbe />
