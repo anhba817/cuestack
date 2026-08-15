@@ -1,5 +1,5 @@
 import type { RenderState } from '@cuestack/core'
-import { visualProperties } from './applyVisual.js'
+import { reducedProperties, visualProperties } from './applyVisual.js'
 
 /**
  * The only imperative DOM writer in this package.
@@ -77,7 +77,16 @@ export function createFrameWriter(): FrameWriter {
         const node = nodes.get(element.id)
         if (!node) continue
 
-        const properties = visualProperties(element)
+        /**
+         * Both answers, so the stylesheet can choose (FR-028).
+         *
+         * `reducedProperties` returns nothing when the kernel says the two cannot differ, so
+         * an element at rest costs exactly what it did before. Merged into one bag rather
+         * than written in two passes, because the stale-property sweep below has to consider
+         * them together — a `--cs-r-*` left behind when an effect ends would substitute a
+         * frame that is no longer being reduced.
+         */
+        const properties = { ...visualProperties(element), ...reducedProperties(element) }
         /**
          * will-change belongs here, not in the React render.
          *

@@ -23,6 +23,21 @@ export interface EffectDescriptor {
    * Must be pure.
    */
   at(progress: number, params?: EffectParams): Contribution
+  /**
+   * What this effect contributes instead, when motion is reduced (BR-015).
+   *
+   * Optional, and the option is meaningful three ways. An effect with `motion: false`
+   * declares nothing — there is nothing to reduce. A moving effect with no `reduced` falls
+   * back to its end state, which is Wave 2's blunt floor and stays the floor for an effect
+   * whose author has not thought about it. A moving effect that declares one gets the
+   * substitution BR-015 actually asks for: a slide-in becomes a fade rather than an
+   * instantaneous appearance.
+   *
+   * Same contract as `at`: pure, given already-eased progress, called on a server per frame.
+   * It must reach its end state at the same moment (FR-026) and must not hide the element or
+   * move it out of the stage (FR-027).
+   */
+  reduced?(progress: number, params?: EffectParams): Contribution
   readonly defaultEasing: string
 }
 
@@ -42,6 +57,19 @@ const REQUIRED: ReadonlyArray<keyof EffectDescriptor> = [
 ]
 
 function assertComplete(descriptor: EffectDescriptor): void {
+  /**
+   * A reduced form on an effect that does not move would never be consulted — the stylesheet
+   * only selects it where motion is being replaced. A descriptor carrying one is describing
+   * something that cannot happen, which almost always means `motion` was meant to be true.
+   */
+  if (descriptor?.reduced !== undefined && descriptor.motion !== true) {
+    throw new Error(
+      `Effect "${descriptor.type}" declares a reduced form but sets motion: false. ` +
+        'A reduced alternative is only ever consulted for an effect that moves, so this one ' +
+        'would be dead. Did you mean motion: true?',
+    )
+  }
+
   const missing = REQUIRED.filter((key) => descriptor?.[key] === undefined)
   if (missing.length > 0) {
     throw new Error(

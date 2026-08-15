@@ -19,4 +19,16 @@ export const pulse: EffectDescriptor = {
     const factor = 1 + amount * swell
     return { scale: { x: factor, y: factor } }
   },
+  /**
+   * Nothing at all — a static emphasis for the same interval.
+   *
+   * A pulse draws attention *by* moving, so there is no reduced movement to offer; fading it
+   * would be a different effect, and dimming it would make the element it is emphasising
+   * harder to read. The element stays exactly as authored, which loses the emphasis and
+   * loses nothing else. An author who needs the emphasis to survive reduced motion should
+   * use a highlight, which is a filter and does not move.
+   */
+  reduced() {
+    return {}
+  },
 }

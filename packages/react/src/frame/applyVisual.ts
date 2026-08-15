@@ -1,5 +1,5 @@
 import type { ResolvedElement } from '@cuestack/core'
-import { GEOMETRY, VISUAL, type PropertyBag } from './properties.js'
+import { GEOMETRY, REDUCED, VISUAL, type PropertyBag } from './properties.js'
 
 /**
  * The single conversion between what the kernel computed and what the page shows.
@@ -44,6 +44,50 @@ export function visualProperties(element: ResolvedElement): PropertyBag {
   return bag
 }
 
+/**
+ * The reduced-motion alternative, under mirrored property names.
+ *
+ * Empty when the kernel says the two do not differ — an element at rest, or one whose only
+ * effect is a fade. That is most elements most of the time, which is what bounds the cost of
+ * emitting two answers to the frames where they can actually differ.
+ *
+ * Emitted with the same "only what changed" rule as `visualProperties`, so the stylesheet's
+ * fallbacks still supply every identity value.
+ */
+export function reducedProperties(element: ResolvedElement): PropertyBag {
+  const reduced = element.reduced
+  if (!reduced) return {}
+
+  const bag: PropertyBag = {}
+  if (reduced.opacity !== 1) bag[REDUCED.opacity] = String(reduced.opacity)
+
+  const t = reduced.transform
+  if (t.translateX !== 0) bag[REDUCED.translateX] = String(t.translateX)
+  if (t.translateY !== 0) bag[REDUCED.translateY] = String(t.translateY)
+  if (t.scaleX !== 1) bag[REDUCED.scaleX] = String(t.scaleX)
+  if (t.scaleY !== 1) bag[REDUCED.scaleY] = String(t.scaleY)
+  if (t.rotate !== 0) bag[REDUCED.rotate] = String(t.rotate)
+
+  if (reduced.filter) {
+    bag[REDUCED.brightness] = String(reduced.filter.brightness)
+    bag[REDUCED.blur] = String(reduced.filter.blur)
+  }
+
+  return bag
+}
+
+/**
+ * Everything one element contributes to its inline style.
+ *
+ * Includes the reduced set, and that is not an optimisation detail — this is what the
+ * **server** emits, and FR-028 requires the preference honoured on the first painted frame.
+ * A first version added the reduced properties to the frame writer only, so they existed
+ * during playback and were absent from the very frame the requirement is about.
+ */
 export function elementProperties(element: ResolvedElement): PropertyBag {
-  return { ...geometryProperties(element), ...visualProperties(element) }
+  return {
+    ...geometryProperties(element),
+    ...visualProperties(element),
+    ...reducedProperties(element),
+  }
 }

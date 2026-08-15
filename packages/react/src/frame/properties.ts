@@ -29,6 +29,25 @@ export const VISUAL = {
   blur: '--cs-blur',
 } as const
 
+/**
+ * The reduced-motion mirror of every visual property.
+ *
+ * A second set rather than a second stylesheet, because the choice is made per element and
+ * per frame — which effect is running decides what the substitution is, and that is data, not
+ * selector state. The stylesheet picks between them inside a media query, so the preference
+ * is honoured at paint time on a server-rendered frame where it cannot be read (FR-028).
+ */
+export const REDUCED: Record<keyof typeof VISUAL, string> = {
+  opacity: '--cs-r-opacity',
+  translateX: '--cs-r-tx',
+  translateY: '--cs-r-ty',
+  scaleX: '--cs-r-sx',
+  scaleY: '--cs-r-sy',
+  rotate: '--cs-r-rotate',
+  brightness: '--cs-r-brightness',
+  blur: '--cs-r-blur',
+}
+
 /** A theme token becomes `--cs-theme-<token>`, with dots flattened to dashes. */
 export function themeProperty(token: string): string {
   return `--cs-theme-${token.replace(/\./g, '-')}`

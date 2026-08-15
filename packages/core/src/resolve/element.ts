@@ -64,6 +64,16 @@ export function resolveElement(
 
   const active: ActiveEffect[] = []
   const contributions: Contribution[] = []
+  /**
+   * The same contributions, with each *moving* effect replaced by its reduced alternative.
+   *
+   * Collected alongside rather than derived afterwards, because only this loop knows which
+   * descriptor produced which contribution. `anyMotion` records whether the two can differ
+   * at all — when nothing moving is active they are identical, and emitting a second copy
+   * would double what the frame writer writes for no gain.
+   */
+  const reducedContributions: Contribution[] = []
+  let anyMotion = false
 
   for (const effect of [...(element.effects ?? [])].sort(byStartThenOrder)) {
     const descriptor = effects.get(effect.type)
@@ -83,13 +93,36 @@ export function resolveElement(
     if (slideTimeMs >= endMs) {
       // A completed effect still contributes its final value — an element that
       // faded in stays visible rather than reverting when the effect ends.
-      contributions.push(descriptor.at(1, effect.parameters))
+      //
+      // Its *reduced* final value is the same one: FR-026 requires the substitution to reach
+      // its end state at the same moment, so once both have finished there is nothing left
+      // to distinguish. A finished slide-in and a finished fade both leave the element where
+      // the author put it.
+      const settled = descriptor.at(1, effect.parameters)
+      contributions.push(settled)
+      reducedContributions.push(settled)
       continue
     }
 
     const raw = (slideTimeMs - effect.startMs) / effect.durationMs
     const progress = applyEasing(raw, effect.easing ?? descriptor.defaultEasing)
     contributions.push(descriptor.at(progress, effect.parameters))
+
+    /**
+     * The reduced alternative, or the blunt floor.
+     *
+     * A moving effect with no declared substitution falls back to `{}` — no contribution at
+     * all, so the element sits at its authored state. That is Wave 2's behaviour, kept for
+     * an effect whose author has not thought about this, rather than being an error that
+     * would block registering a third-party effect over a refinement.
+     */
+    if (descriptor.motion) {
+      anyMotion = true
+      reducedContributions.push(descriptor.reduced?.(progress, effect.parameters) ?? {})
+    } else {
+      reducedContributions.push(descriptor.at(progress, effect.parameters))
+    }
+
     active.push({
       id: effect.id,
       type: effect.type,
@@ -102,6 +135,7 @@ export function resolveElement(
   // An element whose enter effect has not started yet should not be shown at the
   // effect's opening value by accident, so entrance effects gate visibility.
   const composed = composeContributions(contributions)
+  const composedReduced = anyMotion ? composeContributions(reducedContributions) : null
 
   let pluginContribution: Contribution | undefined
   let pluginVisible = true
@@ -151,6 +185,21 @@ export function resolveElement(
       transform: final.transform,
       filter: final.filter,
       activeEffects: active,
+      /**
+       * The reduced visual, present only when a moving effect is active.
+       *
+       * Null the rest of the time, which is the common case: an element at rest, or one
+       * whose only effect is a fade, looks identical under either preference. The renderer
+       * skips the second property set entirely when this is null, which bounds the cost of
+       * emitting two answers to the frames where they can actually differ.
+       */
+      reduced: composedReduced
+        ? {
+            opacity: composedReduced.opacity,
+            transform: composedReduced.transform,
+            filter: composedReduced.filter,
+          }
+        : null,
       payload: element.payload,
       // Passed through, never defaulted. An absent block and an empty one mean different
       // things to a renderer: "the author said nothing" versus "the author said none".

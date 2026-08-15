@@ -41,6 +41,19 @@ export interface ResolvedElement {
   readonly transform: TransformDelta
   readonly filter: FilterDelta | null
   readonly activeEffects: readonly ActiveEffect[]
+  /**
+   * What this element looks like when motion is reduced, or null when it makes no difference.
+   *
+   * **Both answers, always, and the choice made by neither.** FR-028 requires the preference
+   * honoured on the first rendered frame; that frame is produced on a server which cannot
+   * read it; so the choice belongs to CSS at paint time, and CSS can only choose between
+   * things already in the markup. The resolver therefore emits both and branches on nothing —
+   * which is also what keeps it a pure function of `(slide, timeMs)` and the parity sweep
+   * able to compare both (research R-03).
+   *
+   * Null whenever no *moving* effect is active, which is most of the time.
+   */
+  readonly reduced: ReducedVisual | null
   readonly payload: unknown
   /**
    * Authored accessibility metadata, passed through untouched.
@@ -57,6 +70,12 @@ export interface ResolvedElement {
   readonly accessibility: ElementAccessibility | null
   /** False when the element's type is not registered (FR-027). */
   readonly available: boolean
+}
+
+export interface ReducedVisual {
+  readonly opacity: number
+  readonly transform: TransformDelta
+  readonly filter: FilterDelta | null
 }
 
 export interface ElementAccessibility {

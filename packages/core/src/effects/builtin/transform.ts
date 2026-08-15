@@ -35,6 +35,17 @@ export const slide: EffectDescriptor = {
             : { x: 0, y: zero(offset) }
     return { translate, opacity: progress }
   },
+  /**
+   * A fade over the same interval.
+   *
+   * Not an instant appearance, which is what Wave 2's blunt neutralisation produced: with
+   * the translation zeroed, a slide-in contributed only its opacity ramp, and an author who
+   * had relied on the movement to draw the eye got nothing. A cross-fade is still a
+   * transition — it is the movement that is removed, not the arrival.
+   */
+  reduced(progress) {
+    return { opacity: progress }
+  },
 }
 
 export const zoom: EffectDescriptor = {
@@ -46,5 +57,9 @@ export const zoom: EffectDescriptor = {
     const from = num(params, 'from', 0.92)
     const factor = from + (1 - from) * progress
     return { scale: { x: factor, y: factor }, opacity: progress }
+  },
+  /** A fade over the same interval, for the same reason as `slide`. */
+  reduced(progress) {
+    return { opacity: progress }
   },
 }

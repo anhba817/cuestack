@@ -169,6 +169,7 @@ describe('visual properties', () => {
     transform: { translateX: 0, translateY: 0, scaleX: 1, scaleY: 1, rotate: 0 },
     filter: null,
     activeEffects: [],
+    reduced: null,
     payload: {},
     accessibility: null,
     available: true,

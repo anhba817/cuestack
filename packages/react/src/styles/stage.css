@@ -66,20 +66,32 @@
 }
 
 /*
- * Reduced motion, honoured in CSS.
+ * Reduced motion, honoured in CSS — now per effect rather than by blunt neutralisation.
  *
- * This is what the custom-property indirection buys: neutralising motion needs no
- * script, so it works on a server-rendered first frame where the preference cannot
- * even be read. Wave 3 substitutes reduced alternatives per effect; this is the
- * blunt floor that holds until then.
+ * This is what the custom-property indirection buys, and it is why the decision lives here
+ * and not in JavaScript: the preference cannot be read on a server, so a script would have to
+ * defer the choice to hydration and a learner who asked for less motion would see the full
+ * motion first. CSS chooses at paint time, which means both answers have to already be in the
+ * markup — and they are, because the resolver emits both.
+ *
+ * The nested fallback is the whole mechanism. Where the kernel emitted a reduced value it
+ * wins; where it did not, the element falls back to no motion, which is Wave 2's floor kept
+ * for an effect whose author has not declared an alternative. An element with no active
+ * effect emits neither set and is untouched by this block entirely.
+ *
+ * Wave 2 zeroed the transforms outright, which satisfied "no movement" and could not express
+ * BR-015's actual requirement: a slide-in became an *instant appearance* rather than a fade.
  */
 @media (prefers-reduced-motion: reduce) {
   .cs-element {
-    --cs-tx: 0;
-    --cs-ty: 0;
-    --cs-sx: 1;
-    --cs-sy: 1;
-    --cs-rotate: 0;
+    --cs-opacity: var(--cs-r-opacity, var(--cs-opacity, 1));
+    --cs-tx: var(--cs-r-tx, 0);
+    --cs-ty: var(--cs-r-ty, 0);
+    --cs-sx: var(--cs-r-sx, 1);
+    --cs-sy: var(--cs-r-sy, 1);
+    --cs-rotate: var(--cs-r-rotate, 0);
+    --cs-brightness: var(--cs-r-brightness, var(--cs-brightness, 1));
+    --cs-blur: var(--cs-r-blur, var(--cs-blur, 0));
   }
 }
 

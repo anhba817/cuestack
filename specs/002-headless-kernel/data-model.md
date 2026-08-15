@@ -48,6 +48,7 @@ class of preview-player divergence Principle V exists to prevent.
 | `activeEffects` | `ActiveEffect[]` | Which effects are contributing and at what progress. Diagnostic, and what the editor's timeline reads to show a playhead. |
 | `payload` | authored payload | Passed through unchanged. The kernel does not interpret element content. |
 | `accessibility` | `{ altText?, label?, hidden? } \| null` | Passed through unchanged, and never defaulted — an absent block and an empty one mean different things. **Added in Wave 2**, which found it missing: a renderer receives only a `ResolvedElement` and FR-015 requires it to expose an image's alternative text, so without this the alt text was in the manifest and unreachable by the one component that needs it. |
+| `reduced` | `{ opacity, transform, filter } \| null` | What this element looks like when motion is reduced, or **null when it makes no difference** — which is most elements most of the time. **Added in Wave 3.** FR-028 requires the reduced-motion preference honoured on the first rendered frame; that frame is produced on a server which cannot read it; so the choice belongs to CSS at paint time, and CSS can only choose between things already in the markup. The resolver therefore emits both answers and branches on neither, which is also what keeps it a pure function of `(slide, timeMs)`. |
 | `available` | boolean | False when the element's type is not registered — the placeholder case from FR-027. |
 
 `transform` is kept separate from `geometry` rather than folded into it. An element that has been
@@ -75,6 +76,7 @@ What a registration supplies. Not a manifest shape — this is code.
 | `phases` | `EffectPhase[]` | Which phases this effect is valid in. |
 | `motion` | boolean | |
 | `at` | `(progress, params) => Contribution` | The whole implementation. Pure; must not read a clock. |
+| `reduced` | `(progress, params) => Contribution`, optional | **Added in Wave 3.** What this effect contributes instead when motion is reduced (BR-015). On the descriptor because only the effect knows what its reduced form is; a substitution table held by a consumer is the list R-09 warned would rot. Optional three ways: a non-moving effect declares none, a moving one without it falls back to no motion (Wave 2's floor), and one with it gets real substitution — a slide-in becomes a fade rather than an instant appearance. Same contract as `at`: pure, eased progress, called on a server per frame. Registering it with `motion: false` is rejected, since it could never be consulted. |
 | `defaultEasing` | string | Applied when the author specifies none. |
 
 ## Entity: Contribution

@@ -24,7 +24,6 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
  * The remaining rules have no code to test yet:
  *   BR-008, BR-009  publishing and immutable versions   — Wave 5
  *   BR-012          accessibility policy enforcement    — organisation policy, Wave 5
- *   BR-015          reduced-motion substitution          — Wave 3
  *   BR-016          Simple Sequence resolution           — Wave 4
  *   BR-017          duration reduced below event end     — Wave 4 editor warning
  *   BR-018          published asset references           — Wave 5
@@ -41,6 +40,7 @@ const EXPECTED = {
   'BR-011': 'core',
   'BR-013': 'core',
   'BR-014': 'react',
+  'BR-015': 'core',
 }
 
 function rulesIn(pkg) {

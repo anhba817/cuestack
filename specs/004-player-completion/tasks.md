@@ -225,25 +225,25 @@ becomes invisible or unreachable.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T077 [P] [US4] Descriptor tests in `packages/core/test/effects/reduced.test.ts` — an effect declaring `reduced` contributes it, one that does not falls back to its end state, and a non-moving effect declares nothing (contracts/reduced-motion-contract.md)
-- [ ] T078 [P] [US4] Resolver tests in `packages/core/test/resolve/reduced.test.ts` — `ResolvedElement.reduced` is null when no active effect moves, present when one does, and both visuals are pure functions of `(slide, timeMs)`
-- [ ] T079 [US4] Timing-preservation test in `packages/core/test/resolve/reduced.test.ts` — a substitution reaches its end state at the same moment as the effect it replaces (FR-026)
-- [ ] T080 [P] [US4] BR-015 test in `packages/core/test/rules/BR-015.test.ts` — every built-in moving effect has a substitution that neither hides the element nor moves it outside the stage (FR-027)
-- [ ] T081 [P] [US4] Stylesheet tests in `packages/react/test/scaling/reduced-motion.test.ts` — the media block prefers `--cs-r-*` and falls back to no motion, using the CSS evaluator from feature 003's harness
-- [ ] T082 [P] [US4] First-frame test in `packages/react/test/ssr/reduced-motion.test.ts` — both property sets are in the server-rendered markup, and nothing in the server path reads `matchMedia` (FR-028)
-- [ ] T083 [P] [US4] **MVP Acceptance Scenario F** end-to-end in `packages/react/test/acceptance/scenario-f.test.tsx`, written from §34 F verbatim
+- [X] T077 [P] [US4] Descriptor tests in `packages/core/test/effects/reduced.test.ts` — an effect declaring `reduced` contributes it, one that does not falls back to its end state, and a non-moving effect declares nothing (contracts/reduced-motion-contract.md)
+- [X] T078 [P] [US4] Resolver tests in `packages/core/test/resolve/reduced.test.ts` — `ResolvedElement.reduced` is null when no active effect moves, present when one does, and both visuals are pure functions of `(slide, timeMs)`
+- [X] T079 [US4] Timing-preservation test in `packages/core/test/resolve/reduced.test.ts` — a substitution reaches its end state at the same moment as the effect it replaces (FR-026)
+- [X] T080 [P] [US4] BR-015 test in `packages/core/test/rules/BR-015.test.ts` — every built-in moving effect has a substitution that neither hides the element nor moves it outside the stage (FR-027)
+- [X] T081 [P] [US4] Stylesheet tests in `packages/react/test/scaling/reduced-motion.test.ts` — the media block prefers `--cs-r-*` and falls back to no motion, using the CSS evaluator from feature 003's harness
+- [X] T082 [P] [US4] First-frame test in `packages/react/test/ssr/reduced-motion.test.ts` — both property sets are in the server-rendered markup, and nothing in the server path reads `matchMedia` (FR-028)
+- [X] T083 [P] [US4] **MVP Acceptance Scenario F** end-to-end in `packages/react/test/acceptance/scenario-f.test.tsx`, written from §34 F verbatim
 
 ### Implementation for User Story 4
 
-- [ ] T084 [US4] Add optional `reduced` to `EffectDescriptor` in `packages/core/src/effects/registry.ts`, and reject a descriptor declaring `reduced` with `motion: false` — it would never be consulted
-- [ ] T085 [P] [US4] Declare substitutions on the moving built-ins in `packages/core/src/effects/builtin/transform.ts` and `pulse.ts` per the table in contracts/reduced-motion-contract.md (depends on T084)
-- [ ] T086 [US4] Compose the reduced visual in `packages/core/src/resolve/index.ts` and add `reduced` to `ResolvedElement` in `packages/core/src/resolve/state.ts`, emitting it only when an active effect moves (depends on T085)
-- [ ] T087 [US4] Emit the `--cs-r-*` properties in `packages/react/src/frame/properties.ts` and `applyVisual.ts`
-- [ ] T088 [US4] Write the reduced set from `packages/react/src/frame/FrameWriter.ts`, skipping it entirely when `reduced` is null
-- [ ] T089 [US4] Replace Wave 2's blunt neutralisation in `packages/react/src/styles/stage.css` with the nested-fallback selection, and apply the same substitution to slide transitions in `transition.css` — replaced, not shortened (US4 #4)
-- [ ] T090 [US4] Update `specs/002-headless-kernel/data-model.md` for `ResolvedElement.reduced`, as feature 003 did for `accessibility` — the document is checked against reality by review, and drift there has been found before
-- [ ] T091 [US4] Record the widened exposure in `tools/scripts/gates/parity.mjs` — the gate stays inert and its message must now name what US4 added that it does not guard: every moving effect gained a `reduced` contribution, and nothing checks that the two agree. **Do not arm it.** FR-FWK-013 is *"registered elements render consistently in editor preview and learner playback"* — entirely editor-versus-player, and there is no editor. An earlier draft of this task invented an "effect half" of a requirement that has no effect-only component, and would have demanded parity fixtures for eight registered effects that have none. A gate cannot be armed against a requirement that is not yet satisfiable; Wave 4 (QA-5) is when it becomes one
-- [ ] T092 [US4] Add BR-015 to `EXPECTED` in `tools/scripts/check-rule-coverage.mjs`
+- [X] T084 [US4] Add optional `reduced` to `EffectDescriptor` in `packages/core/src/effects/registry.ts`, and reject a descriptor declaring `reduced` with `motion: false` — it would never be consulted
+- [X] T085 [P] [US4] Declare substitutions on the moving built-ins in `packages/core/src/effects/builtin/transform.ts` and `pulse.ts` per the table in contracts/reduced-motion-contract.md (depends on T084)
+- [X] T086 [US4] Compose the reduced visual in `packages/core/src/resolve/index.ts` and add `reduced` to `ResolvedElement` in `packages/core/src/resolve/state.ts`, emitting it only when an active effect moves (depends on T085)
+- [X] T087 [US4] Emit the `--cs-r-*` properties in `packages/react/src/frame/properties.ts` and `applyVisual.ts`
+- [X] T088 [US4] Write the reduced set from `packages/react/src/frame/FrameWriter.ts`, skipping it entirely when `reduced` is null
+- [X] T089 [US4] Replace Wave 2's blunt neutralisation in `packages/react/src/styles/stage.css` with the nested-fallback selection, and apply the same substitution to slide transitions in `transition.css` — replaced, not shortened (US4 #4)
+- [X] T090 [US4] Update `specs/002-headless-kernel/data-model.md` for `ResolvedElement.reduced`, as feature 003 did for `accessibility` — the document is checked against reality by review, and drift there has been found before
+- [X] T091 [US4] Record the widened exposure in `tools/scripts/gates/parity.mjs` — the gate stays inert and its message must now name what US4 added that it does not guard: every moving effect gained a `reduced` contribution, and nothing checks that the two agree. **Do not arm it.** FR-FWK-013 is *"registered elements render consistently in editor preview and learner playback"* — entirely editor-versus-player, and there is no editor. An earlier draft of this task invented an "effect half" of a requirement that has no effect-only component, and would have demanded parity fixtures for eight registered effects that have none. A gate cannot be armed against a requirement that is not yet satisfiable; Wave 4 (QA-5) is when it becomes one
+- [X] T092 [US4] Add BR-015 to `EXPECTED` in `tools/scripts/check-rule-coverage.mjs`
 
 **Checkpoint**: US1–US4 work. Scenarios A, B, C, and F all pass.
 
