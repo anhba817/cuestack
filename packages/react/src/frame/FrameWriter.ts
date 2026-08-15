@@ -29,6 +29,16 @@ export interface FrameWriter {
    * which would unregister and re-register every element on every render.
    */
   refFor(elementId: string): (node: HTMLElement | null) => void
+  /**
+   * The registered node for an element, if it is mounted.
+   *
+   * Added so the DOM media port can find a slide's `<video>` without any renderer holding a
+   * ref. The video and audio renderers are on the **server** path — they are in the static
+   * renderer set — and a React Server Component may not carry a ref, so registration cannot
+   * live in them. The writer already has every element's node for its own purposes, so
+   * asking it is free and adds no second registry to keep in step.
+   */
+  nodeFor(elementId: string): HTMLElement | null
   write(state: RenderState): void
   clear(): void
 }
@@ -47,6 +57,10 @@ export function createFrameWriter(): FrameWriter {
         nodes.delete(elementId)
         written.delete(elementId)
       }
+    },
+
+    nodeFor(elementId) {
+      return nodes.get(elementId) ?? null
     },
 
     refFor(elementId) {

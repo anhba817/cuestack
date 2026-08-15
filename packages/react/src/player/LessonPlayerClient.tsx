@@ -3,9 +3,12 @@ import type { LessonEvent } from '@cuestack/core'
 import type { Interaction, LessonManifest } from '@cuestack/schema'
 import {
   createAdvanceController,
+  createMediaLink,
   createTransport,
+  MEDIA_SYNC_TOLERANCE_MS,
   resolve,
   type Ports,
+  type MediaLinkController,
   type RenderState,
   type ResolvedElement,
   type Transport,
@@ -19,6 +22,8 @@ import type { ThemeValues } from '../theme/tokens.js'
 import { createFrameWriter } from '../frame/FrameWriter.js'
 import { useFrameLoop } from '../frame/useFrameLoop.js'
 import { browserPorts } from './browserPorts.js'
+import { createDomMediaPort } from '../media/domMediaPort.js'
+import { GesturePrompt, hasAudibleMedia } from './GesturePrompt.js'
 import { useInteractions } from './useInteractions.js'
 import { PlayerContext } from './usePlayer.js'
 import { SlideView } from './SlideView.js'
@@ -75,6 +80,18 @@ const DEFAULT_RENDERERS = createRendererRegistry(builtinRenderers)
  * out its own duration with nothing to read is unaffected.
  */
 const FEEDBACK_DWELL_MS = 1500
+
+/**
+ * When an element begins, in slide time.
+ *
+ * A media element authored to start two seconds in is at position zero when slide time
+ * reaches two seconds. Seeking the lesson without subtracting this would put every delayed
+ * video that far ahead of where it belongs.
+ */
+function startOf(lesson: LessonManifest, slideIndex: number, elementId: string): number {
+  const element = lesson.slides[slideIndex]?.elements.find((e) => e.id === elementId)
+  return element?.startMs ?? 0
+}
 
 /**
  * A lesson event, carrying no learner identifier of any kind.
@@ -153,9 +170,32 @@ export function LessonPlayerClient({
   /** Read by the frame loop, which does not re-render and so cannot see React state. */
   const completions = useRef<ReadonlySet<string>>(interactions.completedIds)
   completions.current = interactions.completedIds
+
+  const stepRef = useRef<((snapshot: TransportSnapshot) => void) | null>(null)
+  const mediaRef = useRef<MediaLinkController | null>(null)
+  const gestureGivenRef = useRef(false)
+  const transportRef = useRef<Transport | null>(null)
+
+  /**
+   * The gesture latch (BR-014). One per lesson: the requirement says "an initial user
+   * action", and asking again on every slide with sound is the behaviour learners resent
+   * from the browsers that do it.
+   *
+   * Starts satisfied unless autoplay was requested *and* the lesson has audible media —
+   * pressing play is itself a gesture, so a learner who starts manually never sees a prompt.
+   */
+  const needsGesture = autoPlay && hasAudibleMedia(lesson)
+  const [gestureGiven, setGestureGiven] = useState(!needsGesture)
+  gestureGivenRef.current = gestureGiven
+
+  /** The learner's action. Starts playback and is never asked for again (FR-015). */
+  const givePermission = useCallback(() => {
+    gestureGivenRef.current = true
+    setGestureGiven(true)
+    transportRef.current?.play()
+  }, [])
   /** Set by the mount effect; read by the frame loop. A ref because the loop must not be
    *  rebuilt each render, and the step closes over the effect's transport and controller. */
-  const stepRef = useRef<((snapshot: TransportSnapshot) => void) | null>(null)
 
   const resolveAt = useCallback(
     (slideTimeMs: number): RenderState => resolve(slide!, slideTimeMs),
@@ -179,10 +219,23 @@ export function LessonPlayerClient({
   useEffect(() => {
     if (lesson.slides.length === 0) return
     // Constructed here, never during render: browserPorts() reads document and performance.
-    const activePorts = ports ?? browserPorts()
+    /**
+     * The DOM media port is built here, over the frame writer's node registry, so the link
+     * can find a slide's `<video>` without any renderer holding a ref — video and audio
+     * render on the server path, where a ref is not allowed.
+     *
+     * A caller-supplied `ports` wins outright: a test handing in a scripted media fake must
+     * not have it replaced by one reading a DOM that has no decoder behind it.
+     */
+    const activePorts: Ports = ports ?? {
+      ...browserPorts(),
+      media: createDomMediaPort({ nodeFor: (id) => writer.nodeFor(id) }),
+    }
     const t = createTransport(lesson, activePorts)
     const advance = createAdvanceController(activePorts)
+    const media = createMediaLink(activePorts.media)
     setTransport(t)
+    transportRef.current = t
     onReady?.(t)
 
     analytics.current = (e: LessonEvent) => activePorts.analytics.record(e)
@@ -213,6 +266,12 @@ export function LessonPlayerClient({
       const next = resolve(active, snapshot.slideTimeMs)
       latest.current = next
       setCurrentIndex(snapshot.slideIndex)
+
+      // Register this slide's media so the link has something to pause and command. The
+      // port answers about ids you name and cannot enumerate, so nothing else would tell it.
+      for (const element of next.elements) {
+        if (element.type === 'video' || element.type === 'audio') media.attach(element.id)
+      }
       // Re-render only when the *set* of visible elements changes.
       setVisibleIds(next.elements.map((e) => e.id).join(',') || 'none')
 
@@ -263,15 +322,56 @@ export function LessonPlayerClient({
     stepRef.current = step
     const unsubscribe = t.subscribe(step)
 
-    if (autoPlay) t.play()
+    /**
+     * The lesson commands its media, and follows it when the learner moves it directly.
+     * Both directions run through `reconcile`, which is the one place that decides which
+     * clock wins (FR-037).
+     */
+    mediaRef.current = media
+    const unfollow = media.subscribe((_elementId, positionMs) => t.seek(positionMs))
+
+    /**
+     * Pause and resume media with the lesson, and take it along when the lesson seeks.
+     *
+     * The transport emits on *command* — play, pause, seek, goToSlide — and never on a
+     * timer, so this fires exactly when the lesson's position changed for a reason other
+     * than time passing. That is the moment media has to be told.
+     *
+     * Which elements to move, and by how much, comes from the resolved state: an element
+     * that starts at 2 s into the slide is at position zero when slide time is 2 s. Seeking
+     * the lesson to 5 s must put it at 3 s, not 5 s.
+     *
+     * The command is issued only when the media is more than a tolerance away. Without that
+     * guard this would re-command on the emission caused by the lesson *following* a
+     * learner's scrub, which is the loop under a different name.
+     */
+    const unwatch = t.subscribe((snapshot: TransportSnapshot) => {
+      if (snapshot.state === 'playing') media.resumeAll()
+      else media.pauseAll()
+
+      for (const element of latest.current?.elements ?? []) {
+        if (element.type !== 'video' && element.type !== 'audio') continue
+        const wanted = Math.max(0, snapshot.slideTimeMs - startOf(lesson, snapshot.slideIndex, element.id))
+        const at = media.statusOf(element.id)?.positionMs
+        if (at === undefined || Math.abs(at - wanted) <= MEDIA_SYNC_TOLERANCE_MS) continue
+        media.seek(element.id, wanted)
+      }
+    })
+
+    if (autoPlay && (!needsGesture || gestureGivenRef.current)) t.play()
 
     return () => {
       stepRef.current = null
       analytics.current = null
+      mediaRef.current = null
+      transportRef.current = null
+      unfollow()
+      unwatch()
       unsubscribe()
+      media.dispose()
       writer.clear()
     }
-  }, [lesson, ports, autoPlay, onReady, writer])
+  }, [lesson, ports, autoPlay, onReady, writer, needsGesture])
 
   /**
    * The frame loop is the only thing that runs as time passes — the transport emits on
@@ -338,7 +438,10 @@ export function LessonPlayerClient({
   return (
     <PlayerContext.Provider value={{ transport, slideDurationMs: slide.durationMs }}>
       {content}
-      {children}
+      {/* Before the gesture, in place of the controls: audible media has not been permitted
+          to start, and offering transport controls that cannot honour a press is worse than
+          asking plainly. */}
+      {gestureGiven ? children : <GesturePrompt onStart={givePermission} />}
     </PlayerContext.Provider>
   )
 }
