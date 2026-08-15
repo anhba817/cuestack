@@ -106,10 +106,10 @@ Needs no media, no transitions, and no reduced motion.
 
 > Write these first and observe them failing.
 
-- [ ] T013 [P] [US1] Completion-policy tests in `packages/core/test/interactions/policy.test.ts` — all three policies, plus the absent-policy default of `on_first_attempt` and why (contract: interaction-contract.md)
-- [ ] T014 [P] [US1] Outcome tests in `packages/core/test/interactions/evaluate.test.ts` — correctness against `correctResponse`, attempts used and remaining, `exhausted`, and `unsatisfiable` for a question that can never complete
-- [ ] T015 [P] [US1] State tests in `packages/core/test/interactions/state.test.ts` — `submit` returns a new state rather than mutating, responses key by element so a revisit finds the answer intact and consumes no attempt, and attempts order
-- [ ] T016 [P] [US1] Extend `packages/core/test/rules/BR-005.test.ts` with the real-state cases: a required question with an incomplete outcome holds a duration-advanced slide, an optional one does not, and two required questions on one slide need both
+- [X] T013 [P] [US1] Completion-policy tests in `packages/core/test/interactions/policy.test.ts` — all three policies, plus the absent-policy default of `on_first_attempt` and why (contract: interaction-contract.md)
+- [X] T014 [P] [US1] Outcome tests in `packages/core/test/interactions/evaluate.test.ts` — correctness against `correctResponse`, attempts used and remaining, `exhausted`, and `unsatisfiable` for a question that can never complete
+- [X] T015 [P] [US1] State tests in `packages/core/test/interactions/state.test.ts` — `submit` returns a new state rather than mutating, responses key by element so a revisit finds the answer intact and consumes no attempt, and attempts order
+- [X] T016 [P] [US1] Extend `packages/core/test/rules/BR-005.test.ts` with the real-state cases: a required question with an incomplete outcome holds a duration-advanced slide, an optional one does not, and two required questions on one slide need both
 - [ ] T017 [P] [US1] Question-answering tests in `packages/react/test/elements/question-answer.test.tsx` — selecting and submitting, feedback shown, remaining attempts stated, controls closing after the final answer
 - [ ] T018 [P] [US1] Keyboard and announcement tests in `packages/react/test/elements/question-a11y.test.tsx` — answerable by keyboard alone, outcome and remaining attempts announced through a live region, closed controls `aria-disabled` rather than `disabled`
 - [ ] T019 [P] [US1] Answer-secrecy test in `packages/react/test/elements/question-secrecy.test.tsx` — `correctResponse` appears nowhere in the markup before the response is final (FR-009)
@@ -120,10 +120,10 @@ Needs no media, no transitions, and no reduced motion.
 
 ### Implementation for User Story 1
 
-- [ ] T024 [P] [US1] Implement the three completion policies in `packages/core/src/interactions/policy.ts`, as one table rather than three call sites
-- [ ] T025 [US1] Implement `evaluate(definition, responses) -> InteractionOutcome` in `packages/core/src/interactions/evaluate.ts` (depends on T024)
-- [ ] T026 [US1] Implement `InteractionState` and `submit` in `packages/core/src/interactions/state.ts`, returning a new state and the `LessonEvent` rather than recording it — the kernel does not own the analytics adapter (depends on T025)
-- [ ] T027 [US1] Export the interactions surface from `packages/core/src/index.ts`, and add a test asserting each exported name resolves — feature 002 shipped a public surface missing two of four capabilities because nothing checked
+- [X] T024 [P] [US1] Implement the three completion policies in `packages/core/src/interactions/policy.ts`, as one table rather than three call sites
+- [X] T025 [US1] Implement `evaluate(definition, responses) -> InteractionOutcome` in `packages/core/src/interactions/evaluate.ts` (depends on T024)
+- [X] T026 [US1] Implement `InteractionState` and `submit` in `packages/core/src/interactions/state.ts`, returning a new state and the `LessonEvent` rather than recording it — the kernel does not own the analytics adapter (depends on T025)
+- [X] T027 [US1] Export the interactions surface from `packages/core/src/index.ts`, and add a test asserting each exported name resolves — feature 002 shipped a public surface missing two of four capabilities because nothing checked
 - [ ] T028 [US1] Add the optional `interaction` member to `ElementRendererProps` in `packages/react/src/elements/registry.tsx`, per contracts/interaction-contract.md
 - [ ] T029 [US1] Implement `packages/react/src/player/useInteractions.ts` holding session responses and deriving outcomes
 - [ ] T030 [US1] Thread `interaction` through `packages/react/src/player/SlideView.tsx` to interactive renderers only

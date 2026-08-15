@@ -70,3 +70,18 @@ export type {
   AssetLocation,
 } from './adapters/index.js'
 export { memoryAdapters, createMemoryStorage, createMemoryAssets, createMemoryAnalytics } from './adapters/memory/index.js'
+
+/**
+ * Interactions — what a learner answered, and whether it counts (Wave 3).
+ *
+ * In core rather than in an adapter because `completionPolicy` is a rule about lessons: a
+ * second adapter must reach the same conclusion from the same answer, and BR-005 is already
+ * enforced here. A renderer decides what a radio group looks like; it does not decide what
+ * counts as complete.
+ */
+export { isComplete, isUnsatisfiable, COMPLETION_POLICIES, DEFAULT_COMPLETION_POLICY } from './interactions/policy.js'
+export type { CompletionPolicy, AttemptSummary } from './interactions/policy.js'
+export { evaluate, isCorrectResponse } from './interactions/evaluate.js'
+export type { InteractionOutcome, EvaluatedResponse } from './interactions/evaluate.js'
+export { emptyInteractionState, submit } from './interactions/state.js'
+export type { InteractionState, InteractionResponse, SubmitResult } from './interactions/state.js'
