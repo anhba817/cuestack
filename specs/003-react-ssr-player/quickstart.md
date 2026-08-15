@@ -210,5 +210,19 @@ Assets are addressed by a host-supplied `resolveAsset`. Without one, an id that 
 locator is used as such and anything else renders a described, space-reserving fallback. A
 publishing pipeline that resolves ids properly is BR-018, in Wave 5.
 
-If you press play and reach the end of a slide, it advances. If you click a question, nothing
-happens, and it says so.
+If you click a question, nothing happens, and it says so.
+
+**Correction.** This document previously said "If you press play and reach the end of a slide, it
+advances." That was never true. `slideIndex` was a fixed prop, nothing in `@cuestack/react`
+imported `createAdvanceController`, and no test caught it because every player test rendered a
+single slide. Wave 3 builds slide-to-slide advancement; see
+`specs/004-player-completion/` research R-04.
+
+Two further things Wave 2 did not do, found while building it:
+
+- **No element appeared or disappeared during playback.** The frame loop wrote style
+  properties every frame, but only the transport's subscription re-rendered React — and the
+  transport emits when commanded, not as time passes. An element entering at 500 ms therefore
+  had no node for the writer to write to. Every player test drove `seek()`, which does emit, so
+  the path a learner takes was the one path never exercised.
+- The frame loop itself was never driven by a test, only by the example app.

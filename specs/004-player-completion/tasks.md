@@ -78,16 +78,16 @@ this**, and US2's media-end advance has nothing to advance without it.
 
 ### Tests
 
-- [ ] T006 Advance test in `packages/react/test/playback/advance.test.tsx` — a two-slide lesson on `after_duration` reaches slide 2 when slide 1's duration elapses, and stops at the last slide rather than running off the end
-- [ ] T007 [P] Single-fire test in `packages/react/test/playback/single-fire.test.tsx` — a slide advances exactly once however many times its condition reports satisfied, and a slide revisited after `goToSlide` may advance again (BR-007, keyed on `slideId#visitCount`)
-- [ ] T008 [P] Advance-mode test in `packages/react/test/playback/advance-modes.test.tsx` — `after_duration` and `on_click` each behave as authored through the player, with `after_media_ends` and `after_interaction` asserted as *not yet* advancing so US2 and US1 have a red line to move
+- [X] T006 Advance test in `packages/react/test/playback/advance.test.tsx` — a two-slide lesson on `after_duration` reaches slide 2 when slide 1's duration elapses, and stops at the last slide rather than running off the end
+- [X] T007 [P] Single-fire test in `packages/react/test/playback/single-fire.test.tsx` — a slide advances exactly once however many times its condition reports satisfied, and a slide revisited after `goToSlide` may advance again (BR-007, keyed on `slideId#visitCount`)
+- [X] T008 [P] Advance-mode test in `packages/react/test/playback/advance-modes.test.tsx` — `after_duration` and `on_click` each behave as authored through the player, with `after_media_ends` and `after_interaction` asserted as *not yet* advancing so US2 and US1 have a red line to move
 
 ### Implementation
 
-- [ ] T009 Move slide index from prop to state in `packages/react/src/player/LessonPlayerClient.tsx`, keeping `slideIndex` as the initial value so a host's deep link still works
-- [ ] T010 Wire `createAdvanceController` in `packages/react/src/player/LessonPlayerClient.tsx` — evaluate on each transport tick, call `transport.goToSlide` when it fires, and pass an empty `completedInteractions` set until US1 fills it
-- [ ] T011 Emit `slide_started`, `slide_completed`, `lesson_started`, and `lesson_completed` through the analytics port in `packages/react/src/player/LessonPlayerClient.tsx`, carrying no learner identifier
-- [ ] T012 Correct the false claim in `specs/003-react-ssr-player/quickstart.md` — "If you press play and reach the end of a slide, it advances" was untrue when written; state what Wave 2 actually did and point at this feature
+- [X] T009 Move slide index from prop to state in `packages/react/src/player/LessonPlayerClient.tsx`, keeping `slideIndex` as the initial value so a host's deep link still works
+- [X] T010 Wire `createAdvanceController` in `packages/react/src/player/LessonPlayerClient.tsx` — evaluate on each transport tick, call `transport.goToSlide` when it fires, and pass an empty `completedInteractions` set until US1 fills it
+- [X] T011 Emit `slide_started`, `slide_completed`, `lesson_started`, and `lesson_completed` through the analytics port in `packages/react/src/player/LessonPlayerClient.tsx`, carrying no learner identifier
+- [X] T012 Correct the false claim in `specs/003-react-ssr-player/quickstart.md` — "If you press play and reach the end of a slide, it advances" was untrue when written; state what Wave 2 actually did and point at this feature
 
 **Checkpoint**: A lesson plays from its first slide to its last. Story work can begin.
 

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import type { LessonEvent } from '@cuestack/core'
 import type { LessonManifest } from '@cuestack/schema'
 import {
+  createAdvanceController,
   createTransport,
   resolve,
   type Ports,
@@ -53,6 +55,25 @@ export interface LessonPlayerClientProps {
 
 const DEFAULT_RENDERERS = createRendererRegistry(builtinRenderers)
 
+/** One shared empty set rather than a new one per tick — the controller only reads it. */
+const EMPTY_COMPLETIONS: ReadonlySet<string> = new Set()
+
+/**
+ * A lesson event, carrying no learner identifier of any kind.
+ *
+ * NFR-PRV-002 keeps identifiers out of the manifest; FR-006 keeps them out of what the
+ * player emits. A host that wants attribution correlates on its own side, from its own
+ * session, and the framework never sees it.
+ */
+function event(lesson: LessonManifest, kind: LessonEvent['kind'], slideId?: string): LessonEvent {
+  return {
+    kind,
+    lessonId: lesson.lesson.id,
+    schemaVersion: lesson.schemaVersion,
+    ...(slideId === undefined ? {} : { slideId }),
+  }
+}
+
 /**
  * The playing player. **Client only** — it uses hooks, so it cannot be a Server
  * Component.
@@ -74,7 +95,19 @@ export function LessonPlayerClient({
   onReady,
   children,
 }: LessonPlayerClientProps): ReactNode {
-  const slide = lesson.slides[slideIndex]
+  /**
+   * Which slide is showing.
+   *
+   * State, seeded from the prop — the prop is where a host deep-links, not a permanent
+   * assignment. Through all of Wave 2 it was a fixed prop and nothing ever changed it, so
+   * the lesson could not move from one slide to the next; no test noticed, because every
+   * player test rendered one slide (research R-04).
+   *
+   * The transport remains authoritative: this follows `snapshot.slideIndex` rather than
+   * being set alongside it, so there is one answer to "which slide" and not two.
+   */
+  const [currentIndex, setCurrentIndex] = useState(slideIndex)
+  const slide = lesson.slides[currentIndex]
 
   /**
    * Which elements are visible. Held in state because that is structural — React must
@@ -85,6 +118,9 @@ export function LessonPlayerClient({
   const [visibleIds, setVisibleIds] = useState<string>('')
   const [transport, setTransport] = useState<Transport | null>(null)
   const writer = useMemo(() => createFrameWriter(), [])
+  /** Set by the mount effect; read by the frame loop. A ref because the loop must not be
+   *  rebuilt each render, and the step closes over the effect's transport and controller. */
+  const stepRef = useRef<((snapshot: TransportSnapshot) => void) | null>(null)
 
   const resolveAt = useCallback(
     (slideTimeMs: number): RenderState => resolve(slide!, slideTimeMs),
@@ -97,30 +133,106 @@ export function LessonPlayerClient({
   const latest = useRef<RenderState | null>(initial)
   const state = visibleIds === '' ? initial : latest.current
 
+  /** Reset the fallback when the slide changes, so a new slide starts at its own time zero
+   *  rather than showing the previous slide's last frame. */
+  const shownIndex = useRef(currentIndex)
+  if (shownIndex.current !== currentIndex) {
+    shownIndex.current = currentIndex
+    latest.current = initial
+  }
+
   useEffect(() => {
-    if (!slide) return
+    if (lesson.slides.length === 0) return
     // Constructed here, never during render: browserPorts() reads document and performance.
-    const t = createTransport(lesson, ports ?? browserPorts())
+    const activePorts = ports ?? browserPorts()
+    const t = createTransport(lesson, activePorts)
+    const advance = createAdvanceController(activePorts)
     setTransport(t)
     onReady?.(t)
 
-    const unsubscribe = t.subscribe((snapshot: TransportSnapshot) => {
-      const next = resolve(slide, snapshot.slideTimeMs)
+    activePorts.analytics.record(event(lesson, 'lesson_started'))
+    let announced = -1
+    let completed = false
+
+    /**
+     * One step of the lesson, whatever caused it.
+     *
+     * Called from the frame loop as time passes, and from the transport's subscription when
+     * something commands a change. Both routes have to do the same work — a seek that
+     * updated the screen differently from playing to the same moment is the parity
+     * divergence Principle V forbids — so there is one function and two callers.
+     */
+    const step = (snapshot: TransportSnapshot): void => {
+      const active = lesson.slides[snapshot.slideIndex]
+      if (!active) return
+
+      if (announced !== snapshot.slideIndex) {
+        announced = snapshot.slideIndex
+        activePorts.analytics.record(event(lesson, 'slide_started', active.id))
+      }
+
+      const next = resolve(active, snapshot.slideTimeMs)
       latest.current = next
+      setCurrentIndex(snapshot.slideIndex)
       // Re-render only when the *set* of visible elements changes.
       setVisibleIds(next.elements.map((e) => e.id).join(',') || 'none')
-      writer.write(next)
-    })
+
+      /**
+       * Ask, then apply. The controller decides *whether*; the transport does the moving.
+       * Wave 1 split them for exactly this — the decision is testable with no transport,
+       * and single-fire (BR-007) is the controller's business, keyed on slide instance so
+       * a replayed slide can advance again while a repeated condition cannot.
+       */
+      const decision = advance.evaluate(active, snapshot, {
+        learnerAdvanced: false,
+        // US1 replaces this with the learner's real completions (T032). Until then a
+        // required question cannot complete, which is why one holds the slide already.
+        completedInteractions: EMPTY_COMPLETIONS,
+      })
+      if (!decision) return
+
+      activePorts.analytics.record(event(lesson, 'slide_completed', active.id))
+      const following = snapshot.slideIndex + 1
+      if (following < lesson.slides.length) {
+        t.goToSlide(following)
+      } else if (!completed) {
+        completed = true
+        activePorts.analytics.record(event(lesson, 'lesson_completed', active.id))
+      }
+    }
+
+    stepRef.current = step
+    const unsubscribe = t.subscribe(step)
 
     if (autoPlay) t.play()
 
     return () => {
+      stepRef.current = null
       unsubscribe()
       writer.clear()
     }
-  }, [lesson, slide, ports, autoPlay, onReady, writer])
+  }, [lesson, ports, autoPlay, onReady, writer])
 
-  useFrameLoop(transport, writer, resolveAt)
+  /**
+   * The frame loop is the only thing that runs as time passes — the transport emits on
+   * command, not on a timer. Without this the lesson would never advance and no element
+   * would ever appear mid-slide, which is what Wave 2 shipped.
+   */
+  const onFrame = useCallback(
+    (_state: RenderState, slideTimeMs: number) => {
+      const t = transport
+      if (!t) return
+      stepRef.current?.({
+        state: t.state,
+        slideIndex: t.slideIndex,
+        slideTimeMs,
+        instanceId: t.instanceId,
+      })
+    },
+    [transport],
+  )
+
+  useFrameLoop(transport, writer, resolveAt, onFrame)
 
   if (!slide || !state) return null
 
