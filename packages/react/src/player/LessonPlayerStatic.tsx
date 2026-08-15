@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { LessonManifest } from '@cuestack/schema'
 import { resolve } from '@cuestack/core'
-import { builtinRenderers } from '../elements/builtin/index.js'
+import { staticRenderers } from '../elements/builtin/static.js'
 import { createRendererRegistry, type ElementRendererRegistry } from '../elements/registry.js'
 import type { AssetResolver } from '../elements/assets.js'
 import type { ThemeValues } from '../theme/tokens.js'
@@ -18,7 +18,11 @@ export interface LessonPlayerStaticProps {
   readonly resolveAsset?: AssetResolver
 }
 
-const DEFAULT_RENDERERS = createRendererRegistry(builtinRenderers)
+/**
+ * The static set, not the client one. Its question renderer is inert, because an interactive
+ * question needs state and a handler and a Server Component may have neither.
+ */
+const DEFAULT_RENDERERS = createRendererRegistry(staticRenderers)
 
 /**
  * The server-rendered first frame. **No hooks**, deliberately.

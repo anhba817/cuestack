@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { LessonEvent } from '@cuestack/core'
-import type { LessonManifest } from '@cuestack/schema'
+import type { Interaction, LessonManifest } from '@cuestack/schema'
 import {
   createAdvanceController,
   createTransport,
   resolve,
   type Ports,
   type RenderState,
+  type ResolvedElement,
   type Transport,
   type TransportSnapshot,
 } from '@cuestack/core'
 import { builtinRenderers } from '../elements/builtin/index.js'
 import { createRendererRegistry, type ElementRendererRegistry } from '../elements/registry.js'
 import type { AssetResolver } from '../elements/assets.js'
+import type { InteractionAccess } from '../elements/registry.js'
 import type { ThemeValues } from '../theme/tokens.js'
 import { createFrameWriter } from '../frame/FrameWriter.js'
 import { useFrameLoop } from '../frame/useFrameLoop.js'
 import { browserPorts } from './browserPorts.js'
+import { useInteractions } from './useInteractions.js'
 import { PlayerContext } from './usePlayer.js'
 import { SlideView } from './SlideView.js'
 import { Stage } from './Stage.js'
@@ -55,8 +58,23 @@ export interface LessonPlayerClientProps {
 
 const DEFAULT_RENDERERS = createRendererRegistry(builtinRenderers)
 
-/** One shared empty set rather than a new one per tick — the controller only reads it. */
-const EMPTY_COMPLETIONS: ReadonlySet<string> = new Set()
+/**
+ * How long feedback stays on screen before a completed interaction is allowed to advance
+ * the slide.
+ *
+ * MVP Acceptance Scenario B sequences it explicitly — "Feedback is displayed. The player
+ * advances according to the configured policy." Without a pause those are the same instant:
+ * a learner who answers *after* the duration has elapsed completes the question on one tick
+ * and the pending timer fires on the next, so the verdict is rendered and replaced inside a
+ * single frame. It is announced to a screen reader and invisible to everyone, including the
+ * screen reader user, since the live region is torn down before it is read.
+ *
+ * 1.5 seconds, matching the autosave delay the Constitution already fixes at "approximately
+ * 1.5 seconds" — so the codebase carries one human-scale interval rather than two arbitrary
+ * ones. It applies only to advancement caused by an interaction completing; a slide running
+ * out its own duration with nothing to read is unaffected.
+ */
+const FEEDBACK_DWELL_MS = 1500
 
 /**
  * A lesson event, carrying no learner identifier of any kind.
@@ -118,6 +136,23 @@ export function LessonPlayerClient({
   const [visibleIds, setVisibleIds] = useState<string>('')
   const [transport, setTransport] = useState<Transport | null>(null)
   const writer = useMemo(() => createFrameWriter(), [])
+
+  /**
+   * The learner's answers, and the analytics port they are reported through.
+   *
+   * The port is read from a ref rather than captured, because `useInteractions` is created
+   * during render and the ports are constructed inside the mount effect. Recording an event
+   * before the effect has run is impossible in practice — nothing can be answered before
+   * mount — but reaching for a port that does not exist yet would be a crash rather than a
+   * missing datapoint.
+   */
+  const analytics = useRef<((e: LessonEvent) => void) | null>(null)
+  const recordEvent = useCallback((e: LessonEvent) => analytics.current?.(e), [])
+  const interactions = useInteractions(lesson, recordEvent)
+
+  /** Read by the frame loop, which does not re-render and so cannot see React state. */
+  const completions = useRef<ReadonlySet<string>>(interactions.completedIds)
+  completions.current = interactions.completedIds
   /** Set by the mount effect; read by the frame loop. A ref because the loop must not be
    *  rebuilt each render, and the step closes over the effect's transport and controller. */
   const stepRef = useRef<((snapshot: TransportSnapshot) => void) | null>(null)
@@ -150,9 +185,13 @@ export function LessonPlayerClient({
     setTransport(t)
     onReady?.(t)
 
+    analytics.current = (e: LessonEvent) => activePorts.analytics.record(e)
     activePorts.analytics.record(event(lesson, 'lesson_started'))
     let announced = -1
     let completed = false
+    /** Lesson time at which the completion set last grew, or null if it has not. */
+    let completedAtMs: number | null = null
+    let seenCompletions = 0
 
     /**
      * One step of the lesson, whatever caused it.
@@ -183,11 +222,31 @@ export function LessonPlayerClient({
        * and single-fire (BR-007) is the controller's business, keyed on slide instance so
        * a replayed slide can advance again while a repeated condition cannot.
        */
+      // Note when an interaction completes, so feedback can be read before the slide moves.
+      if (completions.current.size !== seenCompletions) {
+        seenCompletions = completions.current.size
+        completedAtMs = snapshot.slideTimeMs
+      }
+
+      /**
+       * Hold briefly so the verdict is readable, **before asking** rather than after.
+       *
+       * `evaluate` records that a slide instance has fired, so a decision taken and then
+       * discarded spends the single-fire budget (BR-007) and the slide can never advance
+       * again. A first attempt checked the dwell after evaluating and stalled the lesson
+       * permanently — the guard doing exactly its job, on a decision that should never have
+       * been requested.
+       *
+       * Applies only when an answer is what unblocked the slide. A duration running out on
+       * its own has nothing to read.
+       */
+      if (completedAtMs !== null && snapshot.slideTimeMs - completedAtMs < FEEDBACK_DWELL_MS) return
+
       const decision = advance.evaluate(active, snapshot, {
         learnerAdvanced: false,
-        // US1 replaces this with the learner's real completions (T032). Until then a
-        // required question cannot complete, which is why one holds the slide already.
-        completedInteractions: EMPTY_COMPLETIONS,
+        // The learner's actual completions, under each question's authored policy. Wave 1
+        // built this gate and passed it an empty set for two waves; this is what fills it.
+        completedInteractions: completions.current,
       })
       if (!decision) return
 
@@ -208,6 +267,7 @@ export function LessonPlayerClient({
 
     return () => {
       stepRef.current = null
+      analytics.current = null
       unsubscribe()
       writer.clear()
     }
@@ -236,12 +296,32 @@ export function LessonPlayerClient({
 
   if (!slide || !state) return null
 
+  /**
+   * Interaction access, for question elements only.
+   *
+   * Built per render rather than memoised per element: the outcome changes whenever an
+   * answer lands, and a memo keyed on the element would hand a renderer a stale one. The
+   * cost is an object per question per render, and React only re-renders when the visible
+   * set changes — not per frame.
+   */
+  const interactionFor = (resolved: ResolvedElement): InteractionAccess | undefined => {
+    if (resolved.type !== 'question') return undefined
+    const definition = resolved.payload as Interaction
+    return {
+      outcome: interactions.state.outcomeOf(resolved.id, definition),
+      responses: interactions.state.responses.get(resolved.id) ?? [],
+      submit: (selected) =>
+        interactions.submit(resolved.id, definition, selected, transport?.slideTimeMs ?? 0),
+    }
+  }
+
   const content = (
     <Stage lesson={lesson} {...(theme ? { theme } : {})}>
       <SlideView
         state={state}
         renderers={elements}
         writer={writer}
+        interactionFor={interactionFor}
         {...(resolveAsset ? { resolveAsset } : {})}
       />
     </Stage>

@@ -212,11 +212,50 @@
   gap: calc(8 / var(--cs-canvas-w) * 100cqw);
 }
 
-/* The inert state, said visually as well as in the accessibility tree — the two must not
-   disagree about whether this can be answered. */
-.cs-question-note {
+/*
+ * Answer state, said visually as well as in the accessibility tree — the two must not
+ * disagree about whether this question is still open.
+ *
+ * Every value from a theme property with a readable fallback. A learner who cannot see the
+ * colour gets the same information from the live region's text, which is why the verdict is
+ * words rather than a green tick.
+ */
+.cs-question-status {
   margin: 0;
   color: var(--cs-theme-text-muted, #666666);
+  /* Reserve the line so feedback arriving does not shift the options beneath it. */
+  min-height: 1.4em;
+}
+
+.cs-question-option:has(input:checked) {
+  color: var(--cs-theme-accent-primary, #1a4fd6);
+}
+
+/* Closed: still reachable, visibly inert. `aria-disabled` and not `disabled`, so the
+   styling has to key on the attribute the accessibility tree actually carries. */
+.cs-question-option input[aria-disabled='true'],
+.cs-question-submit[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.cs-question-submit {
+  justify-self: start;
+  padding: 0 calc(16 / var(--cs-canvas-w) * 100cqw);
+  min-height: max(44px, calc(56 / var(--cs-canvas-h) * 100cqh));
+  border: none;
+  border-radius: calc(var(--cs-theme-radius, 8) / var(--cs-canvas-w) * 100cqw);
+  background: var(--cs-theme-accent-primary, #1a4fd6);
+  color: var(--cs-theme-text-on-accent, #ffffff);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cs-question-submit:focus-visible,
+.cs-question-option input:focus-visible {
+  outline: max(2px, calc(3 / var(--cs-canvas-w) * 100cqw)) solid
+    var(--cs-theme-focus-ring, #111111);
+  outline-offset: 2px;
 }
 
 .cs-asset-fallback {

@@ -80,9 +80,21 @@ describe('nothing on the server path can fail as a Server Component', () => {
     expect(files.length).toBeGreaterThan(12)
     const names = files.map((f) => f.replace(`${SRC}/`, ''))
     expect(names).toContain('player/ElementFrame.tsx')
-    expect(names).toContain('elements/builtin/QuestionElement.tsx')
+    expect(names).toContain('elements/builtin/QuestionElementStatic.tsx')
     // And must not reach the client player, which is full of hooks by design.
     expect(names).not.toContain('player/LessonPlayerClient.tsx')
+    /**
+     * Nor the *interactive* question renderer. Wave 3 made questions answerable, which needs
+     * a pending selection and a submit handler — state and an event, neither of which a
+     * React Server Component may have. So there are two implementations behind one registry
+     * slot, and the server path must reach only the inert one.
+     *
+     * Asserted on the module graph rather than on the hook scan alone, because the first
+     * attempt at the split left `server.ts` importing the other six renderers from the
+     * barrel that also exports the interactive question — the hooks came back with them.
+     */
+    expect(names).not.toContain('elements/builtin/QuestionElement.tsx')
+    expect(names).not.toContain('elements/builtin/index.ts')
   })
 
   it.each(HOOKS)('never calls %s', (hook) => {

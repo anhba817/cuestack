@@ -24,6 +24,7 @@ export {
   buttonRenderer,
   questionRenderer,
 } from './elements/builtin/index.js'
+export { staticRenderers, staticQuestionRenderer } from './elements/builtin/static.js'
 export { Placeholder } from './elements/Placeholder.js'
 export { AssetFallback } from './elements/AssetFallback.js'
 export type { AssetFallbackProps } from './elements/AssetFallback.js'

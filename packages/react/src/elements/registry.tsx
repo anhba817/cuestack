@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { ResolvedElement } from '@cuestack/core'
+import type { InteractionOutcome, InteractionResponse, ResolvedElement } from '@cuestack/core'
 import type { AssetResolver } from './assets.js'
 
 export interface ElementRendererProps {
@@ -14,6 +14,25 @@ export interface ElementRendererProps {
    * slide, the transport, or the time — it is a capability, not access. See `assets.ts`.
    */
   readonly resolveAsset: AssetResolver
+  /**
+   * The learner's answers to *this* element, and a way to add one.
+   *
+   * Optional, because six of the seven built-in renderers have no use for it and a required
+   * field they all ignore is a field that invites being used for something else. Absent means
+   * "not interactive", not "interactions unavailable".
+   *
+   * Note what is still not here: no slide, no lesson, no transport, no time. `submit` takes
+   * only the answer — the kernel stamps the moment — so a renderer cannot report a time other
+   * than the one that happened.
+   */
+  readonly interaction?: InteractionAccess
+}
+
+export interface InteractionAccess {
+  /** Derived from the responses under the authored policy. Never stored (contracts/). */
+  readonly outcome: InteractionOutcome
+  readonly responses: readonly InteractionResponse[]
+  readonly submit: (selected: string | readonly string[]) => void
 }
 
 /**

@@ -110,13 +110,13 @@ Needs no media, no transitions, and no reduced motion.
 - [X] T014 [P] [US1] Outcome tests in `packages/core/test/interactions/evaluate.test.ts` — correctness against `correctResponse`, attempts used and remaining, `exhausted`, and `unsatisfiable` for a question that can never complete
 - [X] T015 [P] [US1] State tests in `packages/core/test/interactions/state.test.ts` — `submit` returns a new state rather than mutating, responses key by element so a revisit finds the answer intact and consumes no attempt, and attempts order
 - [X] T016 [P] [US1] Extend `packages/core/test/rules/BR-005.test.ts` with the real-state cases: a required question with an incomplete outcome holds a duration-advanced slide, an optional one does not, and two required questions on one slide need both
-- [ ] T017 [P] [US1] Question-answering tests in `packages/react/test/elements/question-answer.test.tsx` — selecting and submitting, feedback shown, remaining attempts stated, controls closing after the final answer
-- [ ] T018 [P] [US1] Keyboard and announcement tests in `packages/react/test/elements/question-a11y.test.tsx` — answerable by keyboard alone, outcome and remaining attempts announced through a live region, closed controls `aria-disabled` rather than `disabled`
-- [ ] T019 [P] [US1] Answer-secrecy test in `packages/react/test/elements/question-secrecy.test.tsx` — `correctResponse` appears nowhere in the markup before the response is final (FR-009)
-- [ ] T020 [P] [US1] Event test in `packages/react/test/playback/interaction-events.test.tsx` — an `interaction_submitted` event carries kind, attempt, and outcome, and **no** learner identifier (FR-006, SC-012)
-- [ ] T021 [P] [US1] Answer-survives-seek test in `packages/react/test/playback/answer-persistence.test.tsx` — seek backwards past the question and forwards again; the answer is still recorded (FR-008)
-- [ ] T022 [P] [US1] Disappearing-question test in `packages/react/test/playback/question-vanishes.test.tsx` — a required question whose `endMs` precedes the learner's answer must not deadlock the slide (spec Edge Cases). The format permits authoring it and BR-011 makes it an authoring concern, so the player's obligation is to report rather than to wait forever
-- [ ] T023 [P] [US1] **MVP Acceptance Scenario B** end-to-end in `packages/react/test/acceptance/scenario-b.test.tsx`, written from `docs/Cuestack_Framework.md` §34 B verbatim
+- [X] T017 [P] [US1] Question-answering tests in `packages/react/test/elements/question-answer.test.tsx` — selecting and submitting, feedback shown, remaining attempts stated, controls closing after the final answer
+- [X] T018 [P] [US1] Keyboard and announcement tests in `packages/react/test/elements/question-a11y.test.tsx` — answerable by keyboard alone, outcome and remaining attempts announced through a live region, closed controls `aria-disabled` rather than `disabled`
+- [X] T019 [P] [US1] Answer-secrecy test in `packages/react/test/elements/question-secrecy.test.tsx` — `correctResponse` appears nowhere in the markup before the response is final (FR-009)
+- [X] T020 [P] [US1] Event test in `packages/react/test/playback/interaction-events.test.tsx` — an `interaction_submitted` event carries kind, attempt, and outcome, and **no** learner identifier (FR-006, SC-012)
+- [X] T021 [P] [US1] Answer-survives-seek test in `packages/react/test/playback/answer-persistence.test.tsx` — seek backwards past the question and forwards again; the answer is still recorded (FR-008)
+- [X] T022 [P] [US1] Disappearing-question test in `packages/react/test/playback/question-vanishes.test.tsx` — a required question whose `endMs` precedes the learner's answer must not deadlock the slide (spec Edge Cases). The format permits authoring it and BR-011 makes it an authoring concern, so the player's obligation is to report rather than to wait forever
+- [X] T023 [P] [US1] **MVP Acceptance Scenario B** end-to-end in `packages/react/test/acceptance/scenario-b.test.tsx`, written from `docs/Cuestack_Framework.md` §34 B verbatim
 
 ### Implementation for User Story 1
 
@@ -124,13 +124,13 @@ Needs no media, no transitions, and no reduced motion.
 - [X] T025 [US1] Implement `evaluate(definition, responses) -> InteractionOutcome` in `packages/core/src/interactions/evaluate.ts` (depends on T024)
 - [X] T026 [US1] Implement `InteractionState` and `submit` in `packages/core/src/interactions/state.ts`, returning a new state and the `LessonEvent` rather than recording it — the kernel does not own the analytics adapter (depends on T025)
 - [X] T027 [US1] Export the interactions surface from `packages/core/src/index.ts`, and add a test asserting each exported name resolves — feature 002 shipped a public surface missing two of four capabilities because nothing checked
-- [ ] T028 [US1] Add the optional `interaction` member to `ElementRendererProps` in `packages/react/src/elements/registry.tsx`, per contracts/interaction-contract.md
-- [ ] T029 [US1] Implement `packages/react/src/player/useInteractions.ts` holding session responses and deriving outcomes
-- [ ] T030 [US1] Thread `interaction` through `packages/react/src/player/SlideView.tsx` to interactive renderers only
-- [ ] T031 [US1] Make `packages/react/src/elements/builtin/QuestionElement.tsx` answerable — submit, feedback, remaining attempts, live-region announcement, and `aria-disabled` when closed
-- [ ] T032 [US1] Supply `completedInteractions` from `useInteractions` to the advance controller in `packages/react/src/player/LessonPlayerClient.tsx`, replacing T010's empty set
-- [ ] T033 [US1] Emit `interaction_submitted` through the analytics port in `packages/react/src/player/LessonPlayerClient.tsx`
-- [ ] T034 [US1] Add question styles to `packages/react/src/styles/stage.css` — feedback, selected state, and closed state, every value from a theme property with a readable fallback
+- [X] T028 [US1] Add the optional `interaction` member to `ElementRendererProps` in `packages/react/src/elements/registry.tsx`, per contracts/interaction-contract.md
+- [X] T029 [US1] Implement `packages/react/src/player/useInteractions.ts` holding session responses and deriving outcomes
+- [X] T030 [US1] Thread `interaction` through `packages/react/src/player/SlideView.tsx` to interactive renderers only
+- [X] T031 [US1] Make `packages/react/src/elements/builtin/QuestionElement.tsx` answerable — submit, feedback, remaining attempts, live-region announcement, and `aria-disabled` when closed
+- [X] T032 [US1] Supply `completedInteractions` from `useInteractions` to the advance controller in `packages/react/src/player/LessonPlayerClient.tsx`, replacing T010's empty set
+- [X] T033 [US1] Emit `interaction_submitted` through the analytics port in `packages/react/src/player/LessonPlayerClient.tsx`
+- [X] T034 [US1] Add question styles to `packages/react/src/styles/stage.css` — feedback, selected state, and closed state, every value from a theme property with a readable fallback
 
 **Checkpoint**: US1 complete. Scenario B passes. A lesson with questions is answerable and gates
 correctly.
