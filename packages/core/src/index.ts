@@ -85,3 +85,21 @@ export { evaluate, isCorrectResponse } from './interactions/evaluate.js'
 export type { InteractionOutcome, EvaluatedResponse } from './interactions/evaluate.js'
 export { emptyInteractionState, submit } from './interactions/state.js'
 export type { InteractionState, InteractionResponse, SubmitResult } from './interactions/state.js'
+
+/**
+ * Media — the bidirectional port, and the one rule for reconciling two clocks (Wave 3).
+ *
+ * `reconcile` is exported because it is the *stated* rule (FR-037), and a rule nobody can
+ * read is a rule nobody can check. `one-rule.test.ts` enforces that it is applied in exactly
+ * one place; exporting it does not weaken that, it makes the claim inspectable.
+ */
+export { createMediaLink } from './media/link.js'
+export type { MediaLinkController } from './media/link.js'
+export {
+  reconcile,
+  commanded,
+  emptyLink,
+  MEDIA_SYNC_TOLERANCE_MS,
+  MEDIA_REPORT_INTERVAL_MS,
+} from './media/reconcile.js'
+export type { MediaLink, Reconciliation } from './media/reconcile.js'

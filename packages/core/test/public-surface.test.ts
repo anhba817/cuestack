@@ -33,6 +33,13 @@ const EXPECTED_VALUES = [
   'isCorrectResponse',
   'emptyInteractionState',
   'submit',
+  // Media (Wave 3)
+  'createMediaLink',
+  'reconcile',
+  'commanded',
+  'emptyLink',
+  'MEDIA_SYNC_TOLERANCE_MS',
+  'MEDIA_REPORT_INTERVAL_MS',
 ]
 
 describe('the public surface of @cuestack/core', () => {
@@ -46,5 +53,12 @@ describe('the public surface of @cuestack/core', () => {
     for (const name of ['isComplete', 'evaluate', 'emptyInteractionState', 'submit']) {
       expect(typeof (core as Record<string, unknown>)[name]).toBe('function')
     }
+  })
+
+  it('exports every media capability, including the rule itself', () => {
+    for (const name of ['createMediaLink', 'reconcile', 'commanded', 'emptyLink']) {
+      expect(typeof (core as Record<string, unknown>)[name]).toBe('function')
+    }
+    expect(typeof core.MEDIA_SYNC_TOLERANCE_MS).toBe('number')
   })
 })

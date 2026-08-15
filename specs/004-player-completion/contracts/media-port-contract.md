@@ -49,25 +49,38 @@ on lesson seek to T:
 
 on media report of position P:
     if link.commandedMs != null and |P - link.commandedMs| <= TOLERANCE:
-        link.following = true          # the seek landed; this is an echo
-    else if link.following:
-        transport.seek(elementStartMs + P)   # the learner moved the media directly
+        link.following = true                 # echo: the seek landed
+    else if |P - link.reportedMs| <= TOLERANCE:
+        pass                                  # drift: playing, or still buffering
+    else:
+        transport.seek(elementStartMs + P)    # jump: the learner moved it
     link.reportedMs = P
 ```
 
+**Corrected during implementation.** The middle branch originally read `else if link.following`,
+and that is wrong in a way only the tests found. It reintroduces exactly the stall that got the
+`ignoreNextReport` flag rejected: a seek the platform silently refuses leaves `following` false
+forever, so the learner's next genuine scrub falls into the guard and is swallowed — the same
+failure, wearing a different name.
+
+Its opposite, "always follow when outside tolerance", is worse and in a commoner case. A media
+element still buffering toward a commanded seek reports the position it has *not yet left*, and
+the transport would chase it backwards, undoing the seek the learner just made.
+
+Comparing against the **last reported position** separates the two without a clock and without
+state that can be left set. A playing element creeps by roughly one report interval per report and
+never trips the threshold; a learner dragging a scrub bar always does. A refused seek produces no
+report at all, so there is nothing latched waiting for one.
+
 **Three properties this has and a flag would not.**
 
-1. It cannot get stuck. A seek the platform silently refuses leaves `following` false, and the
-   next genuine report is compared against a number rather than swallowed by a latch nobody
-   cleared.
-2. It has one branch for "the learner scrubbed the video" and one for "our own seek came back",
-   distinguished by arithmetic rather than by bookkeeping.
-3. It is a pure function of two numbers and a tolerance, so it is testable without a media element,
-   a clock, or a DOM.
-
-An `ignoreNextReport` flag was the obvious alternative and is rejected for property 1: it is state
-that can be left set, and the failure mode is a learner whose scrub is ignored with no way to tell
-why.
+1. It cannot get stuck. Every branch is a comparison of two numbers, and a stale comparison is a
+   comparison against an old number — which the next report resolves.
+2. It distinguishes "our own seek came back", "the media is drifting", and "the learner scrubbed"
+   by arithmetic rather than by bookkeeping.
+3. It is a pure function of three numbers, so it is testable without a media element, a clock, or
+   a DOM — which is what let the original rule's defect be found before any of it ran in a
+   browser.
 
 ## Tolerance
 

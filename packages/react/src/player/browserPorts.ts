@@ -23,9 +23,21 @@ export function browserPorts(): Ports {
     // cannot move time backwards. The kernel's own delta clamp handles the rest.
     time: () => performance.now(),
 
-    // Read-only in this wave. Driving media position from lesson time is Wave 3, which is
-    // when this becomes bidirectional.
-    media: { query: () => null, subscribe: () => () => undefined },
+    /**
+     * A placeholder port with no elements attached.
+     *
+     * The real one is `media/domMediaPort.ts`, built per player because it needs the actual
+     * `HTMLMediaElement` nodes a slide rendered. This is what a lesson with no media gets,
+     * and the commands are no-ops for the same reason `query` returns null: there is nothing
+     * to command.
+     */
+    media: {
+      query: () => null,
+      subscribe: () => () => undefined,
+      play: () => undefined,
+      pause: () => undefined,
+      seek: () => undefined,
+    },
 
     visibility: {
       isHidden: () => document.visibilityState === 'hidden',

@@ -27,7 +27,15 @@ export function testPorts(): TestPorts {
   return {
     clock,
     time: clock,
-    media: { query: () => null, subscribe: () => () => undefined },
+    // No media. A test that needs commandable media uses `harness/media.ts`, whose fake
+    // records what the lesson asked for as well as what it did.
+    media: {
+      query: () => null,
+      subscribe: () => () => undefined,
+      play: () => undefined,
+      pause: () => undefined,
+      seek: () => undefined,
+    },
     visibility: {
       isHidden: () => hidden,
       subscribe(listener) {

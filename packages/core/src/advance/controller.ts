@@ -50,9 +50,17 @@ export interface AdvanceController {
   reset(instanceId: string): void
 }
 
+/**
+ * A port for a lesson with no media. The commands are no-ops, which is exactly how an
+ * adapter that only observes media behaves — the additions to `MediaPort` break no existing
+ * implementation, and this is the smallest demonstration of that.
+ */
 const NULL_MEDIA: MediaPort = {
   query: () => null,
   subscribe: () => () => undefined,
+  play: () => undefined,
+  pause: () => undefined,
+  seek: () => undefined,
 }
 
 export function createAdvanceController(

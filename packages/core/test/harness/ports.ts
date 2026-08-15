@@ -40,6 +40,12 @@ export function createTestPorts(): TestPorts {
         mediaListeners.add(listener)
         return () => mediaListeners.delete(listener)
       },
+      // Wave 3's commands, as no-ops. This harness exists for advance and transport tests
+      // that have no media to command; anything exercising the commands uses `fakeMedia`,
+      // which records them.
+      play: () => undefined,
+      pause: () => undefined,
+      seek: () => undefined,
     },
     visibility,
     ...memoryAdapters(),
