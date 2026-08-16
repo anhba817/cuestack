@@ -33,11 +33,38 @@ export interface ElementContribution {
 }
 
 export interface InspectorField {
+  /** Dotted path from the element root, e.g. `payload.text`. */
   readonly key: string
   readonly label: string
-  readonly kind: 'text' | 'number' | 'boolean' | 'select' | 'asset' | 'colour'
+  readonly kind: InspectorFieldKind
+  /** For `select`. */
   readonly options?: readonly string[]
+  /**
+   * For `list`: the fields of one item.
+   *
+   * Added in feature 005. The declared kinds were all scalar, and a question's payload
+   * carries a repeating group — options, each with an id and a label, one of them correct.
+   * No scalar kind describes that, and `question` is one of the seven MVP types, so the
+   * choice was to extend the contract or to special-case the seventh type inside the
+   * inspector. FR-019 settles it: "Where it cannot, the contract is extended rather than the
+   * inspector special-casing the type." The alternative is the switch statement
+   * Constitution I calls a defect.
+   *
+   * Additive to authoring metadata — `InspectorSpec` is serialized into no manifest and read
+   * on no playback path — so it carries no `schemaVersion` implication.
+   */
+  readonly of?: readonly InspectorField[]
+  readonly minItems?: number
 }
+
+export type InspectorFieldKind =
+  | 'text'
+  | 'number'
+  | 'boolean'
+  | 'select'
+  | 'asset'
+  | 'colour'
+  | 'list'
 
 export interface InspectorSpec {
   readonly fields: readonly InspectorField[]

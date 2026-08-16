@@ -33,6 +33,7 @@ export {
   type ElementContribution,
   type InspectorSpec,
   type InspectorField,
+  type InspectorFieldKind,
   type PluginIssue,
   type ThemeValues,
 } from './elements/contract.js'

@@ -58,12 +58,27 @@ export interface LessonEvent {
     | 'lesson_paused'
     | 'lesson_resumed'
     | 'lesson_completed'
+    /**
+     * Authoring, added in feature 005.
+     *
+     * FR-AN-001 has always declared that the authoring application emits events for element
+     * insertion, but this union modelled only playback — so FR-048 had a requirement and
+     * nothing to emit. Added here rather than as a parallel event type in the editor because
+     * FR-AN-005 specifies *one* replaceable analytics adapter: a host should implement
+     * `record` once, not once per surface.
+     *
+     * Additive to a type no manifest serializes and no playback path branches on, so it
+     * carries no `schemaVersion` implication.
+     */
+    | 'element_inserted'
   readonly lessonId: string
   readonly schemaVersion: string
   readonly slideId?: string
   readonly interactionId?: string
   readonly attempt?: number
   readonly outcome?: 'correct' | 'incorrect' | 'skipped'
+  /** Which type was inserted. A format value — never anything about who inserted it. */
+  readonly elementType?: string
 }
 
 /** Fire and forget: returns void, never throws, never awaited. Analytics must not

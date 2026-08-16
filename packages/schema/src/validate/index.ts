@@ -7,6 +7,19 @@ export type { ValidationIssue, ValidationResult, IssueCode, IssueLocation } from
 export { ISSUE_CODES } from './issues.js'
 export { describeFormat, type FormatField } from './introspect.js'
 export { CURRENT_SCHEMA_VERSION } from './lesson.js'
+/**
+ * FR-CAN-001's element set, as a value rather than only a type.
+ *
+ * Added in feature 005 so the editor can assert that every type the format supports has an
+ * editor registration — a type in the schema with none is a type the Add menu silently
+ * omits, which a teacher discovers rather than a test. The `ElementType` union has been
+ * exported from the root since Wave 0; this is the same list at runtime.
+ *
+ * Exported from `/validate` and deliberately not from the root: the root entry compiles to
+ * zero runtime bytes and a runtime export there would be a breaking change to the package
+ * contract.
+ */
+export { ELEMENT_TYPES } from './element.js'
 
 /**
  * Validate a lesson manifest.
