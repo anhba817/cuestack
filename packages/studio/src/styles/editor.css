@@ -1,0 +1,152 @@
+/*
+ * The editor's overlay chrome.
+ *
+ * Two rules govern everything here, and they differ from the player's stylesheet on
+ * purpose.
+ *
+ * **Chrome is sized in absolute units, stage content in container units.** The player's
+ * stylesheet already draws this line and says why: playback controls are "chrome, not
+ * stage content", sized absolutely because a control that shrank with the stage would
+ * become unusable exactly where a large target matters most. Handles, guides, and menus
+ * are the same kind of thing. `.cs-placeholder` is the existing precedent for the other
+ * half — its dashed border is "an authoring affordance rather than lesson content", and is
+ * deliberately not scaled.
+ *
+ * **Every colour resolves from a theme token with a readable fallback.** Constitution III.
+ * Note that the theme gate cannot check this file — it delegates to ESLint, which does not
+ * parse CSS — so the convention here is held by review, project-wide. See plan.md's Known
+ * gate limitation.
+ */
+
+.cs-editor {
+  position: relative;
+  display: block;
+}
+
+/*
+ * The overlay sits above the render layer and never inside it (FR-043).
+ *
+ * `pointer-events: none` on the layer with `auto` on its children is what lets the canvas
+ * beneath stay hit-testable: an overlay that swallowed every pointer event would make
+ * selecting an element impossible, which is the affordance it exists to provide.
+ */
+.cs-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cs-overlay > * {
+  pointer-events: auto;
+}
+
+/*
+ * Focus is the only affordance a keyboard user has, so it is never removed (FR-038).
+ *
+ * Absolute units, like every other piece of chrome here: a ring that shrank with the stage
+ * would be least visible exactly where the stage is smallest.
+ */
+.cs-overlay :focus-visible {
+  outline: 3px solid var(--cs-theme-focus-ring, #111111);
+  outline-offset: 2px;
+}
+
+/*
+ * The affordances themselves. Positioned from the same custom properties `stage.css` uses for
+ * elements, so an indicator and the element it indicates cannot drift apart — there is one
+ * coordinate system, not two.
+ */
+.cs-hit,
+.cs-selection,
+.cs-ghost,
+.cs-text-surface {
+  position: absolute;
+  left: calc(var(--cs-x) / var(--cs-canvas-w) * 100cqw);
+  top: calc(var(--cs-y) / var(--cs-canvas-h) * 100cqh);
+  width: calc(var(--cs-w) / var(--cs-canvas-w) * 100cqw);
+  height: calc(var(--cs-h) / var(--cs-canvas-h) * 100cqh);
+}
+
+/* Invisible but hit-testable: selecting must not change how the element looks (FR-001). */
+.cs-hit {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: move;
+}
+
+.cs-selection {
+  pointer-events: none;
+  outline: 2px solid var(--cs-theme-accent-primary, #1a4fd6);
+}
+
+/* Dashed, labelled, and stating its reason in text — never by appearance alone
+   (NFR-ACC-005). */
+.cs-ghost {
+  border: 1px dashed var(--cs-theme-border-muted, #999999);
+  background: transparent;
+  color: var(--cs-theme-text-muted, #666666);
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.cs-off-canvas {
+  color: var(--cs-theme-text-muted, #666666);
+  font-family: var(--cs-theme-font-body, system-ui, sans-serif);
+  font-size: 12px;
+}
+
+/* Handles are chrome: fixed size, so they stay grabbable at any stage size. */
+.cs-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 1px solid var(--cs-theme-surface-default, #ffffff);
+  background: var(--cs-theme-accent-primary, #1a4fd6);
+  pointer-events: auto;
+}
+
+.cs-guide {
+  position: absolute;
+  background: var(--cs-theme-accent-primary, #1a4fd6);
+  pointer-events: none;
+}
+
+.cs-guide-x {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  left: calc(var(--cs-guide-x) / var(--cs-canvas-w) * 100cqw);
+}
+
+.cs-guide-y {
+  left: 0;
+  right: 0;
+  height: 1px;
+  top: calc(var(--cs-guide-y) / var(--cs-canvas-h) * 100cqh);
+}
+
+.cs-overlay-background {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/*
+ * The announcer is for assistive technology only.
+ *
+ * Clipped rather than `display: none` or `visibility: hidden`, both of which remove it from
+ * the accessibility tree — which would silence the very thing it exists to say.
+ */
+.cs-announcer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

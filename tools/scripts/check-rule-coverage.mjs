@@ -57,7 +57,7 @@ function rulesIn(pkg) {
 }
 
 const found = new Map()
-for (const pkg of ['schema', 'core', 'react', 'element']) {
+for (const pkg of ['schema', 'core', 'react', 'element', 'studio']) {
   for (const rule of rulesIn(pkg)) {
     // A rule may legitimately be covered in more than one package — BR-001 is a
     // storage rule in schema and would be a timing rule if core enforced it too.

@@ -22,22 +22,43 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
-const target = join(root, 'packages/react/src/elements')
 
-const hasWork = existsSync(target) && readdirSync(target, { recursive: true }).some((f) => String(f).endsWith('.tsx'))
+/**
+ * Feature 005: the editor's own components join the gate.
+ *
+ * **What this gate cannot see, stated so nobody assumes otherwise.** It delegates to
+ * ESLint, and ESLint does not parse CSS. Colour literals in stylesheets are therefore
+ * enforced by convention across the whole project — the player's stylesheets as much as
+ * the editor's. Measured at the time of writing: all 46 colour literals under
+ * `packages/react/src/styles/` already sit inside a `var(--cs-theme-*, …)` fallback, so
+ * the convention holds unenforced and the gap is currently theoretical. Closing it is
+ * recorded as a known limitation in specs/005-studio-canvas-inspector/plan.md rather than
+ * done here, because it would retrofit a check onto the player inside a feature about the
+ * editor.
+ */
+const targets = ['packages/react/src/elements', 'packages/studio/src']
 
-if (!hasWork) {
-  console.log('gate:theme-values — no element renderers yet; nothing to check.')
+const present = targets.filter(
+  (t) =>
+    existsSync(join(root, t)) &&
+    readdirSync(join(root, t), { recursive: true }).some((f) => /\.tsx?$/.test(String(f))),
+)
+
+if (present.length === 0) {
+  console.log('gate:theme-values — no element renderers or editor components yet; nothing to check.')
   process.exit(0)
 }
 
 try {
-  execFileSync('pnpm', ['exec', 'eslint', '--no-inline-config', 'packages/react/src/elements'], {
+  execFileSync('pnpm', ['exec', 'eslint', '--no-inline-config', ...present], {
     cwd: root,
     stdio: 'pipe',
     encoding: 'utf8',
   })
-  console.log('gate:theme-values — ok, no colour/typography/spacing literals in element renderers.')
+  console.log(
+    `gate:theme-values — ok, no colour/typography/spacing literals in ${present.join(', ')}. ` +
+      'Note: TS/TSX only — CSS files are not parsed by this gate (see the header).',
+  )
 } catch (error) {
   console.error('gate:theme-values — FAILED. A renderer contains a style literal.')
   console.error('  All visual values must resolve from var(--cs-theme-*) with a readable fallback.')

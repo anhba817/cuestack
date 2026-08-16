@@ -32,7 +32,7 @@ module.exports = {
         'no-core-in-schema: dependencies flow schema <- core <- adapters, one direction only. ' +
         '@cuestack/schema is the format contract and must not depend on anything that consumes it.',
       from: { path: '^packages/schema/src' },
-      to: { path: '^(packages/(core|react|element)/|@cuestack/(core|react|element)($|/))' },
+      to: { path: '^(packages/(core|react|element|studio)/|@cuestack/(core|react|element|studio)($|/))' },
     },
     {
       name: 'no-adapters-in-core',
@@ -41,8 +41,31 @@ module.exports = {
         'no-adapters-in-core: @cuestack/core must not import an adapter. The arrow points the ' +
         'other way.',
       from: { path: '^packages/core/src' },
-      to: { path: '^(packages/(react|element)/|@cuestack/(react|element)($|/))' },
+      to: { path: '^(packages/(react|element|studio)/|@cuestack/(react|element|studio)($|/))' },
     },
+    {
+      name: 'no-studio-in-player',
+      severity: 'error',
+      comment:
+        'no-studio-in-player: the editor must not be reachable from anything a learner loads. ' +
+        '@cuestack/studio depends on @cuestack/react and is never depended on by it — the same ' +
+        'one-way arrow the rest of the graph obeys, for a sharper reason: the player loads on ' +
+        'every lesson view, and editor code leaking into that payload is a tax every learner ' +
+        'pays for a canvas they will never see. check-studio-isolation.mjs proves the stronger ' +
+        'consumer-facing claim by rendering a lesson with studio absent from disk. (FR-049)',
+      from: { path: '^packages/(react|core|schema)/src' },
+      to: { path: '^(packages/studio/|@cuestack/studio($|/))' },
+    },
+    /*
+     * `dom-measurement-confined` is NOT here, deliberately.
+     *
+     * Feature 005 T006 asked for it in this file. It cannot live here: dependency-cruiser
+     * reasons about the module graph, and the restriction is about *identifiers* —
+     * getBoundingClientRect, offsetWidth, clientWidth. Expressed as a graph rule it would
+     * forbid Overlay.tsx from importing pointer.ts, which is the one import the design
+     * requires. It lives in eslint.config.js instead, beside no-theme-literals, which is
+     * the same shape of rule for the same reason.
+     */
     {
       name: 'no-zod-from-schema-root',
       severity: 'error',

@@ -10,6 +10,33 @@ import tseslint from 'typescript-eslint'
  * a time and cannot detect a cycle that passes through three packages.
  * See specs/001-framework-foundation/research.md R-03.
  */
+
+/**
+ * Shared because `no-restricted-syntax` is replaced, not merged, when two flat-config
+ * blocks both set it for the same file.
+ *
+ * Feature 005 found that the hard way: adding a workspace-wide innerHTML ban after the
+ * theme-literal block silently disarmed the theme gate for element renderers — a gate
+ * green while enforcing nothing, which is the exact failure this project has now hit three
+ * times. Every block that sets `no-restricted-syntax` on files under `packages/` must
+ * spread this in.
+ */
+const NO_INNER_HTML = [
+  {
+    selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+    message:
+      'no-inner-html: dangerouslySetInnerHTML is banned. Author-supplied text reaches the page ' +
+      'as a React child, which escapes it; server-rendered markup executes before any ' +
+      'client-side guard could run (NFR-SEC-007, FR-046).',
+  },
+  {
+    selector: "Property[key.name='dangerouslySetInnerHTML']",
+    message:
+      'no-inner-html: dangerouslySetInnerHTML is banned, including when spread from an object ' +
+      '(NFR-SEC-007, FR-046).',
+  },
+]
+
 export default tseslint.config(
   {
     ignores: [
@@ -45,6 +72,29 @@ export default tseslint.config(
     },
   },
   {
+    /**
+     * Feature 005 T009: `dangerouslySetInnerHTML` is banned across every package.
+     *
+     * A lock, not a sanitizer. The prop appears nowhere in this repository today and every
+     * renderer passes text as a React child, which escapes it — so NFR-SEC-007 already holds
+     * by construction and adding a sanitization library would be defending a door that is
+     * shut. What needs guarding is the *next* renderer, written under deadline, reaching for
+     * innerHTML to satisfy a formatting request. A lint rule fails that at review; a
+     * dependency sitting unused in the tree would only suggest a review had happened.
+     *
+     * Sharpened by SSR: server-rendered markup ships inside the HTML document, so it runs
+     * before any client-side guard could (research R-11, FR-046).
+     *
+     * Placed BEFORE the theme-literal block on purpose: flat config replaces
+     * `no-restricted-syntax` rather than merging it, so the narrower block must come last
+     * and must spread NO_INNER_HTML back in.
+     */
+    files: ['packages/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': ['error', ...NO_INNER_HTML],
+    },
+  },
+  {
     // Determinism: SC-008 requires validate(x) to deep-equal validate(x).
     // The realistic way that breaks is an error message interpolating a
     // timestamp, or a migration stamping updatedAt — both look harmless in
@@ -62,6 +112,7 @@ export default tseslint.config(
       ],
       'no-restricted-syntax': [
         'error',
+        ...NO_INNER_HTML,
         {
           selector: "NewExpression[callee.name='Date']",
           message: 'Schema validation must be deterministic (SC-008). No clock reads.',
@@ -86,6 +137,7 @@ export default tseslint.config(
     rules: {
       'no-restricted-syntax': [
         'error',
+        ...NO_INNER_HTML,
         {
           selector: "SwitchStatement > MemberExpression.discriminant[property.name='type']",
           message:
@@ -161,6 +213,9 @@ export default tseslint.config(
     rules: {
       'no-restricted-syntax': [
         'error',
+        // Spread in, not inherited: a later block setting this rule would otherwise
+        // replace these selectors wholesale. See NO_INNER_HTML above.
+        ...NO_INNER_HTML,
         {
           selector:
             "Literal[value=/^(#[0-9a-fA-F]{3,8}|rgb|rgba|hsl|hsla)/]",
@@ -173,6 +228,38 @@ export default tseslint.config(
           message:
             'no-theme-literals: this style property must resolve from var(--cs-theme-*) with a readable fallback (Constitution III, FR-014).',
         },
+      ],
+    },
+  },
+  {
+    /**
+     * Feature 005 T006: DOM measurement is confined to one module.
+     *
+     * Wave 2's central win was that nothing measures anything — that is what lets a server
+     * emit a correct first paint with no layout shift on hydration. A pointer event arrives
+     * in screen pixels, so the editor has to convert somewhere; confining that to
+     * `canvas/pointer.ts` keeps the rendering path measurement-free and keeps the geometry
+     * engine testable in an environment where `getBoundingClientRect` returns zero, which
+     * happy-dom does (research R-04).
+     *
+     * An ESLint rule rather than a dependency-cruiser one: this restricts *identifiers*, and
+     * a module-graph tool would only be able to forbid the import that the design requires.
+     */
+    files: ['packages/studio/src/**/*.{ts,tsx}'],
+    ignores: ['packages/studio/src/canvas/pointer.ts'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        ...['getBoundingClientRect', 'offsetWidth', 'offsetHeight', 'clientWidth', 'clientHeight'].map(
+          (property) => ({
+            property,
+            message:
+              `dom-measurement-confined: ${property} may only be read in canvas/pointer.ts. ` +
+              'Rendering must never depend on a measurement — that is what makes the server-rendered ' +
+              'first frame correct — and the geometry engine must stay testable with no layout ' +
+              'engine at all (research R-04).',
+          }),
+        ),
       ],
     },
   },

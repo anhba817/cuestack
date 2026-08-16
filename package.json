@@ -18,6 +18,7 @@
     "lint:boundaries": "depcruise packages tools --config .dependency-cruiser.cjs",
     "check:packaging": "node tools/scripts/check-packaging.mjs",
     "check:isolation": "node tools/scripts/check-core-isolation.mjs",
+    "check:studio-isolation": "node tools/scripts/check-studio-isolation.mjs",
     "check:data-model": "node tools/scripts/check-data-model.mjs",
     "check:migrations": "node tools/scripts/check-migrations.mjs",
     "gates": "node tools/scripts/gates/run-all.mjs",

@@ -105,6 +105,10 @@ jobs:
       - run: pnpm build
       - run: pnpm check:packaging
       - run: pnpm check:isolation
+      # Feature 005: the player must render with the editor absent from disk. The
+      # dependency rule proves nothing imports studio; this proves the player does not
+      # need it, which is the claim a learner's payload actually rests on (FR-049).
+      - run: pnpm check:studio-isolation
       - run: pnpm check:data-model
 
   # Gate 10 — a format change must ship its migration in the same revision.

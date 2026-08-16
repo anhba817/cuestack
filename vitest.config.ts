@@ -28,6 +28,40 @@ export default defineConfig({
           include: ['test/**/*.test.{ts,tsx}'],
         },
       },
+      // The editor's DOM-bound suites. Everything under test/ except the two
+      // directories and the one filename pattern the pure project below claims.
+      {
+        test: {
+          name: '@cuestack/studio',
+          root: './packages/studio',
+          environment: 'happy-dom',
+          include: ['test/**/*.test.{ts,tsx}'],
+          exclude: ['test/geometry/**', 'test/draft/**', '**/*.pure.test.{ts,tsx}'],
+        },
+      },
+      /**
+       * The editor's pure suites, in an environment with no `document` at all.
+       *
+       * Not a preference. happy-dom computes no layout: a `<div>` with an explicit
+       * `width: 800px` reports a bounding rect of zero. So drag logic that derives
+       * geometry from a measured rect is not merely impure, it is untestable — it would
+       * arrive either mocking a layout engine or with no tests. Splitting at the
+       * logical/screen boundary makes the interesting half testable with no browser, and
+       * running it here is what keeps that true: a geometry test that starts reaching for
+       * the DOM fails to run rather than quietly growing the dependency (research R-04).
+       *
+       * `*.pure.test.ts` extends the same guarantee by filename, because purity is a
+       * property of a module rather than of a directory — `session/` holds both a React
+       * hook that needs a DOM and the selection algebra that must not.
+       */
+      {
+        test: {
+          name: '@cuestack/studio-pure',
+          root: './packages/studio',
+          environment: 'node',
+          include: ['test/{geometry,draft}/**/*.test.ts', 'test/**/*.pure.test.ts'],
+        },
+      },
       // The gate negative-controls live with the scripts they exercise.
       {
         test: {
@@ -51,6 +85,10 @@ export default defineConfig({
         // cover. Components are included, not excluded as "hard to cover" — a renderer
         // with no test is a renderer nobody has seen output from.
         'packages/react/src/**/*.{ts,tsx}',
+        // Feature 005 T004: the editor is reported but carries no numeric floor.
+        // Constitution II gives UI packages behavioural tests instead of a coverage
+        // number, which is why the thresholds below stay scoped to core and schema.
+        'packages/studio/src/**/*.{ts,tsx}',
       ],
       exclude: [
         '**/dist/**',
@@ -66,6 +104,8 @@ export default defineConfig({
         'packages/react/src/index.ts',
         'packages/react/src/server.ts',
         'packages/react/src/elements/builtin/index.ts',
+        // Entry point: a re-export list with no statements of its own, like the two above.
+        'packages/studio/src/index.ts',
         // Real browser ports. Exercised by the example app and by any host, and coverable
         // here only by asserting that happy-dom's `document` behaves like a browser's —
         // which would test happy-dom. The substitutability this file exists to serve is

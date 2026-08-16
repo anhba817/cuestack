@@ -49,6 +49,14 @@ try {
   process.exit(1)
 }
 
+try {
+  run('@cuestack/studio', 'test/perf')
+} catch (error) {
+  console.error('gate:perf — FAILED. The editor exceeded an interaction, seek, or startup budget.')
+  console.error(`${error.stdout ?? ''}${error.stderr ?? ''}`)
+  process.exit(1)
+}
+
 const shape = heavyLessonShape()
 
 console.log('gate:perf — resolution budget met (300 elements < 10ms, growth linear).')
@@ -58,6 +66,11 @@ console.log(
 )
 console.log('  per-frame player work < 16.7ms (60fps target), seek-to-rendered-state < 100ms,')
 console.log('  each held to a further 10% margin so a regression fails while there is still room.')
+console.log(
+  `gate:perf — editor budgets met on the same fixture: selection and transform feedback ` +
+    '< 100ms (NFR-PERF-002), authoring-time change < 100ms (NFR-PERF-003, it is a seek), and',
+)
+console.log('  interactive at 50 slides/300 elements < 3s (NFR-PERF-001), each with the same margin.')
 console.log(
   '  This measures the player’s own work — resolve, compose, frame writes, React commit —',
 )
