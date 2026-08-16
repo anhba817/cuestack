@@ -52,7 +52,7 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
       ✅ NX-2 ──→ ✅ PL-4                              publishing pipeline)
 
     Wave 4 — Studio editor  (after Wave 3)
-      ✅ EN-5 ──→ 🔲 ED-1 ──→ 🔲 ED-2
+      ✅ EN-5 ──→ ✅ ED-1 ──→ ✅ ED-2
                     ├──→ 🔲 ED-3 ──→ 🔲 ED-4
                     └──→ 🔲 ED-5
       ✅ RC-1 ──→ 🔲 ED-6 ──→ 🔲 QA-5               (preview reuses the player — parity by construction)
@@ -100,9 +100,9 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 | 4 | ED-6 preview harness (from start/slide/time) | RC-1 | 3 | 2 | 2 | 0 | 9 | 🔲 |
 | 4 | ED-4 Simple Sequence Mode ↔ timeline | ED-3 | 3 | 2 | 1 | 1 | 7 | 🔲 |
 | 4 | QA-5 editor↔player parity harness | ED-6 | 0 | 3 | 1 | 0 | 7 | 🔲 |
-| 4 | ED-2 properties inspector (plugin-driven) | ED-1 | 3 | 1 | 1 | 0 | 6 | 🔲 |
+| 4 | ED-2 properties inspector (plugin-driven) | ED-1 | 3 | 1 | 1 | 0 | 6 | ✅ |
 | 4 | ED-5 undo/redo, autosave, offline queue | ED-1 | 3 | 2 | 0 | 2 | 5 | 🔲 |
-| 4 | ED-1 canvas: move/resize/rotate, snap, layers | EN-5 | 3 | 1 | 0 | 1 | 4 | 🔲 |
+| 4 | ED-1 canvas: move/resize/rotate, snap, layers | EN-5 | 3 | 1 | 0 | 1 | 4 | ✅ |
 | 4 | ED-3 timeline UI: tracks, playhead, drag | ED-1 | 3 | 1 | 0 | 1 | 4 | 🔲 |
 | 5 | DX-2 `@cuestack/element` web-component adapter | RC-1 | 1 | 3 | 1 | 0 | 8 | 🔲 |
 | 5 | PB-3 `@cuestack/adapter-http` reference REST adapter | EN-6 | 3 | 2 | 2 | 1 | 8 | 🔲 |
@@ -157,14 +157,43 @@ moment this one consumed them: **no element ever appeared or disappeared during 
 the transport emits on command rather than on a timer and every player test drove `seek()`. The
 lesson also never advanced. Both had shipped green.
 
-**Proposed next tranche: Wave 4 (ED-1..6, QA-5).** The critical path still holds — `EN-5 → ED-1`
-and `RC-1 → ED-6` are both satisfied, and nothing Wave 3 built moved either. QA-5 is the one to
-watch: the parity gate has been an inert placeholder since Wave 0 and stays inert until an editor
-exists to diverge from a player, which is exactly what ED-6 creates. Wave 3 widened what it will
-have to check — every moving effect now declares a reduced alternative alongside its normal one,
-and nothing yet verifies the two agree about timing.
+**Wave 4 has begun: ED-1 and ED-2 are complete.** `@cuestack/studio` is a fourth published package,
+and a lesson can now be *authored* rather than hand-written — every manifest this project had
+rendered until now was TypeScript someone typed or a JSON fixture. 1,515 tests.
 
-Obligations carried forward, now three:
+**The kernel did not change to accommodate an editor**, which is the result worth reporting. Wave 1
+cut the seam this rests on before anything needed it: `ResolvedElement.geometry` is documented as
+*authored* position, with a comment saying the editor will want that value while the player wants
+the effective one. A drag handle attaches to geometry, an effect's displacement stays in
+`transform`, and `resolve(slide, timeMs)` is called with the same two arguments from both sides.
+
+Elements the resolver omits — hidden, or outside their window — are drawn by an *overlay* as
+selectable ghosts, computed from a diff. That keeps Constitution V structural rather than
+disciplinary: the render layer is byte-identical with the overlay removed, and the player cannot
+grow a ghost because the player has no overlay.
+
+**Two core changes, both additive to authoring metadata no manifest serializes.** `InspectorField`
+gained a `list` kind, because a question's options are a repeating group and the alternative was a
+branch on the seventh element type. `LessonEvent` gained `element_inserted`: FR-AN-001 has always
+declared that the authoring application emits insertion events, and the union modelled playback
+only, so the requirement had nothing to emit.
+
+**Wave 4's own version of the recurring lesson.** Building the inspector found that
+`ElementPlugin.inspector` had no consumer *and no producer* — the seven built-in types have no
+`ElementPlugin` at all, being served by the schema, the resolver, and the React renderer registry.
+Three documents implied otherwise. The inspector now reads a registered plugin's spec first and
+falls back to the editor registry, so FR-018 stays literally true for third-party types while the
+built-ins have a home.
+
+**The parity gate is still a placeholder, and that is correct.** This feature builds the editor,
+but QA-5 compares *preview* to playback and preview is ED-6. Marking it armed here would be the
+third time a gate in this project claimed more than it enforced. What ED-1 and ED-2 did was make
+the comparison possible for the first time.
+
+**Proposed next tranche: the rest of Wave 4 — ED-3..6 and QA-5.** ED-6 is the one to take first:
+it arms the parity gate, and it is the smaller half of what remains.
+
+Obligations carried forward, now five:
 
 - **Navigation buttons render their action but do not act**, and `on_click` advance is therefore
   unreachable. The reference lesson's last slide uses it, which is why the example app ships a
@@ -173,7 +202,20 @@ Obligations carried forward, now three:
   Wave 5.
 - **A dead-end lesson is authorable.** A required `on_correct` question with one attempt can be
   written, reached, and is now reported to the *learner*. Reporting it to the author is Wave 5's
-  validation engine (PB-1).
+  validation engine (PB-1) — and an editor makes such a lesson easier to author, which strengthens
+  rather than weakens the case for it.
+- **Deletion is confirmed, not undoable.** Constitution III accepts either; ED-5 owes the
+  replacement, and owes *removing* the prompt rather than leaving a tool that both confirms and
+  undoes every deletion.
+- **The authoring-time scrub is a second control writing a value the playhead will also write.**
+  ED-3 owes the merge. One control for one number is fine for one feature and is a parity hazard if
+  it outlives ED-3.
+- **`ElementPlugin.validate` still has no consumer.** This feature gave `inspector` its first after
+  three waves; `validate` is now in exactly that position, and PB-1 is the item that owes it one.
+- **The theme-values gate cannot see CSS.** It delegates to ESLint, which does not parse
+  stylesheets, so colour literals there are convention-enforced project-wide — measured at 46 of 46
+  already correct in the player's CSS. Recorded rather than closed, because fixing it would retrofit
+  a check onto the player inside a feature about the editor.
 
 ## Open design questions
 
