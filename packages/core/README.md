@@ -84,6 +84,36 @@ member named. A plugin receives **only** its own payload, geometry, the slide ti
 and the theme. Never the lesson, its siblings, the transport, or anything about the
 learner.
 
+### An effect declares its parameters
+
+`EffectDescriptor.parameters` is a list of `InspectorField`, so a consumer can offer
+what an effect accepts rather than keeping a table of its own — which would be a
+per-effect branch by another name and would rot the first time a ninth effect
+registered.
+
+```ts
+export const shimmer: EffectDescriptor = {
+  type: 'shimmer',
+  phases: ['emphasis'],
+  motion: false,
+  defaultEasing: 'linear',
+  parameters: [{ key: 'intensity', label: 'Intensity', kind: 'number' }],
+  at: (progress, params) => ({ opacity: 1 - (Number(params?.intensity) || 0.5) * progress }),
+}
+```
+
+**One difference from an element's inspector fields, and it is load-bearing.** On an
+element a `key` is a *dotted path* from the element root (`payload.text`); on an
+effect it is a *flat key* into `effect.parameters` (`intensity`). Sharing the type
+must not become sharing the read.
+
+The declaration says what *may* be set — it is not a source of defaults. `at()` keeps
+its own, because it is called per frame on a server where `parameters` may be absent.
+
+**Whichever registry the editor offers from must be the one `resolve` uses.** A
+registry reaching a menu but not `ResolveContext.effects` produces an effect a teacher
+can add and the resolver reports as `UNKNOWN_EFFECT_TYPE`.
+
 An unregistered *optional* type degrades to a placeholder and the slide still
 resolves. An unregistered *required interaction* type blocks. The asymmetry is
 deliberate: losing a decoration costs some content, while silently skipping a

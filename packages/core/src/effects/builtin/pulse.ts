@@ -12,6 +12,8 @@ export const pulse: EffectDescriptor = {
   phases: ['emphasis'],
   motion: true,
   defaultEasing: 'ease-in-out',
+  /** How far it swells at the peak of the triangle. Defaults to 0.08 — a nudge, not a leap. */
+  parameters: [{ key: 'amount', label: 'Amount', kind: 'number' }],
   at(progress, params: EffectParams | undefined) {
     const amount = typeof params?.['amount'] === 'number' ? params['amount'] : 0.08
     // Triangle wave: 0 -> 1 -> 0 across the duration.

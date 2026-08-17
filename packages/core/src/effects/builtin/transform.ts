@@ -20,6 +20,15 @@ export const slide: EffectDescriptor = {
   phases: ['enter', 'exit'],
   motion: true,
   defaultEasing: 'ease-out',
+  /**
+   * `from` is a *direction*. `zoom` below also declares `from` and means a *number* — the
+   * scale it starts at. One key, two types, in two effects a teacher picks between in the
+   * same menu, which is why parameters are declared per descriptor rather than in one table.
+   */
+  parameters: [
+    { key: 'from', label: 'From', kind: 'select', options: ['top', 'bottom', 'left', 'right'] },
+    { key: 'distance', label: 'Distance', kind: 'number' },
+  ],
   at(progress, params) {
     const distance = num(params, 'distance', 64)
     const remaining = 1 - progress
@@ -53,6 +62,8 @@ export const zoom: EffectDescriptor = {
   phases: ['enter', 'exit'],
   motion: true,
   defaultEasing: 'ease-out',
+  /** A number, not a direction — see the note on `slide`. Below 1 it grows in. */
+  parameters: [{ key: 'from', label: 'Starting scale', kind: 'number' }],
   at(progress, params) {
     const from = num(params, 'from', 0.92)
     const factor = from + (1 - from) * progress

@@ -1,4 +1,5 @@
 import type { Contribution } from '../resolve/contribution.js'
+import type { InspectorField } from '../elements/contract.js'
 
 export type EffectPhase = 'enter' | 'emphasis' | 'exit'
 
@@ -39,6 +40,28 @@ export interface EffectDescriptor {
    */
   reduced?(progress: number, params?: EffectParams): Contribution
   readonly defaultEasing: string
+  /**
+   * Which parameters this effect accepts, so a consumer can offer them.
+   *
+   * Added in feature 006. Every built-in already read an untyped bag with a default inlined
+   * in its own `at()` — `pulse` reads `amount`, `slide` reads `from` and `distance` — and
+   * nothing declared any of it, so an editor could offer nothing. The alternative was a
+   * parameter table held by the editor, which is a per-effect branch by another name and
+   * rots the first time a ninth effect registers (Constitution I).
+   *
+   * `InspectorField` rather than a new shape: effect parameters are the problem the element
+   * inspector already solved, and sharing the type means one set of field components renders
+   * both. **One difference, and it is load-bearing.** On an element a `key` is a dotted path
+   * from the element root (`payload.text`); here it is a *flat* key into `effect.parameters`
+   * (`amount`). A consumer must never run a dotted read against one of these.
+   *
+   * A declaration of what *may* be set — not a source of defaults. `at()` keeps its inlined
+   * ones because it is called per frame on a server, where `parameters` may be absent.
+   *
+   * Authoring metadata: serialized into no manifest, read on no playback path. Additive, so
+   * no `schemaVersion` implication.
+   */
+  readonly parameters?: readonly InspectorField[]
 }
 
 export interface EffectRegistry {

@@ -40,6 +40,19 @@ export * from './frame/properties.js'
 // would invite a host to try.
 export { usePlayer, PlayerContext } from './player/usePlayer.js'
 export type { PlayerContextValue } from './player/usePlayer.js'
+/**
+ * The ports a real browser provides.
+ *
+ * Exported in feature 006 because the editor needs them and must not build its own. Both
+ * clock primitives live in this package — `requestAnimationFrame` inside `useFrameLoop`,
+ * `performance.now` inside `browserPorts` — and `no-clock-in-studio` forbids either in the
+ * studio package with no exemption. Without this export the editor could not construct a
+ * transport without writing `time: () => performance.now()` itself, which is the second
+ * clock the whole feature was designed against (006 research R-01).
+ *
+ * Client entry only, like everything else in this block.
+ */
+export { browserPorts } from './player/browserPorts.js'
 export { createFrameWriter } from './frame/FrameWriter.js'
 export type { FrameWriter } from './frame/FrameWriter.js'
 export { useFrameLoop } from './frame/useFrameLoop.js'
