@@ -150,3 +150,318 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/*
+ * ---------------------------------------------------------------------------------------
+ * The timeline (feature 006)
+ * ---------------------------------------------------------------------------------------
+ *
+ * Chrome, so absolute units throughout — the same rule the overlay follows above. A track
+ * that shrank with the stage would become unhittable exactly where a lesson is most complex.
+ *
+ * Every colour resolves from a theme token with a readable fallback (Constitution III). The
+ * theme gate still cannot see this file — it delegates to ESLint, which does not parse CSS —
+ * so this convention is held by review, project-wide. That limitation is recorded in
+ * plan.md and remains an obligation this feature does not discharge.
+ */
+
+.cs-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid var(--cs-theme-border-muted, #999999);
+  color: var(--cs-theme-text-primary, #111111);
+  font-size: 13px;
+}
+
+.cs-transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cs-transport-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--cs-theme-text-muted, #666666);
+}
+
+/*
+ * The scrolling container.
+ *
+ * SC-012 asks the timeline to stay responsive at the dense slide, with tracks scrollable
+ * rather than all laid out at once. `overflow: auto` on the body rather than on the track
+ * list keeps the ruler and the playhead scrolling with the bars they annotate — a ruler that
+ * stayed still while its bars moved would be worse than no ruler.
+ */
+.cs-timeline-body {
+  position: relative;
+  overflow: auto;
+  max-height: 260px;
+}
+
+.cs-ruler {
+  position: relative;
+  height: 20px;
+  min-width: 100%;
+  border-bottom: 1px solid var(--cs-theme-border-muted, #999999);
+}
+
+/*
+ * Ticks are positioned, and the ruler's ends are drawn by its own border rather than by a
+ * tick — so an element spanning the whole slide has handles that stay distinguishable from
+ * the axis they sit on (spec edge case).
+ */
+.cs-ruler-tick {
+  position: absolute;
+  top: 2px;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--cs-theme-text-muted, #666666);
+}
+
+/*
+ * The playhead.
+ *
+ * A native range input, restyled rather than replaced: focus, keyboard operation, and the
+ * slider role come from the platform. `--cs-playhead-x` is written imperatively by the
+ * component while playing, because React re-renders only when the visible element set
+ * changes (research R-02) and a bound position would step once per appearance rather than
+ * once per frame.
+ */
+.cs-playhead {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--cs-theme-accent-primary, #1a4fd6);
+}
+
+.cs-tracks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cs-track {
+  position: relative;
+  height: 24px;
+}
+
+/*
+ * A real button, so activation and focus come from the platform — the decision the overlay
+ * already took, and the reason the focus suite asserts "uses real buttons".
+ */
+.cs-track-bar {
+  position: absolute;
+  top: 2px;
+  height: 20px;
+  padding: 0 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: left;
+  border: 1px solid var(--cs-theme-border-muted, #999999);
+  border-radius: 3px;
+  background: var(--cs-theme-surface-raised, #f2f2f2);
+  color: var(--cs-theme-text-primary, #111111);
+  font-size: 11px;
+}
+
+.cs-track-bar[aria-pressed='true'] {
+  outline: 2px solid var(--cs-theme-accent-primary, #1a4fd6);
+}
+
+/* Locked and hidden are conveyed by more than colour alone (NFR-ACC-003). */
+.cs-track-bar[data-locked='true']::before {
+  content: '🔒 ';
+}
+
+.cs-track-bar[data-hidden='true'] {
+  border-style: dashed;
+}
+
+/*
+ * An effect bar overlaps its element's bar rather than sitting in its own row. Two effects
+ * that overlap in time draw as two bars — legal, and collapsing them would make the timeline
+ * lie about what runs.
+ */
+.cs-effect-bar {
+  position: absolute;
+  bottom: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--cs-theme-accent-primary, #1a4fd6);
+}
+
+.cs-timeline :focus-visible {
+  outline: 3px solid var(--cs-theme-focus-ring, #111111);
+  outline-offset: 1px;
+}
+
+/*
+ * The drag handles.
+ *
+ * Absolutely positioned on the bar's edges and sized for a pointer rather than for the
+ * pixel they mark — a target the width of a border is a target nobody hits. They sit above
+ * the bar so a press near an edge resizes rather than moves, which is the convention every
+ * timeline a teacher has used already follows.
+ */
+.cs-track-handle {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  width: 8px;
+  height: 24px;
+  margin-left: -4px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: var(--cs-theme-accent-primary, #1a4fd6);
+  cursor: ew-resize;
+}
+
+/*
+ * The effect controls (feature 006).
+ *
+ * A list rather than a grid: effects on one element are read in the order they run, and a
+ * teacher scanning for "what happens next" is reading down.
+ */
+.cs-effects {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cs-effects-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cs-effect-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cs-effect-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--cs-theme-border-muted, #999999);
+  border-radius: 3px;
+}
+
+.cs-effect-name {
+  font-weight: 600;
+}
+
+.cs-effect-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/*
+ * The removal confirmation stands in for undo, which ED-5 owns. It is expected to be
+ * *removed* when real undo lands rather than kept beside it — a confirmation and an undo
+ * asking the same question twice is worse than either alone.
+ */
+.cs-effect-confirm {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.cs-effect-refusal {
+  margin: 0;
+  color: var(--cs-theme-text-muted, #666666);
+}
+
+/*
+ * Simple Sequence (feature 006).
+ *
+ * A list, read downwards, because a teacher scanning for "what happens next" is reading in
+ * that direction. The absolute time sits at the end of each row rather than behind a
+ * disclosure: §7.1's "simple first, precision on demand" means the number is available, not
+ * that it is hidden.
+ */
+.cs-sequence {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+.cs-sequence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cs-sequence-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--cs-theme-border-muted, #999999);
+}
+
+.cs-sequence-label {
+  flex: 1 1 auto;
+  min-width: 8em;
+}
+
+.cs-sequence-at,
+.cs-sequence-first {
+  font-variant-numeric: tabular-nums;
+  color: var(--cs-theme-text-muted, #666666);
+}
+
+.cs-sequence-empty {
+  margin: 0;
+  color: var(--cs-theme-text-muted, #666666);
+}
+
+/*
+ * The confirmation that stands between an experiment and a loss.
+ *
+ * Not styled to be dismissed quickly. Leaving Custom discards timing a teacher authored on
+ * purpose, and undo does not exist until ED-5 — so this is the one moment where slowing
+ * somebody down is the service.
+ */
+.cs-sequence-confirm {
+  padding: 8px;
+  border: 1px solid var(--cs-theme-border-muted, #999999);
+  border-radius: 3px;
+  background: var(--cs-theme-surface-raised, #f2f2f2);
+}
+
+/*
+ * Overruns (feature 006, US5).
+ *
+ * Present only when there is something to say — an always-visible panel that is usually empty
+ * teaches people to stop reading it. Conveyed by more than colour alone (NFR-ACC-003): it
+ * carries a border, a heading role, and prose.
+ */
+.cs-timeline-problems {
+  padding: 8px;
+  border: 1px solid var(--cs-theme-border-strong, #333333);
+  border-radius: 3px;
+  background: var(--cs-theme-surface-raised, #f2f2f2);
+  color: var(--cs-theme-text-primary, #111111);
+}
+
+.cs-timeline-problems ul {
+  margin: 0 0 6px;
+  padding-left: 1.2em;
+}

@@ -20,14 +20,12 @@ export type { GhostProps, GhostReason } from './canvas/Ghost.js'
 export { isOffCanvas } from './canvas/Overlay.js'
 export { TextEditSurface } from './canvas/TextEditSurface.js'
 export type { TextEditSurfaceProps } from './canvas/TextEditSurface.js'
-export { AuthoringTime } from './canvas/AuthoringTime.js'
 export { DeleteConfirmation } from './canvas/DeleteConfirmation.js'
 export type { DeleteConfirmationProps } from './canvas/DeleteConfirmation.js'
 export { Announcer, describeSelection, describeNudge } from './canvas/Announcer.js'
 export type { AnnouncerProps } from './canvas/Announcer.js'
 export { intentFor } from './canvas/shortcuts.js'
 export type { ShortcutIntent, KeyChord } from './canvas/shortcuts.js'
-export type { AuthoringTimeProps } from './canvas/AuthoringTime.js'
 
 // The input edge, and the arithmetic behind a drag. Both usable without React.
 export { scaleOf, toLogicalDelta } from './canvas/pointer.js'
@@ -36,6 +34,55 @@ export { beginGesture, updateGesture, commitGesture } from './canvas/gesture.js'
 export type { GestureKind, GestureState, GestureFrame, GestureTarget } from './canvas/gesture.js'
 
 // The inspector — fields from a type's registration, never a branch on type.
+/**
+ * The timeline (feature 006). Time becomes visible, editable, and playable.
+ *
+ * `usePlayback` is exported beside it because a host has to mount both: the writer registers
+ * element nodes on mount, so the canvas needs it from its first render, and the frame's
+ * resolved state has to reach the canvas or an element entering mid-slide never appears.
+ */
+export { TimelineProblems } from './timeline/TimelineProblems.js'
+export type { TimelineProblemsProps } from './timeline/TimelineProblems.js'
+export { overrunsOf, requiredDurationMs, isWholeSlideOverrun } from './timeline/overrun.js'
+
+export { SequenceView } from './sequence/SequenceView.js'
+export type { SequenceViewProps } from './sequence/SequenceView.js'
+export { SequenceRow } from './sequence/SequenceRow.js'
+export { CustomConfirmation } from './sequence/CustomConfirmation.js'
+export { eventsOf, keyOf } from './sequence/events.js'
+export type { SequenceEvent, EventKind } from './sequence/events.js'
+export { classify, resolveSequence, assignmentsFor } from './sequence/relationships.js'
+export type { TimingChange } from './sequence/relationships.js'
+export { moveRange, resizeRangeStart, resizeRangeEnd, snapTargetsFor } from './timeline/timing.js'
+export type { TimeRange, TimingOptions } from './timeline/timing.js'
+
+export { EffectControls } from './effects/EffectControls.js'
+export type { EffectControlsProps } from './effects/EffectControls.js'
+export { EffectFields } from './effects/EffectFields.js'
+export type { EffectFieldsProps } from './effects/EffectFields.js'
+export { newEffect } from './effects/defaults.js'
+export type { NewEffectDraft } from './effects/defaults.js'
+export { Timeline } from './timeline/Timeline.js'
+export type { TimelineProps } from './timeline/Timeline.js'
+export { usePlayback } from './session/usePlayback.js'
+export type { Playback, PlaybackOptions, PlaybackState } from './session/usePlayback.js'
+export { buildTracks } from './timeline/tracks.js'
+export type { Track, EffectBar } from './timeline/tracks.js'
+export { createScale, clampPxPerSecond } from './timeline/scale.js'
+export type { TimeScale } from './timeline/scale.js'
+export {
+  SNAP_THRESHOLD_MS,
+  MIN_ELEMENT_DURATION_MS,
+  MIN_EFFECT_DURATION_MS,
+  NUDGE_MS,
+  NUDGE_MS_COARSE,
+  DEFAULT_EFFECT_DURATION_MS,
+  MIN_PX_PER_SECOND,
+  MAX_PX_PER_SECOND,
+  MIN_BAR_PX,
+} from './timeline/constants.js'
+export type { EffectPatch, SequenceAssignment, SequenceRelationship } from './draft/edit.js'
+
 export { Inspector } from './inspector/Inspector.js'
 export { readPath } from './inspector/path.js'
 export type { InspectorProps } from './inspector/Inspector.js'

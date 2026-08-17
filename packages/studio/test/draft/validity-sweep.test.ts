@@ -15,6 +15,16 @@ import { emptySlide } from '../harness/corpus.js'
  * once-a-fortnight red build (Constitution II).
  */
 
+/** Every `[elementId, effectId]` the draft currently holds. */
+function effectPairs(draft: { slides: { elements: unknown[] }[] }): (readonly [string, string])[] {
+  const pairs: (readonly [string, string])[] = []
+  for (const element of draft.slides[0]!.elements) {
+    const el = element as { id: string; effects?: { id: string }[] }
+    for (const effect of el.effects ?? []) pairs.push([el.id, effect.id] as const)
+  }
+  return pairs
+}
+
 /** A tiny LCG. Seeded, so this sweep is a fixture and not a lottery. */
 function walker(seed: number): () => number {
   let state = seed
@@ -24,7 +34,18 @@ function walker(seed: number): () => number {
   }
 }
 
-function nextEdit(rand: () => number, ids: readonly string[]): Edit {
+/**
+ * `effects` is a list of `[elementId, effectId]` pairs the draft actually holds.
+ *
+ * Without it `set-effect` and `remove-effect` address ids that never exist, are refused as
+ * not-found every time, and the sweep silently stops covering two of the six new kinds —
+ * which is what the coverage assertion at the foot of this file caught.
+ */
+function nextEdit(
+  rand: () => number,
+  ids: readonly string[],
+  effects: readonly (readonly [string, string])[] = [],
+): Edit {
   const kind = EDIT_KINDS[Math.floor(rand() * EDIT_KINDS.length)]!
   const pick = () => ids[Math.floor(rand() * ids.length)] ?? 'missing'
   const some = ids.length > 0 ? [pick()] : []
@@ -55,6 +76,40 @@ function nextEdit(rand: () => number, ids: readonly string[]): Edit {
       return { kind, ids: ids.slice(0, 2), edge: 'left' }
     case 'distribute':
       return { kind, ids: ids.slice(0, 3), axis: 'horizontal' }
+    // Feature 006. The generator has to cover the union the moment the union grows, or the
+    // sweep picks a kind it cannot build and stops being a sweep. The *assertions* about
+    // what these six do land with their reducer cases in US2–US5; until then the reducer
+    // refuses them as unsupported, and a refusal is a legitimate outcome here — which is
+    // exactly why the `accepted > 50` floor at the foot of this file exists.
+    case 'set-timing':
+      return { kind, id: pick(), startMs: number(), endMs: number() }
+    case 'add-effect':
+      return {
+        kind,
+        id: pick(),
+        type: ['fade', 'pulse', 'slide', 'zoom'][Math.floor(rand() * 4)]!,
+        phase: rand() > 0.5 ? 'enter' : 'emphasis',
+        startMs: number(),
+        durationMs: number(),
+      }
+    case 'set-effect': {
+      const [elementId, effectId] = effects[Math.floor(rand() * effects.length)] ?? [pick(), 'absent']
+      return { kind, id: elementId, effectId, patch: { durationMs: number() } }
+    }
+    case 'remove-effect': {
+      const [elementId, effectId] = effects[Math.floor(rand() * effects.length)] ?? [pick(), 'absent']
+      return { kind, id: elementId, effectId }
+    }
+    case 'apply-sequence':
+      return {
+        kind,
+        relationships: some.map((id) => ({
+          eventKey: id,
+          relationship: rand() > 0.5 ? { kind: 'after-previous' as const } : { kind: 'with-previous' as const },
+        })),
+      }
+    case 'extend-slide':
+      return { kind }
   }
 }
 
@@ -67,7 +122,7 @@ describe('a generated sequence of edits never produces an invalid lesson', () =>
 
     for (let i = 0; i < 400; i += 1) {
       const ids = draft.slides[0]!.elements.map((e) => e.id)
-      const result = applyEdit(draft, nextEdit(rand, ids), { mode: 'edit', nextId })
+      const result = applyEdit(draft, nextEdit(rand, ids, effectPairs(draft)), { mode: 'edit', nextId })
       if (!result.ok) continue
       accepted += 1
       draft = result.draft
@@ -89,7 +144,7 @@ describe('a generated sequence of edits never produces an invalid lesson', () =>
       let draft = start
       for (let i = 0; i < 60; i += 1) {
         const ids = draft.slides[0]!.elements.map((e) => e.id)
-        const result = applyEdit(draft, nextEdit(rand, ids), { mode: 'edit', nextId })
+        const result = applyEdit(draft, nextEdit(rand, ids, effectPairs(draft)), { mode: 'edit', nextId })
         if (result.ok) draft = result.draft
       }
       return JSON.stringify(draft)
@@ -133,5 +188,65 @@ describe('a generated sequence of edits never produces an invalid lesson', () =>
     )
     expect(raw.ok).toBe(false)
     if (!raw.ok) expect(raw.reason).toBe('invalid')
+  })
+})
+
+describe('the six timing kinds, asserted now that their reducer cases exist', () => {
+  /**
+   * The generator half of this landed with T016, because `nextEdit` picks a kind at random
+   * from `EDIT_KINDS` and the sweep broke the moment the union grew. This is the assertion
+   * half (T096): that each of the six *accepts* something and that what it accepts validates.
+   *
+   * A sweep in which every new kind was silently refused would pass the file above and prove
+   * nothing about them — which is exactly what the `accepted > 50` floor guards against for
+   * the original twelve.
+   */
+  const ctx = () => ({ mode: 'edit' as const, nextId: countingIds() })
+
+  it('accepts at least one edit of every kind across a long walk', () => {
+    const rand = walker(20260817)
+    const nextId = countingIds()
+    let draft = emptySlide()
+    const accepted = new Set<string>()
+
+    for (let i = 0; i < 4000; i += 1) {
+      const ids = draft.slides[0]!.elements.map((e) => e.id)
+      const edit = nextEdit(rand, ids, effectPairs(draft))
+      const result = applyEdit(draft, edit, { mode: 'edit', nextId })
+      if (!result.ok) continue
+      accepted.add(edit.kind)
+      draft = result.draft
+      expect(validate(draft).ok).toBe(true)
+    }
+
+    for (const kind of EDIT_KINDS) {
+      expect(accepted.has(kind), `${kind} was never accepted in 4000 edits`).toBe(true)
+    }
+  })
+
+  it('validates after each of the six, applied deliberately', () => {
+    // The generated walk proves reachability; this proves each one in isolation, so a
+    // failure names the kind rather than a seed.
+    let draft = emptySlide()
+    const context = ctx()
+    const step = (edit: Parameters<typeof applyEdit>[1]) => {
+      const result = applyEdit(draft, edit, context)
+      expect(result.ok, JSON.stringify(edit)).toBe(true)
+      if (result.ok) {
+        draft = result.draft
+        expect(validate(draft).ok).toBe(true)
+      }
+    }
+
+    step({ kind: 'add-element', type: 'text' })
+    const id = draft.slides[0]!.elements[0]!.id
+    step({ kind: 'set-timing', id, startMs: 500, endMs: 2500 })
+    step({ kind: 'add-effect', id, type: 'fade', phase: 'enter', startMs: 500, durationMs: 400 })
+    const effectId = (draft.slides[0]!.elements[0] as unknown as { effects: { id: string }[] }).effects[0]!.id
+    step({ kind: 'set-effect', id, effectId, patch: { durationMs: 900 } })
+    step({ kind: 'apply-sequence', relationships: [{ eventKey: id, relationship: { kind: 'first' } }] })
+    step({ kind: 'set-timing', id, endMs: 30_000 })
+    step({ kind: 'extend-slide' })
+    step({ kind: 'remove-effect', id, effectId })
   })
 })

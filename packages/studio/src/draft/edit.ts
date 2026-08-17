@@ -1,4 +1,5 @@
 import type { Element, LessonManifest } from '@cuestack/schema'
+import type { EffectPhase } from '@cuestack/core'
 import type { GeometryDelta } from '../geometry/types.js'
 import type { AnalyticsAdapter } from '@cuestack/core'
 import type { IdSource } from './ids.js'
@@ -28,12 +29,47 @@ export const EDIT_KINDS = [
   'delete',
   'align',
   'distribute',
+  // Feature 006: timing becomes editable. Same closure guarantee as the twelve above.
+  'set-timing',
+  'add-effect',
+  'set-effect',
+  'remove-effect',
+  'apply-sequence',
+  'extend-slide',
 ] as const
 
 export type EditKind = (typeof EDIT_KINDS)[number]
 
 export type AlignEdge = 'left' | 'right' | 'top' | 'bottom' | 'centre-x' | 'centre-y'
 export type DistributeAxis = 'horizontal' | 'vertical'
+
+/** What `set-effect` may change. Every field optional; the absent ones are left alone. */
+export interface EffectPatch {
+  readonly startMs?: number
+  readonly durationMs?: number
+  readonly phase?: EffectPhase
+  readonly easing?: string
+  /** Flat keys, as declared by the effect's `EffectDescriptor.parameters`. */
+  readonly parameters?: Readonly<Record<string, string | number | boolean>>
+}
+
+/**
+ * One event's relationship to the one before it.
+ *
+ * Derived from absolute times and never stored — Constitution III forbids mode-specific
+ * storage, so this type exists to *apply* a classification, not to persist one.
+ */
+export type SequenceRelationship =
+  | { readonly kind: 'with-previous' }
+  | { readonly kind: 'after-previous' }
+  | { readonly kind: 'after-previous-delay'; readonly delayMs: number }
+  | { readonly kind: 'custom' }
+  | { readonly kind: 'first' }
+
+export interface SequenceAssignment {
+  readonly eventKey: string
+  readonly relationship: SequenceRelationship
+}
 
 export type Edit =
   | { readonly kind: 'add-element'; readonly type: string; readonly at?: { x: number; y: number } }
@@ -63,6 +99,39 @@ export type Edit =
   | { readonly kind: 'delete'; readonly ids: readonly string[] }
   | { readonly kind: 'align'; readonly ids: readonly string[]; readonly edge: AlignEdge }
   | { readonly kind: 'distribute'; readonly ids: readonly string[]; readonly axis: DistributeAxis }
+  /**
+   * A single `id`, not an array.
+   *
+   * Multi-select timing edits are out of scope — "dragging re-times one element at a time".
+   * Every other multiple-element kind above earned its array from a requirement; this one
+   * has not, and a plural signature would be the editor quietly growing an affordance no
+   * test covers.
+   */
+  | { readonly kind: 'set-timing'; readonly id: string; readonly startMs?: number; readonly endMs?: number }
+  | {
+      readonly kind: 'add-effect'
+      readonly id: string
+      readonly type: string
+      readonly phase: EffectPhase
+      readonly startMs: number
+      readonly durationMs: number
+    }
+  | { readonly kind: 'set-effect'; readonly id: string; readonly effectId: string; readonly patch: EffectPatch }
+  | { readonly kind: 'remove-effect'; readonly id: string; readonly effectId: string }
+  /**
+   * `eventKey` is `elementId`, or `elementId + ':' + effectId` for an effect event.
+   *
+   * Derived, because an event has no id of its own and minting one would be storage — which
+   * Constitution III forbids for Simple Sequence outright (FR-029).
+   */
+  | { readonly kind: 'apply-sequence'; readonly relationships: readonly SequenceAssignment[] }
+  /**
+   * No target: the reducer computes it from the draft.
+   *
+   * FR-038 is an *offer with a computed duration*, so the surface must not be able to supply
+   * a different number than the one the overrun implies.
+   */
+  | { readonly kind: 'extend-slide' }
 
 export type EditRefusal = 'read-only' | 'locked' | 'invalid' | 'not-found' | 'unsupported'
 

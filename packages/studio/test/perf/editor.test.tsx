@@ -2,7 +2,7 @@ import { act, fireEvent } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { LessonManifest } from '@cuestack/schema'
 import { heavyLesson } from '../harness/heavy.js'
-import { renderEditor } from '../harness/editor.js'
+import { fakePorts, renderEditor } from '../harness/editor.js'
 
 /**
  * T108 — SC-001, SC-002, SC-018 on the Constitution's own fixture.
@@ -73,8 +73,10 @@ describe('the editor at 50 slides and 300 elements', () => {
   })
 
   it(`changes the authoring time within ${SEEK_MS} ms — it is a seek (SC-018)`, () => {
-    const { handle, container } = renderEditor(fixture)
-    const scrub = container.querySelector<HTMLInputElement>('.cs-time-scrub')!
+    // The timeline is now the seek surface (FR-006), so the budget measures what a teacher
+    // actually drives — which is also what SC-003 asks for.
+    const { handle, container } = renderEditor(fixture, { timeline: true, ports: fakePorts() })
+    const scrub = container.querySelector<HTMLInputElement>('.cs-playhead')!
 
     const ms = elapsed(() => act(() => void fireEvent.change(scrub, { target: { value: '4000' } })))
 
@@ -85,8 +87,8 @@ describe('the editor at 50 slides and 300 elements', () => {
   it('scales linearly rather than quadratically across the slide set', () => {
     // The shape that matters more than any single number: ten seeks must not cost
     // dramatically more than ten times one.
-    const { container } = renderEditor(fixture)
-    const scrub = container.querySelector<HTMLInputElement>('.cs-time-scrub')!
+    const { container } = renderEditor(fixture, { timeline: true, ports: fakePorts() })
+    const scrub = container.querySelector<HTMLInputElement>('.cs-playhead')!
 
     const one = elapsed(() => act(() => void fireEvent.change(scrub, { target: { value: '1000' } })))
     const ten = elapsed(() => {

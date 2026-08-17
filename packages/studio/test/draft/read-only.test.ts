@@ -44,6 +44,21 @@ function sampleEdit(kind: Edit['kind'], id: string): Edit {
       return { kind, ids: [id], edge: 'left' }
     case 'distribute':
       return { kind, ids: [id], axis: 'horizontal' }
+    // Feature 006. Six timing kinds, enumerated here for the same reason as the twelve
+    // above: the union is closed so a variant added later is refused-by-default and fails
+    // a test until somebody says so deliberately.
+    case 'set-timing':
+      return { kind, id, startMs: 1000, endMs: 3000 }
+    case 'add-effect':
+      return { kind, id, type: 'fade', phase: 'enter', startMs: 0, durationMs: 400 }
+    case 'set-effect':
+      return { kind, id, effectId: 'fx-effect-1', patch: { durationMs: 600 } }
+    case 'remove-effect':
+      return { kind, id, effectId: 'fx-effect-1' }
+    case 'apply-sequence':
+      return { kind, relationships: [{ eventKey: id, relationship: { kind: 'after-previous' } }] }
+    case 'extend-slide':
+      return { kind }
   }
 }
 

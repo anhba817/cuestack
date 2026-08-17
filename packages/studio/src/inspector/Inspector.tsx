@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { ElementRegistry } from '@cuestack/core'
+import type { ElementRegistry, EffectRegistry } from '@cuestack/core'
 import type { Element, Slide } from '@cuestack/schema'
 import { COMMON_FIELDS } from './common.js'
 import { SLIDE_FIELDS } from './slide.js'
@@ -8,6 +8,7 @@ import { readPath } from './path.js'
 import type { EditorField } from './fields.js'
 import type { ElementEditorRegistry } from '../registry/editors.js'
 import type { EditorSession } from '../session/useEditorSession.js'
+import { EffectControls } from '../effects/EffectControls.js'
 
 export interface InspectorProps {
   readonly session: EditorSession
@@ -21,6 +22,15 @@ export interface InspectorProps {
    * which is FR-018 exactly; the built-ins fall through to the editor registry.
    */
   readonly plugins?: ElementRegistry
+  /**
+   * The effect registry, consulted for which effects may be added and what each accepts.
+   *
+   * Mirrors `plugins` exactly — optional, defaulting to core's own — and deliberately so:
+   * naming that symmetry is what stops the effect registry arriving as a differently-shaped
+   * afterthought. **One instance must also reach `resolve`**, or the menu offers an effect
+   * the canvas renders as `UNKNOWN_EFFECT_TYPE` (feature 006, FR-026).
+   */
+  readonly effects?: EffectRegistry
 }
 
 /**
@@ -30,12 +40,20 @@ export interface InspectorProps {
  * then whatever the type declares — so adding an element type adds a registration and nothing
  * else. That is Constitution I's actual requirement, and SC-010 counts the branches.
  */
-export function Inspector({ session, slide, editors, plugins }: InspectorProps): ReactNode {
+export function Inspector({ session, slide, editors, plugins, effects }: InspectorProps): ReactNode {
   const selected = slide.elements.filter((e) => session.selection.includes(e.id))
 
   if (selected.length === 0) return <SlidePanel session={session} slide={slide} />
   if (selected.length > 1) return <MultiPanel session={session} selected={selected} />
-  return <ElementPanel session={session} element={selected[0]!} editors={editors} plugins={plugins} />
+  return (
+    <ElementPanel
+      session={session}
+      element={selected[0]!}
+      editors={editors}
+      plugins={plugins}
+      effects={effects}
+    />
+  )
 }
 
 function Panel({ label, children }: { label: string; children: ReactNode }): ReactNode {
@@ -73,11 +91,13 @@ function ElementPanel({
   element,
   editors,
   plugins,
+  effects,
 }: {
   session: EditorSession
   element: Element
   editors: ElementEditorRegistry
   plugins?: ElementRegistry
+  effects?: EffectRegistry
 }): ReactNode {
   /**
    * A registered plugin wins; the editor registry is the fallback for the built-ins.
@@ -129,6 +149,9 @@ function ElementPanel({
           />
         ))}
       </div>
+      {/* Effects, from the registry. Feature 006 — until it, `Element.effects` was a field
+          only a hand-written manifest could populate. */}
+      <EffectControls session={session} element={element} {...(effects ? { effects } : {})} />
       <Refusal session={session} />
     </Panel>
   )

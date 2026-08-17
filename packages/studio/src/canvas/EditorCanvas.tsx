@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { resolve } from '@cuestack/core'
+import { resolve, type RenderState } from '@cuestack/core'
 import {
   Stage,
   SlideView,
@@ -9,9 +9,9 @@ import {
   type ElementRendererRegistry,
   type ThemeValues,
 } from '@cuestack/react'
+import type { FrameWriter } from '@cuestack/react'
 import type { LessonManifest, Slide } from '@cuestack/schema'
 import { Overlay } from './Overlay.js'
-import { AuthoringTime } from './AuthoringTime.js'
 import {
   createElementEditorRegistry,
   builtinElementEditors,
@@ -29,6 +29,26 @@ export interface EditorCanvasProps {
   readonly renderers?: ElementRendererRegistry
   /** Which types can be added and which carry on-canvas text. Defaults to the seven MVP types. */
   readonly editors?: ElementEditorRegistry
+  /**
+   * The frame writer, when this canvas will ever play.
+   *
+   * Optional for the static and host cases only. Registration runs `SlideView` →
+   * `ElementFrame` → `writer.refFor(element.id)`, on mount — so a canvas that will play must
+   * be given one from its **first** render, or the writer's node map is empty and `write()`
+   * iterates nothing (feature 006 T029).
+   */
+  readonly writer?: FrameWriter
+  /**
+   * The frame's resolved state, supplied by `usePlayback` while playing.
+   *
+   * Without it this component computes `resolve(slide, session.authoringTime)` at render
+   * time — and R-02 leaves that time stale during playback, so the canvas would render the
+   * play-start element set for the whole of playback while the playhead advanced over it.
+   * That is Wave 2's defect, and it hid because every test drove a seek, which re-renders.
+   */
+  readonly state?: RenderState
+  /** The moment the canvas is showing, for anything that must label it — ghosts, mainly. */
+  readonly atMs?: number
 }
 
 /**
@@ -76,9 +96,14 @@ export function EditorCanvas({
   theme,
   renderers = DEFAULT_RENDERERS,
   editors = DEFAULT_EDITORS,
+  writer,
+  state: frameState,
+  atMs,
 }: EditorCanvasProps): ReactNode {
   const slide = currentSlide(session.draft, session.slideId)
-  const state = resolve(slide, session.authoringTime)
+  // The frame's state while playing; our own when idle. Both come from the same `resolve`,
+  // which is what keeps this a second consumer of one engine rather than a second engine.
+  const state = frameState ?? resolve(slide, atMs ?? session.authoringTime)
 
   // Present in the draft, absent from the render. Computed here rather than stored: it is
   // derived session data and changes with the authoring time (data-model.md §7).
@@ -92,19 +117,16 @@ export function EditorCanvas({
   return (
     <div className="cs-editor">
       <Stage lesson={session.draft} {...(theme ? { theme } : {})}>
-        <SlideView state={state} renderers={renderers} />
+        <SlideView state={state} renderers={renderers} {...(writer ? { writer } : {})} />
         <Overlay
           session={session}
           slide={slide}
           absent={absent}
           canvas={{ width: w, height: h }}
           editors={editors}
+          atMs={atMs ?? session.authoringTime}
         />
       </Stage>
-      {/* Chrome, deliberately outside the stage: it is not lesson content, and sizing it in
-          absolute units keeps it usable at every stage size — the rule the player's own
-          stylesheet already draws for its controls. */}
-      <AuthoringTime session={session} slide={slide} />
     </div>
   )
 }

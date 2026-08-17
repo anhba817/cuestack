@@ -1,7 +1,8 @@
-import { act, fireEvent } from '@testing-library/react'
+import { act, fireEvent, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { renderEditor } from '../harness/editor.js'
+import { fakePorts, renderEditor } from '../harness/editor.js'
 import { element, lessonWith } from '../harness/corpus.js'
+import { timelineLesson } from '../harness/timeline.js'
 
 /**
  * T113 — FR-051, SC-017: read-only, in both halves.
@@ -70,11 +71,18 @@ describe('read-only says so, and disables rather than hides', () => {
   })
 
   it('still allows moving the authoring time', () => {
-    const { s, container } = setup('read-only')
-    const scrub = container.querySelector<HTMLInputElement>('.cs-time-scrub')!
+    // Feature 006 replaced the authoring-time scrub with the timeline's playhead (FR-006).
+    // The promise is unchanged and is the interesting half of read-only: every *mutating*
+    // control is unavailable, while seeking and reading remain (FR-047).
+    const { handle, container } = renderEditor(lessonWith([element()]), {
+      mode: 'read-only',
+      timeline: true,
+      ports: fakePorts(),
+    })
+    const playhead = container.querySelector<HTMLInputElement>('.cs-playhead')!
 
-    act(() => void fireEvent.change(scrub, { target: { value: '3000' } }))
-    expect(s.session.authoringTime).toBe(3000)
+    act(() => void fireEvent.change(playhead, { target: { value: '3000' } }))
+    expect(handle.session.authoringTime).toBe(3000)
   })
 
   it('lets no edit through, across the whole action surface (SC-017)', () => {
@@ -97,5 +105,64 @@ describe('read-only says so, and disables rather than hides', () => {
     const { container } = setup('edit')
     expect(container.querySelector('[data-cs-readonly]')).toBeNull()
     expect(container.querySelector<HTMLButtonElement>('[data-cs-add="text"]')!.disabled).toBe(false)
+  })
+})
+
+describe('read-only across the surfaces feature 006 adds (FR-047)', () => {
+  /**
+   * The interesting half is what stays *available*. Read-only is not "the editor is frozen":
+   * a teacher reviewing a lesson must still be able to look at any moment, which is why
+   * seeking and playing are untouched while every mutating control is disabled.
+   */
+  const open = () =>
+    renderEditor(
+      timelineLesson([
+        element({
+          startMs: 0,
+          endMs: 4000,
+          effects: [{ id: 'fx-1', type: 'fade', phase: 'enter', startMs: 0, durationMs: 400, order: 0 }],
+        }),
+        element({ startMs: 2000, endMs: 6000 }),
+      ]),
+      { mode: 'read-only', timeline: true, sequence: true, inspector: true, ports: fakePorts() },
+    )
+
+  it('still lets a teacher seek', () => {
+    const { handle, container } = open()
+    act(() => void fireEvent.change(container.querySelector('.cs-playhead')!, { target: { value: '2200' } }))
+    expect(handle.session.authoringTime).toBe(2200)
+  })
+
+  it('still lets a teacher play and pause', () => {
+    const { handle, container } = open()
+    act(() => void fireEvent.click(within(container).getByRole('button', { name: /^play$/i })))
+    expect(handle.playback.state).toBe('playing')
+  })
+
+  it('disables every sequence control', () => {
+    const { container } = open()
+    for (const control of container.querySelectorAll('.cs-sequence select, .cs-sequence input')) {
+      expect((control as HTMLSelectElement).disabled).toBe(true)
+    }
+  })
+
+  it('disables every effect control', () => {
+    const { handle, container } = open()
+    // The inspector shows an element's panel only when one is selected — and selecting is
+    // reading, so read-only permits it.
+    act(() => handle.session.select([handle.session.draft.slides[0]!.elements[0]!.id]))
+    const controls = container.querySelectorAll('.cs-effects select, .cs-effects input, .cs-effects button')
+    expect(controls.length).toBeGreaterThan(0)
+    for (const control of controls) expect((control as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('refuses a re-time dragged anyway, and says why', () => {
+    const { handle } = open()
+    const el = handle.session.draft.slides[0]!.elements[0]!
+    let refused = false
+    act(() => {
+      refused = !handle.session.apply({ kind: 'set-timing', id: el.id, startMs: 500 }).ok
+    })
+    expect(refused).toBe(true)
   })
 })

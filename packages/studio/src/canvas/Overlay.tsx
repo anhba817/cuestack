@@ -28,6 +28,14 @@ export interface OverlayProps {
   readonly absent: readonly Element[]
   readonly canvas: CanvasSize
   readonly editors: ElementEditorRegistry
+  /**
+   * The moment the canvas is showing.
+   *
+   * Not `session.authoringTime`, which R-02 leaves stale while playing: a ghost read from it
+   * would label an element that has already finished as "not yet" — a wrong label, not
+   * merely a stale one (feature 006 T029).
+   */
+  readonly atMs: number
 }
 
 /**
@@ -46,7 +54,7 @@ export interface OverlayProps {
  * `gesture.ts`, and writes the result back as custom properties; the arithmetic is tested
  * with no browser at all (research R-04, R-10).
  */
-export function Overlay({ session, slide, absent, canvas, editors }: OverlayProps): ReactNode {
+export function Overlay({ session, slide, absent, canvas, editors, atMs }: OverlayProps): ReactNode {
   const root = useRef<HTMLDivElement>(null)
   const [gesture, setGesture] = useState<GestureState | null>(null)
   const [frame, setFrame] = useState<GestureFrame | null>(null)
@@ -299,7 +307,7 @@ export function Overlay({ session, slide, absent, canvas, editors }: OverlayProp
         <Ghost
           key={element.id}
           element={element}
-          reason={ghostReason(element, session.authoringTime)}
+          reason={ghostReason(element, atMs)}
           selected={session.selection.includes(element.id)}
           onSelect={() => session.select([element.id])}
         />

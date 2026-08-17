@@ -27,7 +27,9 @@ export default function EditPage() {
       <h1>Authoring</h1>
       <p>
         The same lesson the player renders next door, open in the editor. Add an element, drag
-        it, type into it, and describe it in the panel. Nothing is saved.
+        it, type into it, and describe it in the panel. Below the canvas, the timeline: a track
+        per element, a playhead that moves the canvas, and play on the same clock the player
+        uses. Nothing is saved.
       </p>
       <EditorView lesson={tourLesson} />
     </main>

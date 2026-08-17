@@ -1,8 +1,10 @@
-import { act, fireEvent } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, cleanup, fireEvent } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
 import axe from 'axe-core'
 import { renderEditor } from '../harness/editor.js'
 import { element, hidden, lessonWith, notYet, oneOfEachType } from '../harness/corpus.js'
+import { fakePorts } from '../harness/editor.js'
+import { timelineLesson } from '../harness/timeline.js'
 
 /**
  * T105 — SC-006, Constitution III.
@@ -18,6 +20,18 @@ import { element, hidden, lessonWith, notYet, oneOfEachType } from '../harness/c
  * flagged it. The nine-step manual pass in quickstart.md is where that class lives.
  */
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
+
+/**
+ * Unmount between tests, which this workspace does not do by default.
+ *
+ * RTL's auto-cleanup needs `globals: true` or an explicit hook, and this repo has neither —
+ * so every rendered tree stays in `document.body` for the whole file. Harmless for a scoped
+ * query; **not** harmless for axe, because React's `useId` is per-root and several mounted
+ * roots eventually mint the same id, which axe correctly reports as a duplicate. That is an
+ * artefact of the environment rather than a defect in the editor, and unmounting removes it
+ * at the source rather than by excluding a rule.
+ */
+afterEach(cleanup)
 
 async function violations(node: HTMLElement): Promise<axe.Result[]> {
   const results = await axe.run(node, { runOnly: { type: 'tag', values: TAGS } })
@@ -76,5 +90,82 @@ describe('the editor has no WCAG 2.2 AA violations', () => {
   it('on an empty slide, which is where a teacher starts', async () => {
     const { container } = renderEditor(lessonWith([]))
     expect(describeViolations(await violations(container))).toBe('')
+  })
+})
+
+describe('the surfaces feature 006 adds', () => {
+  /**
+   * The timeline, the sequence view, and the effect controls — in the states an affordance
+   * appears in, not only at rest.
+   *
+   * The same caveat as above applies with more force here: axe cannot check a focus
+   * indicator, cannot judge whether "at 2.40s" is intelligible next to a relationship, and
+   * cannot tell whether tabbing through fifty-five tracks to reach the transport is
+   * reasonable. `keyboard/focus.test.tsx` covers the first; the manual pass covers the rest.
+   */
+  const full = () =>
+    timelineLesson([
+      element({
+        startMs: 0,
+        endMs: 4000,
+        effects: [{ id: 'fx-1', type: 'fade', phase: 'enter', startMs: 0, durationMs: 400, order: 0 }],
+      }),
+      element({ startMs: 2000, endMs: 6000 }),
+    ])
+
+  it('reports nothing on the timeline', async () => {
+    const { container } = renderEditor(full(), { timeline: true, ports: fakePorts() })
+    expect(await violations(container)).toEqual([])
+  })
+
+  it('reports nothing on the sequence view', async () => {
+    const { container } = renderEditor(full(), { sequence: true })
+    expect(await violations(container)).toEqual([])
+  })
+
+  it('reports nothing on the effect controls, with an effect present', async () => {
+    const { handle, container } = renderEditor(full(), { inspector: true })
+    act(() => handle.session.select([handle.session.draft.slides[0]!.elements[0]!.id]))
+    expect(await violations(container)).toEqual([])
+  })
+
+  it('reports nothing with the Custom confirmation open', async () => {
+    /**
+     * Two overlapping elements and nothing else, so exactly one row is Custom.
+     *
+     * `full()` will not do: its second element starts 1 600 ms after the fade ends, which
+     * classifies as a *delay* and applies without asking. That fixture passed this assertion
+     * before `afterEach(cleanup)` was added — the dialog it found belonged to a previous
+     * test's tree. Cleanup is what made the suite honest about it.
+     */
+    const { container } = renderEditor(
+      timelineLesson([element({ startMs: 0, endMs: 4000 }), element({ startMs: 2000, endMs: 6000 })]),
+      { sequence: true },
+    )
+    act(() =>
+      void fireEvent.change(container.querySelector('.cs-sequence select')!, {
+        target: { value: 'after-previous' },
+      }),
+    )
+    expect(container.querySelector('[role="alertdialog"]')).toBeTruthy()
+    expect(
+      (await violations(container)).map((v) => `${v.id} | ${v.nodes[0]?.html?.slice(0, 120)}`),
+    ).toEqual([])
+  })
+
+  it('reports nothing with an overrun panel showing', async () => {
+    const { container } = renderEditor(
+      timelineLesson([element({ startMs: 0, endMs: 12_000 })]),
+      { timeline: true, ports: fakePorts() },
+    )
+    expect(container.querySelector('.cs-timeline-problems')).toBeTruthy()
+    expect(await violations(container)).toEqual([])
+  })
+
+  it('reports nothing while playing', async () => {
+    const ports = fakePorts()
+    const { handle, container } = renderEditor(full(), { timeline: true, ports })
+    act(() => handle.playback.play())
+    expect(await violations(container)).toEqual([])
   })
 })
