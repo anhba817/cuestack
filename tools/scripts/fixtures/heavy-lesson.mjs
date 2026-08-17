@@ -12,6 +12,9 @@
  * a number that does not answer the criterion — fast, truthful, and about the wrong thing.
  * Every tenth slide carries a video and a required question.
  *
+ * **The last slide is dense**, carrying 55 of the 300 elements. The editor's timeline is
+ * per slide, so an even six-per-slide spread would let SC-012 pass while measuring nothing.
+ *
  * Deterministic: no clock, no randomness. A performance comparison between two runs is only
  * meaningful if the input is identical, and a fixture that varied would make every budget
  * regression ambiguous.
@@ -21,9 +24,23 @@ const SLIDES = 50
 const ELEMENTS = 300
 const SLIDE_MS = 8000
 
-/** 300 across 50 slides is six each; the remainder rides on the last slide. */
-const PER_SLIDE = Math.floor(ELEMENTS / SLIDES)
-const REMAINDER = ELEMENTS - PER_SLIDE * SLIDES
+/**
+ * The last slide is dense, and that is a requirement rather than a quirk.
+ *
+ * Feature 006 T004. An even spread puts six elements on every slide, and the editor's
+ * timeline is *per slide* (FR-TIM-001) — so SC-012's "stays responsive at 50 slides and 300
+ * elements" would have been measured against six tracks, which is not a load. A criterion
+ * that passes because the fixture is easy is the theme-gate mistake in a new place: green
+ * while measuring nothing (research R-09).
+ *
+ * One fixture, not two. The Constitution names *the* performance fixture; a second one is
+ * the copy that drifts. `ELEMENTS` is unchanged at 300 — this redistributes, it does not add.
+ */
+const DENSE_SLIDE_ELEMENTS = 55
+
+/** The remaining 245 spread evenly over the other 49; any remainder rides on the dense one. */
+const PER_SLIDE = Math.floor((ELEMENTS - DENSE_SLIDE_ELEMENTS) / (SLIDES - 1))
+const REMAINDER = ELEMENTS - DENSE_SLIDE_ELEMENTS - PER_SLIDE * (SLIDES - 1)
 
 const EFFECT_CYCLE = [
   { type: 'fade', phase: 'enter' },
@@ -121,7 +138,8 @@ export function heavyLesson() {
     // Every tenth slide is the interesting one: media and a required question, which is
     // what SC-008 measures a seek against.
     const rich = s % 10 === 0
-    const count = PER_SLIDE + (s === SLIDES - 1 ? REMAINDER : 0)
+    const dense = s === SLIDES - 1
+    const count = dense ? DENSE_SLIDE_ELEMENTS + REMAINDER : PER_SLIDE
     const elements = []
 
     const fillers = rich ? count - 2 : count
@@ -160,13 +178,15 @@ export function heavyLesson() {
   }
 }
 
-/** Slide count, element count, and how many carry media or a question. */
+/** Slide count, element count, how many carry media or a question, and the densest slide. */
 export function heavyLessonShape() {
   const lesson = heavyLesson()
   const elements = lesson.slides.flatMap((s) => s.elements)
   return {
     slides: lesson.slides.length,
     elements: elements.length,
+    // What the editor's timeline actually faces, which is not elements/slides (research R-09).
+    densestSlide: Math.max(...lesson.slides.map((s) => s.elements.length)),
     media: elements.filter((e) => e.type === 'video' || e.type === 'audio').length,
     questions: elements.filter((e) => e.type === 'question').length,
   }
@@ -190,6 +210,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
   }
   console.log(
     `heavy-lesson: ok — ${shape.slides} slides, ${shape.elements} elements ` +
-      `(${shape.media} media, ${shape.questions} required questions)`,
+      `(${shape.media} media, ${shape.questions} required questions, ` +
+      `densest slide ${shape.densestSlide})`,
   )
 }

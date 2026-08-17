@@ -264,6 +264,55 @@ export default tseslint.config(
     },
   },
   {
+    /**
+     * Feature 006 T002: there is one clock, and it is not in the editor.
+     *
+     * `createTransport` has been in `@cuestack/core` since Wave 1 and the player has driven
+     * it since Wave 3. The editor becomes its second consumer and ED-6 will be its third;
+     * the specification named two clocks as the failure mode to design against, and
+     * intention is not a mechanism.
+     *
+     * **No `ignores`, and that is the point.** Both primitives the editor needs already live
+     * in `@cuestack/react` — `requestAnimationFrame` inside `useFrameLoop`, `performance.now`
+     * inside `browserPorts` — so `usePlayback` imports rather than reimplements, and the rule
+     * needs no exemption at the one module most likely to grow a clock (research R-01).
+     *
+     * Written with rule names the studio blocks do not already use. Flat config *replaces* a
+     * rule's configuration rather than merging it, so putting these on
+     * `no-restricted-properties` would disarm the DOM-measurement ban above for every file
+     * both blocks match — feature 005's innerHTML defect exactly. `NO_INNER_HTML` is spread
+     * back in for the same reason.
+     */
+    files: ['packages/studio/src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['setTimeout', 'setInterval', 'requestAnimationFrame', 'Date'].map((name) => ({
+          name,
+          message:
+            `no-clock-in-studio: ${name} may not be read in the editor. Time comes from the ` +
+            'transport — `createTransport` with `browserPorts()`, driven by `useFrameLoop`, both ' +
+            'from @cuestack/react. A second clock is the failure mode this feature was designed ' +
+            'against (research R-01, FR-011).',
+        })),
+      ],
+      'no-restricted-syntax': [
+        'error',
+        // Narrower block than the workspace-wide one, so it replaces it: spread it back in.
+        ...NO_INNER_HTML,
+        ...[
+          ['Date', 'now'],
+          ['performance', 'now'],
+        ].map(([object, property]) => ({
+          selector: `MemberExpression[object.name='${object}'][property.name='${property}']`,
+          message:
+            `no-clock-in-studio: ${object}.${property} may not be read in the editor. Ask the ` +
+            'transport what time it is (research R-01, FR-011).',
+        })),
+      ],
+    },
+  },
+  {
     // dependency-cruiser's config is CommonJS by design — it is loaded by a tool
     // that predates ESM config support.
     files: ['**/*.cjs'],

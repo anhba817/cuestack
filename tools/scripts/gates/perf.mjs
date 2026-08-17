@@ -72,6 +72,16 @@ console.log(
 )
 console.log('  interactive at 50 slides/300 elements < 3s (NFR-PERF-001), each with the same margin.')
 console.log(
+  `gate:perf — timeline budgets met on the densest slide (${shape.densestSlide} elements): ` +
+    'playhead-to-rendered-state < 100ms (SC-003) and drag feedback < 100ms (SC-004).',
+)
+console.log(
+  '  Measured against the *dense* slide deliberately. The timeline is per-slide, so an even',
+)
+console.log(
+  '  six-per-slide spread would let SC-012 pass while measuring nothing (feature 006, R-09).',
+)
+console.log(
   '  This measures the player’s own work — resolve, compose, frame writes, React commit —',
 )
 console.log(

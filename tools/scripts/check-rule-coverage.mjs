@@ -24,8 +24,6 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
  * The remaining rules have no code to test yet:
  *   BR-008, BR-009  publishing and immutable versions   — Wave 5
  *   BR-012          accessibility policy enforcement    — organisation policy, Wave 5
- *   BR-016          Simple Sequence resolution           — Wave 4
- *   BR-017          duration reduced below event end     — Wave 4 editor warning
  *   BR-018          published asset references           — Wave 5
  */
 const EXPECTED = {
@@ -41,6 +39,11 @@ const EXPECTED = {
   'BR-013': 'core',
   'BR-014': 'react',
   'BR-015': 'core',
+  // Wave 4, feature 006. Both are authoring rules: the kernel supplies the raw material —
+  // `collectProblems` has emitted the overrun since Wave 1 — but neither rule had a surface
+  // that could enforce it until the timeline existed.
+  'BR-016': 'studio',
+  'BR-017': 'studio',
 }
 
 function rulesIn(pkg) {

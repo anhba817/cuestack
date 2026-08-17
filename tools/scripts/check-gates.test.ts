@@ -135,6 +135,42 @@ describe('gate: determinism lint', () => {
   })
 })
 
+describe('gate: no clock in the editor', () => {
+  /**
+   * Feature 006 T003. The specification named two clocks as the failure mode to design
+   * against, so the bound is a rule that fails a gate rather than a decision in a document.
+   *
+   * The second test is the one that matters. Feature 005's workspace-wide innerHTML ban
+   * silently disarmed two narrower rules, because flat config *replaces* a rule's
+   * configuration rather than merging it — and only a self-test found it. The clock rule is
+   * a second block matching the same studio files, so it is the same hazard again: it uses
+   * rule names the measurement block does not, and this asserts that choice held.
+   */
+  const probe = join(root, 'packages/studio/src/__gate_probe__.ts')
+
+  it('rejects a clock read in the studio package, naming the rule', () => {
+    try {
+      writeFileSync(probe, 'export const stamp = Date.now()\n')
+      const output = runExpectingFailure('pnpm', ['exec', 'eslint', 'packages/studio/src'])
+      expect(output).not.toBe('')
+      expect(output).toContain('no-clock-in-studio')
+    } finally {
+      rmSync(probe, { force: true })
+    }
+  })
+
+  it('did not disarm the DOM-measurement ban it sits beside', () => {
+    try {
+      writeFileSync(probe, 'export const w = (n: Element) => n.getBoundingClientRect().width\n')
+      const output = runExpectingFailure('pnpm', ['exec', 'eslint', 'packages/studio/src'])
+      expect(output).not.toBe('')
+      expect(output).toContain('dom-measurement-confined')
+    } finally {
+      rmSync(probe, { force: true })
+    }
+  })
+})
+
 describe('gate: typecheck', () => {
   it('rejects a type error', () => {
     const probe = join(root, 'packages/schema/src/__gate_probe__.ts')
@@ -366,6 +402,56 @@ describe('gate: playback performance', () => {
     const out = execFileSync('node', ['tools/scripts/gates/perf.mjs'], { cwd: root, encoding: 'utf8' })
     expect(out).toContain('NOT paint')
     expect(out).toMatch(/browser-based check is still required/)
+  })
+})
+
+describe('gate: the editor’s timeline budgets', () => {
+  /**
+   * Feature 006 T098. The perf gate runs the whole `test/perf` directory of the studio
+   * package, so the timeline's budgets are armed by being there — and this is what proves
+   * "armed by being there" is true rather than assumed.
+   *
+   * A probe that costs more than the budget must turn the gate red. Without this, adding a
+   * suite to that directory and having it silently excluded would look exactly like a pass.
+   */
+  const probe = join(root, 'packages/studio/test/perf/__gate_probe__.test.ts')
+
+  it('rejects a timeline interaction that exceeds its budget', () => {
+    try {
+      writeFileSync(
+        probe,
+        [
+          "import { describe, expect, it } from 'vitest'",
+          '',
+          "describe('gate probe: a seek that costs more than the budget', () => {",
+          "  it('exceeds the interaction budget', () => {",
+          '    const started = performance.now()',
+          '    while (performance.now() - started < 200) {',
+          '      // Busy-wait: 200 ms against a 90 ms budget.',
+          '    }',
+          '    expect(performance.now() - started).toBeLessThan(90)',
+          '  })',
+          '})',
+          '',
+        ].join('\n'),
+      )
+      const output = runExpectingFailure('node', ['tools/scripts/gates/perf.mjs'])
+      expect(output).not.toBe('')
+      expect(output).toMatch(/editor exceeded|interaction|seek|startup/i)
+    } finally {
+      rmSync(probe, { force: true })
+    }
+  })
+
+  it('reports the dense slide it measured against, so a pass names its own fixture', () => {
+    // R-09: the timeline is per-slide, and an even spread would let SC-012 pass while
+    // measuring six tracks. A gate that did not say which slide it used could not be checked.
+    const output = execFileSync('node', ['tools/scripts/gates/perf.mjs'], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: 'pipe',
+    })
+    expect(output).toMatch(/densest slide \(\d+ elements\)/)
   })
 })
 
