@@ -53,7 +53,7 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
 
     Wave 4 — Studio editor  (after Wave 3)
       ✅ EN-5 ──→ ✅ ED-1 ──→ ✅ ED-2
-                    ├──→ 🔲 ED-3 ──→ 🔲 ED-4
+                    ├──→ ✅ ED-3 ──→ ✅ ED-4
                     └──→ 🔲 ED-5
       ✅ RC-1 ──→ 🔲 ED-6 ──→ 🔲 QA-5               (preview reuses the player — parity by construction)
 
@@ -98,12 +98,12 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 | 3 | PL-2 media sync, gesture gate, media-end advance | RC-2 | 3 | 2 | 1 | 2 | 6 | ✅ |
 | 3 | PL-3 transitions, progress, completion, errors | RC-2 | 2 | 1 | 2 | 1 | 5 | ✅ |
 | 4 | ED-6 preview harness (from start/slide/time) | RC-1 | 3 | 2 | 2 | 0 | 9 | 🔲 |
-| 4 | ED-4 Simple Sequence Mode ↔ timeline | ED-3 | 3 | 2 | 1 | 1 | 7 | 🔲 |
+| 4 | ED-4 Simple Sequence Mode ↔ timeline | ED-3 | 3 | 2 | 1 | 1 | 7 | ✅ |
 | 4 | QA-5 editor↔player parity harness | ED-6 | 0 | 3 | 1 | 0 | 7 | 🔲 |
 | 4 | ED-2 properties inspector (plugin-driven) | ED-1 | 3 | 1 | 1 | 0 | 6 | ✅ |
 | 4 | ED-5 undo/redo, autosave, offline queue | ED-1 | 3 | 2 | 0 | 2 | 5 | 🔲 |
 | 4 | ED-1 canvas: move/resize/rotate, snap, layers | EN-5 | 3 | 1 | 0 | 1 | 4 | ✅ |
-| 4 | ED-3 timeline UI: tracks, playhead, drag | ED-1 | 3 | 1 | 0 | 1 | 4 | 🔲 |
+| 4 | ED-3 timeline UI: tracks, playhead, drag | ED-1 | 3 | 1 | 0 | 1 | 4 | ✅ |
 | 5 | DX-2 `@cuestack/element` web-component adapter | RC-1 | 1 | 3 | 1 | 0 | 8 | 🔲 |
 | 5 | PB-3 `@cuestack/adapter-http` reference REST adapter | EN-6 | 3 | 2 | 2 | 1 | 8 | 🔲 |
 | 5 | SCH-3 portable export/import package | SCH-2 | 3 | 2 | 1 | 1 | 7 | 🔲 |
@@ -190,8 +190,41 @@ but QA-5 compares *preview* to playback and preview is ED-6. Marking it armed he
 third time a gate in this project claimed more than it enforced. What ED-1 and ED-2 did was make
 the comparison possible for the first time.
 
-**Proposed next tranche: the rest of Wave 4 — ED-3..6 and QA-5.** ED-6 is the one to take first:
-it arms the parity gate, and it is the smaller half of what remains.
+**ED-3 and ED-4 are complete: time is visible, editable, and sequenceable.** A teacher can see a
+track per element, drag its timing, play the slide on the player's own clock, author any of the
+eight effects, and order events in words rather than milliseconds. 1,7xx tests.
+
+**The framework's own effect library became reachable.** Eight effects have been implemented,
+tested, and unusable by a teacher since Wave 1 — `Element.effects` was a field only a hand-written
+manifest could populate. That is the largest single thing this tranche changed, and it needed one
+core addition: `EffectDescriptor` gained `parameters`, reusing `InspectorField`. Reading the eight
+implementations to write it found that `slide.from` is a *direction string* while `zoom.from` is a
+*starting scale number* — one key, two types, in two effects a teacher picks between in the same
+menu. A central parameter table would have offered `zoom` a direction dropdown; per-descriptor
+declaration is not merely tidier, the alternative was wrong.
+
+**One clock, and a lint rule rather than an intention.** The editor drives `createTransport`, which
+has been in the kernel since Wave 1. `no-clock-in-studio` forbids `performance.now`, `Date.now`,
+`setInterval`, `setTimeout`, and `requestAnimationFrame` in the studio package **with no
+exemption** — possible only because `@cuestack/react` now exports `browserPorts`, which existed
+since Wave 3 and had never been exported because every consumer was inside that package.
+
+**Wave 4's version of the recurring lesson, twice.** `ResolveContext.effects` has always accepted a
+registry and **nothing has ever passed one** — every call site in the player and the editor is
+two-argument. And `RenderState.problems` has carried `ELEMENT_BEYOND_SLIDE` since Wave 1 with no
+reader, so US5 is a consumer for a mechanism that already existed. That is now four instances of
+the same shape — `ElementPlugin.inspector`, `EffectDescriptor.parameters`, `RenderState.problems`,
+`ResolveContext.effects` — and the pattern is worth naming: the kernel has been built ahead of its
+consumers, so the reliable way to review one of its contracts is to try to use it.
+
+**Wave 3's defect, nearly reproduced.** `EditorCanvas` resolves at render time from
+`session.authoringTime`, which playback deliberately leaves stale — so an element entering
+mid-slide would never have mounted, and every planned test drove a seek, which re-renders. The
+suite now carries one test that plays through an element's `startMs` with **no seek at all**. That
+is the same sentence `useFrameLoop`'s header already records about the player.
+
+**Proposed next tranche: ED-5, ED-6 and QA-5.** ED-6 arms the parity gate and is the smaller half
+of what remains; ED-5 owes undo, which two confirmations in this editor are standing in for.
 
 Obligations carried forward, now five:
 
@@ -207,9 +240,17 @@ Obligations carried forward, now five:
 - **Deletion is confirmed, not undoable.** Constitution III accepts either; ED-5 owes the
   replacement, and owes *removing* the prompt rather than leaving a tool that both confirms and
   undoes every deletion.
-- **The authoring-time scrub is a second control writing a value the playhead will also write.**
-  ED-3 owes the merge. One control for one number is fine for one feature and is a parity hazard if
-  it outlives ED-3.
+- ~~**The authoring-time scrub is a second control writing a value the playhead will also
+  write.**~~ **Discharged by ED-3.** `canvas/AuthoringTime.tsx` is deleted rather than deprecated,
+  and its five focus tests migrated to the playhead — they were the playhead's requirements
+  restated. There is one authoring time and one control writing it.
+- ~~**BR-017 is unenforceable.**~~ **Discharged by ED-3.** A shortened slide clamps nothing and the
+  overrun is reported on the timeline, with an offered action that computes the target from the
+  draft. PB-1 still owns blocking a *publish*, which is a different job.
+- **A slide of zero duration is legal and now handled.** `Slide.durationMs` is `msInt` — integer
+  ≥ 0, not the positive `msDuration` an earlier design document asserted from memory — so a slide
+  advancing `on_click` may carry none. Every element on it overruns, correctly; the timeline says
+  so once, about the slide.
 - **`ElementPlugin.validate` still has no consumer.** This feature gave `inspector` its first after
   three waves; `validate` is now in exactly that position, and PB-1 is the item that owes it one.
 - **The theme-values gate cannot see CSS.** It delegates to ESLint, which does not parse
