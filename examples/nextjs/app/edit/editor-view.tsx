@@ -4,11 +4,13 @@ import { useState } from 'react'
 import {
   EditorCanvas,
   Inspector,
+  Preview,
   Timeline,
   builtinElementEditors,
   createElementEditorRegistry,
   useEditorSession,
   usePlayback,
+  type PreviewStart,
 } from '@cuestack/studio'
 import type { LessonManifest } from '@cuestack/schema'
 
@@ -33,6 +35,15 @@ const editors = createElementEditorRegistry(builtinElementEditors)
  */
 export function EditorView({ lesson }: { lesson: LessonManifest }) {
   const [saved, setSaved] = useState(0)
+  /**
+   * The preview, and the two things a host has to do around it.
+   *
+   * `null` when closed rather than a boolean beside a start point, so the two cannot
+   * disagree — a preview is always open *from* somewhere. And opening pauses playback first:
+   * the editor's own clock does not stop by itself, and two clocks over one slide would move
+   * the authoring time the preview promises to leave alone.
+   */
+  const [previewFrom, setPreviewFrom] = useState<PreviewStart | null>(null)
   const session = useEditorSession({
     manifest: lesson,
     slideId: lesson.slides[0]!.id,
@@ -56,6 +67,23 @@ export function EditorView({ lesson }: { lesson: LessonManifest }) {
         atMs={playback.atMs}
       />
       <Timeline session={session} playback={playback} />
+      <p>
+        {(['beginning', 'slide', 'position'] as const).map((from) => (
+          <button
+            key={from}
+            type="button"
+            onClick={() => {
+              playback.pause()
+              setPreviewFrom(from)
+            }}
+          >
+            {`Preview from the ${from}`}
+          </button>
+        ))}
+      </p>
+      {previewFrom ? (
+        <Preview session={session} from={previewFrom} onClose={() => setPreviewFrom(null)} />
+      ) : null}
       <Inspector session={session} slide={slide} editors={editors} />
     </div>
   )

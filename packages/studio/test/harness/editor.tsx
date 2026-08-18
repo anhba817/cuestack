@@ -1,7 +1,9 @@
+import * as React from 'react'
 import { act } from 'react'
 import { render } from '@testing-library/react'
 import type { LessonManifest } from '@cuestack/schema'
 import type { EffectRegistry, Ports } from '@cuestack/core'
+import type { AssetResolver } from '@cuestack/react'
 import { EditorCanvas } from '../../src/canvas/EditorCanvas.js'
 import { Timeline } from '../../src/timeline/Timeline.js'
 import { Inspector } from '../../src/inspector/Inspector.js'
@@ -9,7 +11,9 @@ import { SequenceView } from '../../src/sequence/SequenceView.js'
 import { useEditorSession, type EditorMode, type EditorSession } from '../../src/session/useEditorSession.js'
 import { usePlayback, type Playback } from '../../src/session/usePlayback.js'
 import { builtinElementEditors, createElementEditorRegistry } from '../../src/registry/editors.js'
+import { Preview, type PreviewStart } from '../../src/preview/Preview.js'
 import { countingIds } from './ids.js'
+import { fakePlayerPorts, type PlayerPorts } from './preview.js'
 
 const DEFAULT_EDITORS = createElementEditorRegistry(builtinElementEditors)
 
@@ -38,6 +42,21 @@ export interface EditorHandle {
   readonly session: EditorSession
   /** Present only when `playback: true`. */
   readonly playback: Playback
+  /** The player's ports, with a hand-advanced clock. Live whenever a preview is mounted. */
+  readonly previewPorts: PlayerPorts
+  /** How many times the preview asked to close. */
+  closes(): number
+  /** Whether the preview is still mounted. */
+  open(): boolean
+  /**
+   * Open a preview now, from the given start point.
+   *
+   * Separate from the `preview` option because the start point is captured on the preview's
+   * *first render*, so a test that needs a particular authoring time has to set it before the
+   * preview exists. That is also the order a teacher performs: move the playhead, then press
+   * Preview.
+   */
+  openPreview(from?: PreviewStart): void
 }
 
 export interface RenderEditorOptions {
@@ -54,8 +73,25 @@ export interface RenderEditorOptions {
    * not appear and the test would assert against the element it captured at setup.
    */
   readonly inspector?: boolean
-  /** A host's effect registry. One instance reaches the menu *and* `resolve` (FR-026). */
+  /**
+   * A host's effect registry. One instance reaches the menu, the inspector, **and the
+   * canvas's own `resolve`** — the third of those is what feature 006 left undone.
+   */
   readonly effects?: EffectRegistry
+  /** A host's asset resolver, which the canvas passes to `SlideView` (FR-003). */
+  readonly resolveAsset?: AssetResolver
+  /**
+   * Mount `<Preview>` **inside the tree**, open, from the given start point.
+   *
+   * Inside for the reason this whole file exists, and one more: the preview holds the draft
+   * as it stood when it opened, so a preview rendered from a captured session snapshot would
+   * hold a snapshot of a snapshot and every assertion about unsaved edits would be vacuous.
+   *
+   * Threaded with `fakePlayerPorts()` — a **full** `Ports`, unlike `options.ports`, which is
+   * the two-member Pick `usePlayback` takes. The player needs all six or it builds
+   * `browserPorts()` and there is no clock to advance.
+   */
+  readonly preview?: PreviewStart | boolean
   /** Render Simple Sequence. The same timing data as the timeline, never a second copy. */
   readonly sequence?: boolean
   /**
@@ -69,7 +105,26 @@ export function renderEditor(
   manifest: LessonManifest,
   options: RenderEditorOptions = {},
 ): { handle: EditorHandle; container: HTMLElement; unmount: () => void } {
-  const holder = { session: undefined as unknown as EditorSession, playback: undefined as unknown as Playback }
+  const previewPorts = fakePlayerPorts()
+  let closes = 0
+  const holder = {
+    session: undefined as unknown as EditorSession,
+    playback: undefined as unknown as Playback,
+    previewPorts,
+    closes: () => closes,
+    open: () => openRef.value,
+    openPreview: (from: PreviewStart = fromRef.value) => {
+      act(() => setOpenExternal?.(from))
+    },
+  }
+  const openRef = { value: options.preview !== undefined && options.preview !== false }
+  const fromRef = {
+    value:
+      options.preview === true || options.preview === undefined || options.preview === false
+        ? ('position' as PreviewStart)
+        : options.preview,
+  }
+  let setOpenExternal: ((from: PreviewStart) => void) | null = null
   const idSource = countingIds()
   const withPlayback = options.playback === true || options.timeline === true
 
@@ -84,8 +139,17 @@ export function renderEditor(
     const slide = session.draft.slides.find((s) => s.id === session.slideId) ?? session.draft.slides[0]!
     return (
       <>
-        {withPlayback ? <WithPlayback session={session} /> : <EditorCanvas session={session} />}
+        {withPlayback ? (
+          <WithPlayback session={session} />
+        ) : (
+          <EditorCanvas
+            session={session}
+            {...(options.effects ? { effects: options.effects } : {})}
+            {...(options.resolveAsset ? { resolveAsset: options.resolveAsset } : {})}
+          />
+        )}
         {options.sequence ? <SequenceView session={session} /> : null}
+        <PreviewHost session={session} />
         {options.inspector ? (
           <Inspector
             session={session}
@@ -108,9 +172,35 @@ export function renderEditor(
           writer={playback.writer}
           {...(playback.frameState ? { state: playback.frameState } : {})}
           atMs={playback.atMs}
+          {...(options.effects ? { effects: options.effects } : {})}
+          {...(options.resolveAsset ? { resolveAsset: options.resolveAsset } : {})}
         />
         {options.timeline ? <Timeline session={session} playback={playback} /> : null}
       </>
+    )
+  }
+
+  function PreviewHost({ session }: { session: EditorSession }): React.ReactNode {
+    const [open, setOpen] = React.useState<PreviewStart | null>(
+      openRef.value ? fromRef.value : null,
+    )
+    openRef.value = open !== null
+    setOpenExternal = (next) => setOpen(next)
+    if (!open) return null
+    return (
+      <Preview
+        // Keyed on the start point so reopening from a different one is a fresh capture
+        // rather than a component reusing the moment it captured last time.
+        key={`${open}#${closes}`}
+        session={session}
+        from={open}
+        ports={previewPorts}
+        onClose={() => {
+          closes += 1
+          setOpen(null)
+        }}
+        {...(options.resolveAsset ? { resolveAsset: options.resolveAsset } : {})}
+      />
     )
   }
 

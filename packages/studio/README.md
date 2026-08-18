@@ -29,7 +29,7 @@ validator — and this package is not in a learner's browser.
 ## Usage
 
 ```tsx
-import { EditorCanvas, Inspector, useEditorSession } from '@cuestack/studio'
+import { EditorCanvas, Inspector, Preview, useEditorSession } from '@cuestack/studio'
 import '@cuestack/react/styles.css'
 import '@cuestack/studio/styles.css'
 
@@ -42,12 +42,88 @@ function Studio({ lesson }: { lesson: LessonManifest }) {
 
   return (
     <>
-      <EditorCanvas session={session} />
+      <EditorCanvas session={session} resolveAsset={resolveAsset} effects={effects} />
       <Inspector session={session} slide={currentSlide(session)} editors={builtinElementEditors} />
     </>
   )
 }
 ```
+
+## Previewing
+
+`<Preview>` mounts `<LessonPlayer>` over the current draft. It builds no renderer, no clock, and no
+effect implementation of its own, so what a teacher sees is what a learner receives — parity by
+construction rather than by comparison.
+
+```tsx
+const [previewFrom, setPreviewFrom] = useState<PreviewStart | null>(null)
+
+<button onClick={() => { playback.pause(); setPreviewFrom('position') }}>Preview</button>
+
+{previewFrom ? (
+  <Preview session={session} from={previewFrom} onClose={() => setPreviewFrom(null)} />
+) : null}
+```
+
+**Two things a host has to do, and neither happens by itself.**
+
+*Pause first.* The editor's own clock does not stop when a preview opens. Two clocks over one slide
+are two answers to what time it is, and the authoring time the preview promises to leave alone would
+move while the teacher watched.
+
+*Pass `resolveAsset` to both.* The preview inherits the editor's resolver, so give the same function
+to `<EditorCanvas>` — one resolver means the canvas and the preview cannot disagree about what an
+asset id points at.
+
+`from` is `'beginning'`, `'slide'`, or `'position'`. The start point is captured **once**, when the
+preview opens: a value that cannot change cannot drift, so restart has somewhere fixed to return to
+and closing restores nothing because nothing moved.
+
+The preview is a modal `<dialog>`. That is not decoration — Tab does not respect z-index, and every
+key handler in this package is element-scoped, so focus is the entire path into an edit. One Tab out
+of a merely-covering overlay and one arrow key would nudge an element, invisibly, since the preview
+holds the draft as it stood when it opened.
+
+**What it deliberately does not do.** It emits no analytics: the player records `lesson_started` on
+mount and a `slide_completed` for every slide it passes, so a preview left wired to a host's
+telemetry would report a teacher's checking as a learner's progress. And it writes nothing, ever,
+which is why it stays available in read-only mode — reviewing a lesson is reading it.
+
+### The override
+
+One switch, off at every open, that lets every gate through: a required interaction, media that has
+not ended, a click no player yet delivers. **One action, not one per gate** — a teacher eight slides
+in should not answer eight questions to reach the ninth.
+
+It releases a gate, never a slide's length: turning it on does not skip durations, so a teacher can
+still watch what they came to check. While it is on the preview says so continuously, because a
+switch that lasts is a switch that gets forgotten, and a teacher who forgets will conclude the
+lesson works when what worked was the switch.
+
+### Restart is a fresh run
+
+Restart returns to where the *preview* began — not the lesson's beginning — and it replays into a
+lesson whose questions are unanswered and whose gates are armed. That is a remount rather than a
+seek, deliberately: the learner's answers live in the player's own interaction state and the advance
+controller does not re-decide a slide whose instance has not changed, so a seek would replay a
+lesson in which every gate is already satisfied. Half the reason a teacher restarts is "does that
+question actually stop it?"
+
+Previous and next are the opposite case and also deliberate: they keep the answers, exactly as a
+learner moving within one run would experience.
+
+### Viewport presets
+
+Desktop, tablet, and mobile set the **width** of the preview's own wrapper. They cannot change the
+lesson's proportion — the stage's aspect ratio comes from the canvas, and every dimension beneath it
+scales with it, so a smaller preview is otherwise the same picture.
+
+What a preset actually reveals is the player's legibility floor. Type is `max(12px, …)`, so below
+roughly 600 px on a 16:9 canvas body text stops shrinking and grows relative to the box it was
+authored in. The three widths are chosen to straddle that; it is the only thing a preset can show,
+and it is the question a teacher opens one to answer. Deliberately *not* device emulation: no touch
+simulation, no user-agent spoofing, no chrome. Emulation that is not faithful invites conclusions it
+cannot support.
 
 ## Read-only
 

@@ -135,3 +135,16 @@ export type {
   ElementDefaults,
   TextSurface,
 } from './registry/editors.js'
+
+// Preview — the lesson as a learner receives it, inside the editor (feature 007).
+export { Preview } from './preview/Preview.js'
+export type { PreviewProps, PreviewStart } from './preview/Preview.js'
+export { PreviewControls } from './preview/PreviewControls.js'
+export type { PreviewControlsProps } from './preview/PreviewControls.js'
+export { ViewportPreset } from './preview/ViewportPreset.js'
+export { usePreviewSession } from './preview/usePreviewSession.js'
+export type { PreviewSession } from './preview/usePreviewSession.js'
+export { startPointFor } from './preview/startPoint.js'
+export type { StartPoint } from './preview/startPoint.js'
+export { PREVIEW_PRESETS, PREVIEW_PRESET_ORDER, TYPE_FLOOR_PX, floorsFor } from './preview/constants.js'
+export type { ViewportPreset as ViewportPresetName } from './preview/constants.js'

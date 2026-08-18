@@ -465,3 +465,110 @@
   margin: 0 0 6px;
   padding-left: 1.2em;
 }
+
+/*
+ * ============================================================================
+ * The preview (feature 007).
+ *
+ * The same two rules as everything above: chrome in absolute units, every colour from a
+ * theme token with a readable fallback, and the theme gate still cannot see this file.
+ *
+ * One rule of its own. The preview is a `<dialog>` opened with `showModal()`, whose
+ * suggested rendering is `width: fit-content` — so the user-agent sizing has to be
+ * overridden here or the whole feature is as wide as its control row and the viewport
+ * presets have nothing to act on.
+ * ============================================================================
+ */
+
+.cs-preview {
+  /* Overriding the UA's `fit-content`, deliberately and completely. */
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  padding: 0;
+  border: none;
+  background: var(--cs-theme-surface-default, #ffffff);
+  color: var(--cs-theme-text-primary, #111111);
+}
+
+.cs-preview::backdrop {
+  /*
+   * The dimmed editor behind. `::backdrop` inherits from its originating element in current
+   * browsers, so the token resolves — the fallback carries the weight where it does not,
+   * which is the same defensive shape every other declaration in this file uses.
+   */
+  background: var(--cs-theme-scrim, rgba(0, 0, 0, 0.6));
+}
+
+.cs-preview-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.cs-preview-chrome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+/*
+ * The override indicator, and why it is prose rather than a badge.
+ *
+ * FR-019: continuous, not once. A teacher who set the switch several slides ago and forgot
+ * it would conclude the lesson works when what worked was the switch. Conveyed by more than
+ * colour alone (NFR-ACC-003) — border, role, and a sentence.
+ */
+.cs-preview-indicator,
+.cs-preview-problem {
+  width: 100%;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--cs-theme-border-strong, #333333);
+  border-radius: 3px;
+  background: var(--cs-theme-surface-raised, #f2f2f2);
+  color: var(--cs-theme-text-primary, #111111);
+}
+
+/*
+ * The viewport wrapper — the element a preset sets a width on.
+ *
+ * Never the stage: `.cs-stage` *is* the container (`container-type: size`) and carries its
+ * own `aspect-ratio` from the lesson's canvas, so constraining this wrapper is enough and
+ * touching the stage would be wrong. `width` comes from the control as an inline style,
+ * because it is a value and not a mode.
+ */
+.cs-preview-viewport {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.cs-preview-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cs-preview-preset {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--cs-theme-border-muted, #999999);
+  border-radius: 3px;
+}
+
+.cs-preview-bound {
+  margin: 0;
+  color: var(--cs-theme-text-secondary, #444444);
+}
