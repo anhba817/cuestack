@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
-import { resolve, type RenderState } from '@cuestack/core'
+import { resolve, type EffectRegistry, type RenderState } from '@cuestack/core'
 import {
   Stage,
   SlideView,
   canvasFor,
   createRendererRegistry,
   staticRenderers,
+  type AssetResolver,
   type ElementRendererRegistry,
   type ThemeValues,
 } from '@cuestack/react'
@@ -49,6 +50,31 @@ export interface EditorCanvasProps {
   readonly state?: RenderState
   /** The moment the canvas is showing, for anything that must label it — ghosts, mainly. */
   readonly atMs?: number
+  /**
+   * Turning an asset id into something a browser can fetch — the host's function, not ours.
+   *
+   * `SlideView` has accepted one since Wave 3 and this component never passed it, so a host
+   * could give a resolver to `<LessonPlayer>` and not to the canvas: every image in the
+   * editor fell through `defaultAssetResolver`, which resolves nothing that is not already a
+   * locator. It looked correct because the reference lesson's ids are opaque and nothing
+   * serves them, so the fallback was what a teacher saw either way.
+   *
+   * The preview inherits *this* resolver rather than taking its own (FR-003). One resolver
+   * means the canvas and the preview cannot disagree about what an asset id points at, which
+   * is the parity failure this feature exists to prevent, one layer down.
+   */
+  readonly resolveAsset?: AssetResolver
+  /**
+   * The effects a host has registered, for the render-time `resolve`.
+   *
+   * Feature 006 gave this to the inspector and to the effect controls and not to the canvas,
+   * so a host registering a ninth effect got it **offered in the menu and rendered as
+   * `UNKNOWN_EFFECT_TYPE` on the stage** — the exact defect that requirement was raised to
+   * prevent. It escaped because the test drove `resolve(slide, t, { effects })` directly
+   * rather than through this component: the path that works was tested, not the path a host
+   * takes.
+   */
+  readonly effects?: EffectRegistry
 }
 
 /**
@@ -99,11 +125,13 @@ export function EditorCanvas({
   writer,
   state: frameState,
   atMs,
+  resolveAsset,
+  effects,
 }: EditorCanvasProps): ReactNode {
   const slide = currentSlide(session.draft, session.slideId)
   // The frame's state while playing; our own when idle. Both come from the same `resolve`,
   // which is what keeps this a second consumer of one engine rather than a second engine.
-  const state = frameState ?? resolve(slide, atMs ?? session.authoringTime)
+  const state = frameState ?? resolve(slide, atMs ?? session.authoringTime, effects ? { effects } : undefined)
 
   // Present in the draft, absent from the render. Computed here rather than stored: it is
   // derived session data and changes with the authoring time (data-model.md §7).
@@ -117,7 +145,12 @@ export function EditorCanvas({
   return (
     <div className="cs-editor">
       <Stage lesson={session.draft} {...(theme ? { theme } : {})}>
-        <SlideView state={state} renderers={renderers} {...(writer ? { writer } : {})} />
+        <SlideView
+          state={state}
+          renderers={renderers}
+          {...(writer ? { writer } : {})}
+          {...(resolveAsset ? { resolveAsset } : {})}
+        />
         <Overlay
           session={session}
           slide={slide}

@@ -159,6 +159,17 @@ moved. The changes are listed under Remediation applied at the end of this file.
 - [X] T063 [US3] Render effect bars on the element's track in `packages/studio/src/timeline/Track.tsx`, one per effect, overlapping bars drawn rather than collapsed
 - [X] T064 [US3] Add `effects?: EffectRegistry` to `InspectorProps` and wire `EffectControls` into `packages/studio/src/inspector/Inspector.tsx` for the selected element, then export the effect surface from `packages/studio/src/index.ts`. The prop mirrors the existing `plugins?: ElementRegistry` exactly — optional, defaulting to core's own, documented in the same place and for the same reason. Naming that symmetry is what stops the effect registry arriving as a differently-shaped afterthought, and it is the same instance T029 *(iv)* hands the canvas
 
+> **Shipped incomplete — recorded during feature 007's analysis.** T029 part *(iv)* was not
+> implemented: `EditorCanvasProps` never gained `effects`, and the canvas still calls
+> `resolve(slide, atMs)` with two arguments. `InspectorProps` and `EffectControlsProps` both
+> received the registry, so a host registering a ninth effect gets it **offered in the menu and
+> rendered as `UNKNOWN_EFFECT_TYPE` on the canvas** — the exact defect J1 was raised to prevent.
+>
+> It escaped because T051's ninth-effect test called `resolve(slide, 500, { effects: registry })`
+> **directly** rather than through the canvas: the path that works was tested, not the path a host
+> takes. That is the same shape as the defects this project keeps finding, and it is why the fix
+> (feature 007 T008) writes a *canvas-level* test first.
+
 **Checkpoint**: the framework's own effect library is reachable by a teacher for the first time since Wave 1.
 
 ---

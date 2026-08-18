@@ -166,6 +166,42 @@ describe('a ninth effect, registered by a host', () => {
     const unknown = resolve(slide, 500)
     expect(unknown.problems.some((p) => p.code === 'UNKNOWN_EFFECT_TYPE')).toBe(true)
   })
+
+  /**
+   * The same claim, made through the component a host actually mounts.
+   *
+   * **The test above shipped as the whole of it, and it was not enough.** It calls `resolve`
+   * directly with the registry, which proves the kernel resolves a registered effect — a
+   * thing nobody doubted. What it could not see is that `EditorCanvasProps` had no `effects`
+   * member at all, so the canvas called `resolve(slide, atMs)` with two arguments and a
+   * host's ninth effect was offered in the menu and rendered as `UNKNOWN_EFFECT_TYPE` on the
+   * stage: the exact defect feature 006's requirement was raised to prevent. The path that
+   * works was tested; the path a host takes was not.
+   *
+   * Asserted on the element's rendered opacity rather than on a problem list, because the
+   * canvas does not surface `problems` — what a teacher sees is whether the effect happened.
+   */
+  it('reaches the canvas, through the prop a host passes rather than a direct call', () => {
+    const el = element({
+      startMs: 0,
+      endMs: 8000,
+      effects: [
+        { id: 'fx-9', type: 'shimmer', phase: 'emphasis', startMs: 0, durationMs: 1000, order: 0 },
+      ],
+    })
+    const withRegistry = renderEditor(lessonWith([el]), { effects: registry })
+    act(() => withRegistry.handle.session.setAuthoringTime(500))
+    const styled = withRegistry.container.querySelector(`[data-cs-element-id="${el.id}"]`)
+    expect(styled?.getAttribute('style')).toContain('--cs-opacity')
+
+    // The negative control: the same canvas told nothing about the ninth effect renders it
+    // with no contribution at all. Without this, the assertion above would pass on a canvas
+    // that ignored the prop and happened to set the property for another reason.
+    const without = renderEditor(lessonWith([el]))
+    act(() => without.handle.session.setAuthoringTime(500))
+    const plain = without.container.querySelector(`[data-cs-element-id="${el.id}"]`)
+    expect(plain?.getAttribute('style') ?? '').not.toContain('--cs-opacity')
+  })
 })
 
 describe('read-only', () => {
