@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { fakePorts, renderEditor } from '../harness/editor.js'
 import { element, hidden, lessonWith, notYet } from '../harness/corpus.js'
 import { timelineLesson } from '../harness/timeline.js'
+import { multiSlideLesson as previewLesson } from '../harness/preview.js'
 
 /**
  * T104 — SC-007, FR-044: editor state never reaches the manifest.
@@ -134,6 +135,55 @@ describe('feature 006 adds four more values that must not reach a manifest (SC-0
     expect(strip(handle.session.draft)).toBe(strip(before))
     for (const leak of ['relationship', 'sequence', 'withPrevious', 'afterPrevious', 'custom']) {
       expect(JSON.stringify(handle.session.draft), leak).not.toContain(leak)
+    }
+  })
+})
+
+/**
+ * Preview state (feature 007).
+ *
+ * Four more values join this invariant: where a preview started, whether the override was on,
+ * which viewport preset was chosen, and whether a preview was open at all. Features 005 and
+ * 006 each added values here; this one must not be the feature that breaks it.
+ *
+ * The values are held by `usePreviewSession`, which dies with the preview — so the assertion
+ * is that they never reach the *session* in the first place, rather than that they are
+ * cleaned up afterwards. Those are different guarantees and only one of them survives a crash.
+ */
+describe('nothing about a preview reaches the manifest', () => {
+  const preview = (container: HTMLElement): HTMLElement =>
+    container.querySelector('.cs-preview') as HTMLElement
+
+  it('leaves the draft byte-identical through a whole preview session', async () => {
+    const lesson = previewLesson()
+    const before = JSON.stringify(lesson)
+    const { handle, container } = renderEditor(lesson, { preview: 'position', timeline: true })
+
+    // Everything a teacher can do to a preview, in one go.
+    act(() => void fireEvent.click(preview(container).querySelector('[data-cs-preview-override]')!))
+    act(() =>
+      void fireEvent.click(
+        preview(container).querySelector('input[name="cs-preview-preset"][value="mobile"]')!,
+      ),
+    )
+    act(() => void fireEvent.click(preview(container).querySelector('[data-cs-preview-restart]')!))
+    // Restart remounts the player, so its transport is null until the mount effect runs and
+    // `PreviewControls` renders nothing in between — one commit, one frame in a browser. The
+    // await is what lets that effect run; a synchronous `act` does not reach it. Settling here
+    // rather than reordering the actions, because the order is what a teacher would do.
+    await act(async () => undefined)
+    act(() => void fireEvent.click(preview(container).querySelector('[data-cs-preview-next]')!))
+    act(() => void fireEvent.click(preview(container).querySelector('[data-cs-preview-close]')!))
+
+    expect(JSON.stringify(handle.session.draft)).toBe(before)
+  })
+
+  it('names none of the preview’s own vocabulary anywhere in the manifest', () => {
+    const { handle, container } = renderEditor(previewLesson(), { preview: 'beginning' })
+    act(() => void fireEvent.click(preview(container).querySelector('[data-cs-preview-override]')!))
+    const serialised = JSON.stringify(handle.session.draft)
+    for (const leak of ['preview', 'override', 'preset', 'startPoint', 'viewport', 'generation']) {
+      expect(serialised, leak).not.toContain(leak)
     }
   })
 })

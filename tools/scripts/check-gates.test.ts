@@ -472,8 +472,16 @@ describe('gate: the four gates that began as placeholders', () => {
     }
   })
 
-  it('parity is still a placeholder and names the wave that arms it', () => {
-    expect(output()).toMatch(/gate:parity — placeholder.*Wave 4/s)
+  it('parity is armed, and names the suites it ran', () => {
+    // Was a placeholder for three waves, with an honest reason each time — first no editor,
+    // then no preview. Feature 007 supplied the second half. Asserting the suite names rather
+    // than just "ok" is how a gate that quietly stopped running three of the four would be
+    // caught: the output would look the same shape.
+    const out = output()
+    expect(out).toMatch(/gate:parity — ok/)
+    for (const suite of ['overlay', 'geometry', 'state', 'renderers']) {
+      expect(out).toContain(suite)
+    }
   })
 
   it('perf is armed against both its budgets', () => {
@@ -492,5 +500,66 @@ describe('gate: the four gates that began as placeholders', () => {
     expect(out).toMatch(/gate:a11y —/)
     expect(out).not.toMatch(/gate:theme-values — placeholder/)
     expect(out).not.toMatch(/gate:a11y — placeholder/)
+  })
+})
+
+describe('gate: parity', () => {
+  /**
+   * The gate armed in feature 007, fed what it exists to reject.
+   *
+   * **The divergence has to be about the lesson's *content*, not its affordances.** The two
+   * renderer sets are *supposed* to differ — the interactive question carries a submit
+   * control and a live region, the static one deliberately does not — so a probe that removed
+   * the submit button would prove only that the gate notices a difference the framework
+   * designed on purpose. What must never differ is the prompt and the options: the lesson's
+   * own words. This probe changes one of them.
+   *
+   * Without this test, `gate:parity` would have gone from "prints a reason and exits 0" to
+   * "runs four suites and exits 0", and nobody would know which of those it was doing.
+   */
+  const renderer = join(root, 'packages/react/src/elements/builtin/QuestionElementStatic.tsx')
+
+  /** `--force`, because the input changed but Turbo's inputs hash may not have settled. */
+  const rebuildReact = (): void => {
+    execFileSync('pnpm', ['exec', 'turbo', 'run', 'build', '--filter', '@cuestack/react', '--force'], {
+      cwd: root,
+      stdio: 'pipe',
+      encoding: 'utf8',
+    })
+  }
+
+  it('rejects a static renderer that changes what the question says', () => {
+    const original = readFileSync(renderer, 'utf8')
+    try {
+      // The prompt, rendered from the payload, replaced by a constant. A learner would read
+      // the authored question; an author would read this.
+      const drifted = original.replace("{payload?.prompt ?? ''}", "{'A question'}")
+      expect(drifted, 'the probe did not apply — the renderer has changed shape').not.toBe(original)
+      writeFileSync(renderer, drifted)
+      // The suites import `@cuestack/react` through its package entry, which resolves to
+      // `dist` — so a probe that edited `src` and did not rebuild would prove nothing and
+      // report a passing gate. A first draft did exactly that and looked like a working test.
+      rebuildReact()
+
+      const output = runExpectingFailure('node', ['tools/scripts/gates/parity.mjs'])
+      expect(output).not.toBe('')
+      expect(output).toContain('disagree')
+    } finally {
+      writeFileSync(renderer, original)
+      rebuildReact()
+    }
+  })
+
+  it('passes against the real repository, naming what it ran', () => {
+    const output = execFileSync('node', ['tools/scripts/gates/parity.mjs'], {
+      cwd: root,
+      encoding: 'utf8',
+    })
+    expect(output).toContain('gate:parity — ok')
+    // Named individually, because a gate that ran one suite and reported success would look
+    // identical to one that ran four.
+    for (const suite of ['overlay', 'geometry', 'state', 'renderers']) {
+      expect(output).toContain(suite)
+    }
   })
 })

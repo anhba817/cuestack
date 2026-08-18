@@ -5,6 +5,8 @@ import { renderEditor } from '../harness/editor.js'
 import { element, hidden, lessonWith, notYet, oneOfEachType } from '../harness/corpus.js'
 import { fakePorts } from '../harness/editor.js'
 import { timelineLesson } from '../harness/timeline.js'
+import { gatedLesson, multiSlideLesson, oneSlideLesson, unreachableLesson } from '../harness/preview.js'
+import { runFrames } from '../harness/editor.js'
 
 /**
  * T105 — SC-006, Constitution III.
@@ -167,5 +169,57 @@ describe('the surfaces feature 006 adds', () => {
     const { handle, container } = renderEditor(full(), { timeline: true, ports })
     act(() => handle.playback.play())
     expect(await violations(container)).toEqual([])
+  })
+})
+
+/**
+ * The preview, in each of the states it has (feature 007).
+ *
+ * The resting state is the easy one; the states worth checking are the ones an affordance
+ * only appears in — the override indicator, the reachability report, the completion state.
+ *
+ * **One assertion here is deliberately not axe's.** The dialog's own accessible name is
+ * checked directly, because `aria-dialog-name` is tagged `best-practice` and the tag list
+ * above runs only the WCAG tags. An unnamed modal passes every rule that runs and is
+ * announced to a screen-reader user as "dialog" and nothing else. Widening the tag set for
+ * one rule would be the wrong fix — the list is deliberate.
+ */
+describe('the preview has no WCAG 2.2 AA violations', () => {
+  const preview = (container: HTMLElement): HTMLElement =>
+    container.querySelector('.cs-preview') as HTMLElement
+
+  it('at rest, with its controls', async () => {
+    const { container } = renderEditor(multiSlideLesson(), { preview: 'beginning' })
+    const found = await violations(preview(container))
+    expect(describeViolations(found)).toBe('')
+  })
+
+  it('with the override on and its indicator showing', async () => {
+    const { container } = renderEditor(gatedLesson(), { preview: 'beginning' })
+    const toggle = preview(container).querySelector('[data-cs-preview-override]') as HTMLElement
+    act(() => void fireEvent.click(toggle))
+    expect(preview(container).querySelector('[data-cs-override-on]')).not.toBeNull()
+    const found = await violations(preview(container))
+    expect(describeViolations(found)).toBe('')
+  })
+
+  it('with a reachability problem reported', async () => {
+    const { container } = renderEditor(unreachableLesson(), { preview: 'beginning' })
+    expect(preview(container).querySelector('[data-cs-preview-unreachable]')).not.toBeNull()
+    const found = await violations(preview(container))
+    expect(describeViolations(found)).toBe('')
+  })
+
+  it('at the completion state', async () => {
+    const { handle, container } = renderEditor(oneSlideLesson(), { preview: 'beginning' })
+    await runFrames(handle.previewPorts, 5000)
+    expect(preview(container).querySelector('.cs-complete')).not.toBeNull()
+    const found = await violations(preview(container))
+    expect(describeViolations(found)).toBe('')
+  })
+
+  it('names the dialog itself, which axe will not ask for', async () => {
+    const { container } = renderEditor(multiSlideLesson(), { preview: 'beginning' })
+    expect(preview(container).getAttribute('aria-label')).toBeTruthy()
   })
 })

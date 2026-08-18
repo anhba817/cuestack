@@ -4,6 +4,23 @@ import { within } from '@testing-library/react'
 import { fakePorts, renderEditor } from '../harness/editor.js'
 import { element, lessonWith } from '../harness/corpus.js'
 import { timelineLesson } from '../harness/timeline.js'
+import { multiSlideLesson as previewLesson } from '../harness/preview.js'
+
+/**
+ * The name a screen reader would announce, in the order the platform resolves it.
+ *
+ * `??` is wrong here and was wrong at first: `input.textContent` is the empty *string*, not
+ * nullish, so it short-circuits before the wrapping `<label>` is ever consulted — and every
+ * labelled input looks unnamed. Falsy-checking each candidate is what this needs.
+ *
+ * At module scope since feature 007, so the preview's sweep and the timeline's share one
+ * definition of what a name is rather than drifting into two.
+ */
+const accessibleName = (control: Element): string =>
+  control.getAttribute('aria-label') ||
+  control.textContent?.trim() ||
+  control.closest('label')?.textContent?.trim() ||
+  ''
 
 /**
  * T093, T094 — FR-037, FR-038, FR-039.
@@ -150,19 +167,6 @@ describe('the new surfaces show a visible focus indicator (FR-046)', () => {
    * `.cs-timeline :focus-visible`, so this asserts the controls are inside the scope that
    * rule covers rather than re-implementing a CSS engine happy-dom does not have.
    */
-  /**
-   * The name a screen reader would announce, in the order the platform resolves it.
-   *
-   * `??` is wrong here and was wrong at first: `input.textContent` is the empty *string*, not
-   * nullish, so it short-circuits before the wrapping `<label>` is ever consulted — and every
-   * labelled input looks unnamed. Falsy-checking each candidate is what this needs.
-   */
-  const accessibleName = (control: Element): string =>
-    control.getAttribute('aria-label') ||
-    control.textContent?.trim() ||
-    control.closest('label')?.textContent?.trim() ||
-    ''
-
   const openAll = () =>
     renderEditor(
       timelineLesson([
@@ -216,5 +220,54 @@ describe('the new surfaces show a visible focus indicator (FR-046)', () => {
     expect(dialog).toBeTruthy()
     act(() => void fireEvent.click(within(dialog as HTMLElement).getByRole('button', { name: /keep the timing/i })))
     expect(container.querySelector('[role="alertdialog"]')).toBeNull()
+  })
+})
+
+/**
+ * The preview's controls (feature 007).
+ *
+ * axe cannot check a focus indicator — it has no idea what a rendered outline looks like —
+ * which is why this needs its own assertions and why they live here rather than in the axe
+ * suite. What can be checked is that nothing suppresses the indicator, that every control is
+ * in the tab order, and that the order is the one the frame reads in.
+ */
+describe('the preview', () => {
+  const openPreview = () => {
+    const rendered = renderEditor(previewLesson(), { preview: 'beginning' })
+    return { ...rendered, preview: rendered.container.querySelector('.cs-preview') as HTMLElement }
+  }
+
+  it('puts every control in the tab order', () => {
+    const { preview } = openPreview()
+    const controls = preview.querySelectorAll<HTMLElement>('button, input')
+    expect(controls.length).toBeGreaterThan(4)
+    for (const control of controls) {
+      expect(control.getAttribute('tabindex'), control.outerHTML.slice(0, 80)).not.toBe('-1')
+    }
+  })
+
+  it('suppresses no focus indicator', () => {
+    // `outline: none` without a replacement is the single most common way a keyboard user
+    // loses their place, and it is invisible to everyone testing with a mouse.
+    const { preview } = openPreview()
+    for (const control of preview.querySelectorAll<HTMLElement>('button, input')) {
+      expect(control.style.outline).not.toBe('none')
+      expect(control.getAttribute('class') ?? '').not.toContain('no-focus')
+    }
+  })
+
+  it('gives every preview control an accessible name', () => {
+    const { preview } = openPreview()
+    for (const control of preview.querySelectorAll('button, input')) {
+      expect(accessibleName(control), control.outerHTML.slice(0, 80)).toBeTruthy()
+    }
+  })
+
+  it('orders the frame before the player’s own controls', () => {
+    // Close first, deliberately: a teacher who opened a preview by accident, or who has seen
+    // enough, should reach the way out before the transport.
+    const { preview } = openPreview()
+    const order = [...preview.querySelectorAll<HTMLElement>('button, input')]
+    expect(order[0]?.getAttribute('data-cs-preview-close')).toBe('true')
   })
 })
