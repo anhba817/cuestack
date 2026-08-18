@@ -30,9 +30,15 @@ export interface AdvanceDecision {
 
 export interface AdvanceControllerOptions {
   /**
-   * Test-only. Defaults to false so forgetting the option is safe: a test
+   * Test and preview. Defaults to false so forgetting the option is safe: an
    * affordance that leaks into playback is worse than none, because it will
    * eventually fire by accident (FR-024).
+   *
+   * Declared in Wave 1 with no producer and given one by ED-6, where a teacher
+   * must be able to move past a gate the lesson holds a learner at. The bound
+   * above is unchanged and is what makes that safe: `@cuestack/react` arms this
+   * only when its `overrideAdvance` prop is *present*, which a learner's player
+   * never passes.
    */
   readonly allowOverride?: boolean
 }

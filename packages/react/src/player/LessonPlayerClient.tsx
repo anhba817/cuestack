@@ -51,8 +51,17 @@ export interface LessonPlayerClientProps {
    * `<LessonPlayer lesson={lesson} autoPlay />` got a static first frame and nothing more,
    * permanently. Every playback test passed `ports`, so the only path a real host takes was
    * the only path untested.
+   *
+   * **Partial, and merged per member.** It replaced the whole object once, which is right
+   * for a test — a scripted media fake must not be swapped for one reading a DOM with no
+   * decoder behind it — and wrong for anyone overriding a single port. An editor preview
+   * needs the browser's clock, *this component's* DOM media port, and an analytics adapter
+   * that discards; the media port closes over the frame writer created below and is
+   * reachable from nowhere else, so a caller replacing the object wholesale loses playback
+   * entirely and stalls on any slide gated by media. A full object still wins outright,
+   * because the spread comes last.
    */
-  readonly ports?: Ports
+  readonly ports?: Partial<Ports>
   readonly autoPlay?: boolean
   /**
    * Whether to show lesson progress.
@@ -75,6 +84,22 @@ export interface LessonPlayerClientProps {
    */
   readonly children?: ReactNode
   readonly onReady?: (transport: Transport) => void
+  /**
+   * Let every advance gate through — a required interaction, media that has not ended, a
+   * click no player yet delivers (FR-ADV-011).
+   *
+   * **Absent by default, and its absence is the guarantee.** The kernel's option carries the
+   * rule this has to keep: "a test affordance that leaks into playback is worse than none,
+   * because it will eventually fire by accident." Two independent conditions must hold
+   * before the controller short-circuits, and a learner's player supplies neither — the
+   * *presence* of this prop arms the option, and its *value* raises the signal. A player
+   * mounted without it constructs the controller exactly as it did before ED-6.
+   *
+   * Named after what it does rather than after who wants it: the player gains no editor
+   * concept, and a host with its own reason to skip a gate is not lying about being a
+   * preview to get it.
+   */
+  readonly overrideAdvance?: boolean
 }
 
 const DEFAULT_RENDERERS = createRendererRegistry(builtinRenderers)
@@ -174,6 +199,7 @@ export function LessonPlayerClient({
   autoPlay = false,
   progress = 'none',
   onReady,
+  overrideAdvance,
   children,
 }: LessonPlayerClientProps): ReactNode {
   /**
@@ -209,6 +235,17 @@ export function LessonPlayerClient({
    * mount — but reaching for a port that does not exist yet would be a crash rather than a
    * missing datapoint.
    */
+  /**
+   * The override's *current* value, for a controller built once in a mount effect.
+   *
+   * FR-020 requires that turning it off restores every gate immediately. A captured value
+   * could not: the effect does not re-run when the switch moves, so the controller would go
+   * on honouring whatever the switch said at mount. The option is armed from the prop's
+   * presence, which does not change; the signal is read from here, which does.
+   */
+  const overrideRef = useRef(overrideAdvance === true)
+  overrideRef.current = overrideAdvance === true
+
   const analytics = useRef<((e: LessonEvent) => void) | null>(null)
   const recordEvent = useCallback((e: LessonEvent) => analytics.current?.(e), [])
   const interactions = useInteractions(lesson, recordEvent)
@@ -309,14 +346,17 @@ export function LessonPlayerClient({
      * render on the server path, where a ref is not allowed.
      *
      * A caller-supplied `ports` wins outright: a test handing in a scripted media fake must
-     * not have it replaced by one reading a DOM that has no decoder behind it.
+     * not have it replaced by one reading a DOM that has no decoder behind it — and a host
+     * overriding only analytics must not lose the media port it cannot rebuild, which is why
+     * the merge is per member rather than all-or-nothing.
      */
-    const activePorts: Ports = ports ?? {
+    const activePorts: Ports = {
       ...browserPorts(),
       media: createDomMediaPort({ nodeFor: (id) => writer.nodeFor(id) }),
+      ...ports,
     }
     const t = createTransport(lesson, activePorts)
-    const advance = createAdvanceController(activePorts)
+    const advance = createAdvanceController(activePorts, { allowOverride: overrideAdvance !== undefined })
     const media = createMediaLink(activePorts.media)
     setTransport(t)
     transportRef.current = t
@@ -464,6 +504,21 @@ export function LessonPlayerClient({
         // The learner's actual completions, under each question's authored policy. Wave 1
         // built this gate and passed it an empty set for two waves; this is what fills it.
         completedInteractions: completions.current,
+        /**
+         * The override releases a *gate*, not a slide's length.
+         *
+         * The kernel's short-circuit outranks every condition, duration included — correct
+         * for the test affordance it was written as, and wrong for this prop, which promises
+         * to let "every advance gate" through. A duration is not a gate: it always elapses,
+         * and nothing is ever trapped by one. Raising the signal unconditionally made a
+         * lesson race to its own ending the instant the switch went on, so a teacher could
+         * skip a question and then see nothing.
+         *
+         * Gated on the slide's own duration instead: with the override on, a slide releases
+         * no earlier than it would have if nothing were holding it. Every gate is bypassed
+         * and the lesson's timing is preserved, which is what a preview is for.
+         */
+        overrideAdvance: overrideRef.current && snapshot.slideTimeMs >= active.durationMs,
       })
       if (!decision) return
 
@@ -530,6 +585,10 @@ export function LessonPlayerClient({
       media.dispose()
       writer.clear()
     }
+    // `overrideAdvance` is deliberately absent: its *presence* is read once here to arm the
+    // option, and its *value* through `overrideRef` on every evaluation. Listing it would
+    // rebuild the transport whenever a teacher touched the switch — a fresh clock and a
+    // restarted lesson in place of a gate opening.
   }, [lesson, ports, autoPlay, onReady, writer, needsGesture])
 
   /**

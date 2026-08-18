@@ -57,10 +57,39 @@ be server-rendered by anyone, which is most of the point of this one.
 | `elements` | `ElementRendererRegistry` | Defaults to the built-in seven. |
 | `theme` | `ThemeValues` | Merged over the lesson's own, so a host can brand a lesson it did not author. |
 | `resolveAsset` | `(ref: AssetRef) => string \| undefined` | How to address an asset. See below. |
-| `ports` | `Ports` | Time, visibility, storage. Defaults to real browser ports; supply your own to control the clock. |
+| `ports` | `Partial<Ports>` | Time, media, visibility, storage, assets, analytics. Defaults to real browser ports; **merged per member**, so you can override one and keep the rest. |
 | `progress` | `'none' \| 'slides'` | Defaults to `'none'`. A host option, not a manifest field — see below. |
 | `onReady` | `(transport) => void` | The kernel's transport, for driving playback yourself. |
 | `children` | `ReactNode` | Chrome inside the player — `<PlaybackControls />` above all. |
+| `overrideAdvance` | `boolean` | **Absent by default, and its absence is the guarantee.** See below. |
+
+### `ports` is a partial, and that matters more than it looks
+
+The player builds its own DOM media port over a frame writer it owns and exposes to nobody, so a
+caller who replaced the whole object would lose media: nothing would play, and a slide gated on
+`after_media_ends` would stall where a learner advances. Supplying `{ analytics: yours }` keeps
+everything else. A full object still wins outright, member for member, which is what lets a test
+hand in a scripted media fake and not have it replaced by one reading a DOM with no decoder.
+
+### `overrideAdvance`
+
+Lets every advance gate through — a required interaction, media that has not ended, a click no
+player yet delivers. It exists for an editor preview, where a teacher has to be able to reach the
+slide *after* the one that would trap them.
+
+**Two independent conditions must hold before anything is bypassed**, and a learner's player
+supplies neither: the *presence* of the prop arms the kernel's option, and its *value* raises the
+signal. A player mounted without it constructs its controller exactly as it did before this prop
+existed. The kernel's own comment is the requirement — "a test affordance that leaks into playback
+is worse than none, because it will eventually fire by accident" — and
+`test/playback/override-absent.test.tsx` is the guard.
+
+It releases a **gate**, never a slide's length. Turning it on does not skip past durations; a slide
+still runs for as long as it was authored to. An earlier draft raised the signal unconditionally and
+the lesson raced to its own ending the instant the switch went on.
+
+Named after what it does rather than after who wants it. Nothing in the player knows what an editor
+is, and a host with its own reason to skip a gate is not lying about being a preview to get it.
 
 ## Assets
 

@@ -6,7 +6,8 @@ export interface AdvanceSignals {
   readonly learnerAdvanced: boolean
   /** Ids of interaction elements the learner has completed. */
   readonly completedInteractions: ReadonlySet<string>
-  /** Test-only; inert unless the controller was built to allow it (FR-024). */
+  /** Test and preview; inert unless the controller was built to allow it (FR-024).
+   *  Two conditions, deliberately independent — see `AdvanceControllerOptions`. */
   readonly overrideAdvance?: boolean
 }
 
