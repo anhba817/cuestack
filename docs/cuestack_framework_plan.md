@@ -55,7 +55,7 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
       ✅ EN-5 ──→ ✅ ED-1 ──→ ✅ ED-2
                     ├──→ ✅ ED-3 ──→ ✅ ED-4
                     └──→ 🔲 ED-5
-      ✅ RC-1 ──→ 🔲 ED-6 ──→ 🔲 QA-5               (preview reuses the player — parity by construction)
+      ✅ RC-1 ──→ ✅ ED-6 ──→ ✅ QA-5               (preview reuses the player — parity by construction)
 
     Wave 5 — publish, portability, extensibility proof
       ✅ SCH-2 ──→ 🔲 PB-1 ──→ 🔲 PB-2
@@ -97,9 +97,9 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 | 3 | PL-1 interactions (MC, true/false) + gating | RC-2 | 3 | 2 | 1 | 2 | 6 | ✅ |
 | 3 | PL-2 media sync, gesture gate, media-end advance | RC-2 | 3 | 2 | 1 | 2 | 6 | ✅ |
 | 3 | PL-3 transitions, progress, completion, errors | RC-2 | 2 | 1 | 2 | 1 | 5 | ✅ |
-| 4 | ED-6 preview harness (from start/slide/time) | RC-1 | 3 | 2 | 2 | 0 | 9 | 🔲 |
+| 4 | ED-6 preview harness (from start/slide/time) | RC-1 | 3 | 2 | 2 | 0 | 9 | ✅ |
 | 4 | ED-4 Simple Sequence Mode ↔ timeline | ED-3 | 3 | 2 | 1 | 1 | 7 | ✅ |
-| 4 | QA-5 editor↔player parity harness | ED-6 | 0 | 3 | 1 | 0 | 7 | 🔲 |
+| 4 | QA-5 editor↔player parity harness | ED-6 | 0 | 3 | 1 | 0 | 7 | ✅ |
 | 4 | ED-2 properties inspector (plugin-driven) | ED-1 | 3 | 1 | 1 | 0 | 6 | ✅ |
 | 4 | ED-5 undo/redo, autosave, offline queue | ED-1 | 3 | 2 | 0 | 2 | 5 | 🔲 |
 | 4 | ED-1 canvas: move/resize/rotate, snap, layers | EN-5 | 3 | 1 | 0 | 1 | 4 | ✅ |
@@ -189,6 +189,55 @@ built-ins have a home.
 but QA-5 compares *preview* to playback and preview is ED-6. Marking it armed here would be the
 third time a gate in this project claimed more than it enforced. What ED-1 and ED-2 did was make
 the comparison possible for the first time.
+
+**ED-6 armed it.** `gate:parity` now runs four suites and exits non-zero when they disagree, with
+a negative control in `check-gates.test.ts` that changes what a question *says* — not what
+affordances it carries, since the two renderer sets are supposed to differ there. Finding the
+right comparison took several attempts and is worth recording: preview-versus-playback is
+tautological, because the preview *is* the player, so it reduces to `resolve(s, t) === resolve(s, t)`
+and passes forever including after parity breaks. Canvas-versus-player is real and feature 005
+had already written it. What was genuinely untested is the **renderer sets**: `staticRenderers`
+and `builtinRenderers` differ in exactly one member, and the editor draws with one while a learner
+gets the other.
+
+**`gate:a11y` reached the editor package**, for the first time and for a specific reason: a preview
+is a learner-facing surface living in the studio, and CI gate 6 covers learner-facing components.
+`perf.mjs` and `theme-values.mjs` had already followed the editor as it grew; a11y had not needed to.
+
+**ED-6 is complete: the lesson, as a learner receives it, inside the editor.** A teacher can preview
+from the beginning, from the current slide, or from the current moment; drive it; move past any gate
+with one switch; see that a lesson cannot be finished before a learner does; and check it at three
+sizes. No renderer, clock, or effect implementation was written — the preview mounts
+`<LessonPlayer>` and everything a learner sees comes from `@cuestack/react`.
+
+**Two contract members gained producers, and one prop changed shape.** `allowOverride` and
+`overrideAdvance` had been declared test-only since Wave 1 with nothing passing either — the fifth
+instance of the declared-but-unproduced pattern, after `ElementPlugin.inspector`,
+`EffectDescriptor.parameters`, `RenderState.problems`, and `ResolveContext.effects`. Analysis found
+a sixth on the way past: `Ports.assets` is declared and read by nobody, assets reaching the player
+through the `resolveAsset` prop instead. That one is left alone deliberately — unifying two asset
+paths is a kernel decision, not a preview one.
+
+The prop that changed is `ports`, from `Ports` to `Partial<Ports>`, merged per member instead of
+replacing the object. The preview needs the browser's clock, the player's *own* DOM media port, and
+an analytics adapter that discards — a combination the all-or-nothing prop could not express, since
+the media port closes over a frame writer the player owns and exposes to nobody. It also closes a
+trap any host could already have hit: supplying ports to set analytics silently lost media.
+
+**Two things a preview does that nobody had written down.** It emits no analytics — the player
+records `lesson_started` on mount and a `slide_completed` for every slide it passes, so a preview
+wired to a host's telemetry would report a teacher's checking as a learner's progress, and every
+gate the override skipped as a completion nobody earned. And restart is a *fresh run* rather than a
+seek: the answers live in the player's interaction state, which exposes no reset, and the advance
+controller never re-decides a slide whose instance id has not moved — which `transport.restart()`
+does not move. A seek-based restart replays a lesson whose gates are all already satisfied, which is
+the opposite of what a teacher restarts to check.
+
+**One defect found in implementation rather than in review.** The kernel's override short-circuits
+*every* condition, duration included — correct for the test affordance it was written as, and wrong
+for a preview: raised unconditionally, it made a lesson race to its own ending the instant the
+switch went on, so a teacher could skip a question and then see nothing. The signal is gated on the
+slide's own duration now, so the override releases a **gate** and never a slide's length.
 
 **ED-3 and ED-4 are complete: time is visible, editable, and sequenceable.** A teacher can see a
 track per element, drag its timing, play the slide on the player's own clock, author any of the
