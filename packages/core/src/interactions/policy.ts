@@ -83,3 +83,31 @@ export function isUnsatisfiable(
   if (maxAttempts === undefined) return false
   return attempts.length >= maxAttempts
 }
+
+/**
+ * Whether this question *could* trap somebody, before anybody tries.
+ *
+ * The static counterpart of `isUnsatisfiable` above, and it lives here rather than in the
+ * validation engine because they are one rule asked at two moments — "has this learner run out"
+ * and "could anyone run out" — and that is exactly the pair which comes to disagree when separated.
+ * This file already carries the subtleties: `on_first_attempt` completes on anything,
+ * `on_attempts_exhausted` completes by definition, unlimited attempts cannot exhaust. A predicate
+ * written elsewhere would restate all three from memory and be wrong the first time
+ * `DEFAULT_COMPLETION_POLICY` changed.
+ *
+ * `isUnsatisfiable`'s own header named this consumer before it existed: "Wave 5's validation engine
+ * warns the author before a learner ever meets it."
+ *
+ * The default matters and is already right. `DEFAULT_COMPLETION_POLICY` is `on_first_attempt`,
+ * chosen because "defaulting to `on_correct` would turn every unconfigured required question into a
+ * potential dead end" — so an author who configures nothing cannot make one.
+ */
+export function isDeadEnd(
+  policy: CompletionPolicy | undefined,
+  maxAttempts: number | undefined,
+): boolean {
+  if ((policy ?? DEFAULT_COMPLETION_POLICY) !== 'on_correct') return false
+  // Unlimited attempts always terminate, so reporting them would be a warning about nothing —
+  // and warnings about nothing are how a report stops being read.
+  return maxAttempts !== undefined
+}
