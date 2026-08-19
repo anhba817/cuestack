@@ -31,14 +31,27 @@ describe('storage round-trip', () => {
     expect(second.token).not.toBe(first.token)
   })
 
-  it('lists a version per save', async () => {
+  /**
+   * Rewritten in feature 008, and the change is the point.
+   *
+   * This asserted one history entry per save, which was the EN-6 behaviour. Autosave at
+   * 1.5-second intervals turns that into hundreds of indistinguishable rows, so the history
+   * now records **checkpoints** while every save still advances the token (FR-DAT-006 and
+   * FR-DAT-008 pulling in opposite directions, separated).
+   */
+  it('lists a version per checkpoint, not per save', async () => {
     const storage = createMemoryStorage()
     let token = 'x'
     for (let i = 0; i < 3; i++) {
-      const r = await storage.saveDraft('l1', lessonOf(), token)
+      const r = await storage.saveDraft('l1', lessonOf(), token, i === 0 ? { checkpoint: {} } : undefined)
       if (r.ok) token = r.token
     }
-    expect(await storage.listVersions('l1')).toHaveLength(3)
+    expect(await storage.listVersions('l1')).toHaveLength(1)
+    // All three saves happened, though: the last one is what loads.
+    const loaded = await storage.loadDraft('l1')
+    expect(loaded.ok).toBe(true)
+    if (!loaded.ok) return
+    expect(loaded.token).toBe(token)
   })
 
   it('returns an empty version list for an unknown lesson', async () => {

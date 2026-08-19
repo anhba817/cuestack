@@ -14,9 +14,43 @@ export type SaveResult =
   | { readonly ok: false; readonly reason: 'conflict'; readonly currentToken: VersionToken }
   | { readonly ok: false; readonly reason: 'unauthorized' | 'unavailable' }
 
-export interface VersionSummary {
+/**
+ * One checkpoint of a draft — not one save.
+ *
+ * Renamed from `VersionSummary` in feature 008, because it now describes a checkpoint rather
+ * than every acknowledged write, and a summary of nothing was a poor name for it.
+ *
+ * The separation is what makes FR-DAT-006 and FR-DAT-008 satisfiable at once. Every save must
+ * advance the token or a conflict cannot be detected; only a checkpoint may add an entry here,
+ * or an hour of autosaving at 1.5-second intervals produces hundreds of indistinguishable rows
+ * and the history stops being something a person can read.
+ */
+export interface VersionEntry {
   readonly token: VersionToken
   readonly versionNumber: number
+  /**
+   * Epoch milliseconds, stamped by the **host**.
+   *
+   * The framework never supplies this. The host's storage is the only participant with an
+   * authoritative wall clock, a framework-side stamp would disagree between two browsers, and
+   * the editor is forbidden from reading a clock at all (`no-clock-in-studio`). `VersionToken`
+   * already refuses timestamps as tokens for the related reason stated above.
+   */
+  readonly recordedAt: number
+  /** Present only when the teacher named this checkpoint. */
+  readonly label?: string
+}
+
+/** What a save may ask the history to record. */
+export interface SaveOptions {
+  /**
+   * Record this save in the version history. Absent means an ordinary autosave.
+   *
+   * The framework decides, because it owns the checkpoint policy; the host records, because
+   * only the host has a history. A save without this still saves — it is absent from the
+   * history, not absent from storage.
+   */
+  readonly checkpoint?: { readonly label?: string }
 }
 
 /**
@@ -32,8 +66,36 @@ export interface VersionSummary {
  */
 export interface StorageAdapter {
   loadDraft(lessonId: string): Promise<LoadResult>
-  saveDraft(lessonId: string, manifest: LessonManifest, token: VersionToken): Promise<SaveResult>
-  listVersions(lessonId: string): Promise<readonly VersionSummary[]>
+  /**
+   * Save, carrying the version the caller last knew about.
+   *
+   * `options` is additive and optional: an adapter written before feature 008 keeps compiling
+   * and keeps working, recording no checkpoints. Every call advances the token whether or not
+   * it is a checkpoint, and a call that records no checkpoint **still persists the manifest** —
+   * `loadDraft` must return it afterwards. An adapter treating a non-checkpoint save as a no-op
+   * would pass every history test and lose an hour of work.
+   */
+  saveDraft(
+    lessonId: string,
+    manifest: LessonManifest,
+    token: VersionToken,
+    options?: SaveOptions,
+  ): Promise<SaveResult>
+  /** The checkpoints, oldest first. Never one entry per save. */
+  listVersions(lessonId: string): Promise<readonly VersionEntry[]>
+  /**
+   * The content of a named earlier version.
+   *
+   * Added in feature 008, and the gap it closes was not difficulty but impossibility:
+   * FR-DAT-009 asks a teacher to restore an earlier draft and this interface could load only
+   * the current one.
+   *
+   * **The token it returns is the current draft's, not the loaded version's.** What comes back
+   * is content to be saved forward as a *new* version (FR-DAT-010); returning the old token
+   * would make the very next save look like a conflict. That single sentence is why restoring
+   * is additive rather than destructive, and it is the easiest thing here to get subtly wrong.
+   */
+  loadVersion(lessonId: string, token: VersionToken): Promise<LoadResult>
 }
 
 export interface AssetLocation {

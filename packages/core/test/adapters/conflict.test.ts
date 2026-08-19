@@ -66,6 +66,24 @@ describe('save conflicts', () => {
     expect(retried.ok).toBe(true)
   })
 
+  /**
+   * Feature 008 added an optional fourth argument to `saveDraft`. This asserts the conflict
+   * path EN-6 designed is untouched by it — a checkpoint request does not buy a stale save
+   * any leniency, which is the plausible way an additive change goes wrong.
+   */
+  it('a checkpoint request does not excuse a stale token', async () => {
+    const { storage, sessionA, sessionB } = await twoSessions()
+    await storage.saveDraft('l1', lessonOf({ slides: 2 }), sessionA.token)
+    const stale = await storage.saveDraft('l1', lessonOf({ slides: 3 }), sessionB.token, {
+      checkpoint: { label: 'mine' },
+    })
+    expect(stale.ok).toBe(false)
+    if (stale.ok) return
+    expect(stale.reason).toBe('conflict')
+    // And it recorded nothing on the way to being refused.
+    expect(await storage.listVersions('l1')).toHaveLength(0)
+  })
+
   it('refuses 100% of stale attempts, not merely usually', async () => {
     for (let i = 0; i < 20; i++) {
       const { storage, sessionA, sessionB } = await twoSessions()

@@ -53,6 +53,11 @@ export type { PlayerContextValue } from './player/usePlayer.js'
  * Client entry only, like everything else in this block.
  */
 export { browserPorts } from './player/browserPorts.js'
+/**
+ * The editor's timer and network signal (feature 008). Here rather than in the studio for the
+ * reason stated at the top of this block: `no-clock-in-studio` allows neither there.
+ */
+export { browserScheduler, browserConnectivity } from './player/browserTiming.js'
 export { createFrameWriter } from './frame/FrameWriter.js'
 export type { FrameWriter } from './frame/FrameWriter.js'
 export { useFrameLoop } from './frame/useFrameLoop.js'

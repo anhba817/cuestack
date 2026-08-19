@@ -58,7 +58,15 @@ export {
 } from './advance/controller.js'
 
 // Ports and adapters
-export type { Ports, TimeSource, MediaPort, MediaStatus, VisibilityPort } from './ports/index.js'
+export type {
+  Ports,
+  TimeSource,
+  MediaPort,
+  MediaStatus,
+  VisibilityPort,
+  Scheduler,
+  Connectivity,
+} from './ports/index.js'
 export type {
   StorageAdapter,
   AssetAdapter,
@@ -67,9 +75,11 @@ export type {
   LoadResult,
   SaveResult,
   VersionToken,
-  VersionSummary,
+  VersionEntry,
+  SaveOptions,
   AssetLocation,
 } from './adapters/index.js'
+export type { MemoryStorageOptions } from './adapters/memory/index.js'
 export { memoryAdapters, createMemoryStorage, createMemoryAssets, createMemoryAnalytics } from './adapters/memory/index.js'
 
 /**

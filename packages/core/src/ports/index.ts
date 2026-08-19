@@ -4,6 +4,12 @@ import type { VisibilityPort } from './visibility.js'
 
 export type { MediaPort, MediaStatus } from './media.js'
 export type { VisibilityPort } from './visibility.js'
+/**
+ * Declared here, consumed by adapters, and deliberately absent from `Ports` below.
+ * See each file's header for why (research R-03).
+ */
+export type { Scheduler } from './scheduler.js'
+export type { Connectivity } from './connectivity.js'
 
 /**
  * Monotonically non-decreasing milliseconds.

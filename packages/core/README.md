@@ -141,3 +141,34 @@ the conflict path is exercised by default rather than only by the first real hos
 Render, read a clock, touch the DOM, validate a manifest, or decide about reduced
 motion. It reports which effects are motion and stops there — the preference cannot
 be read on a server and the substitution is a stylesheet concern.
+
+## The storage boundary, extended (feature 008)
+
+`StorageAdapter` gained three things when ED-5 became its first consumer. All additive; nothing
+in the lesson manifest changed, so no `schemaVersion` bump follows.
+
+**A save may declare itself a checkpoint.**
+
+```ts
+saveDraft(lessonId, manifest, token, { checkpoint: { label } })
+```
+
+Every save advances the token, checkpoint or not — a conflict cannot be detected otherwise. Only
+a checkpoint adds an entry to `listVersions`. A save that records no checkpoint **still
+persists**: it is absent from the history, not absent from storage. An adapter treating one as a
+no-op would pass every history test and lose an hour of work.
+
+**`VersionSummary` is now `VersionEntry`**, carrying `recordedAt` (epoch milliseconds, stamped by
+you — your storage is the only participant with an authoritative clock) and an optional `label`.
+`listVersions` returns checkpoints, not saves: with autosave firing every 1.5 seconds of idle,
+one entry per save is not a history anybody can read.
+
+**`loadVersion(lessonId, token)`** returns an earlier version's content. Note the token it
+returns: the **current** draft's, not the loaded version's. What comes back is content to be
+saved forward as a new version, and returning the old token would make the very next save look
+like a conflict. That single rule is why restoring is additive rather than destructive.
+
+New ports, declared here and implemented in `@cuestack/react`: `Scheduler` (deferred execution)
+and `Connectivity` (the network signal). Neither joins `Ports` — playback defers nothing and does
+not care whether the network is up — and both are the first ports here with no consumer inside
+core, which follows from core being the contract package.
