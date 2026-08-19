@@ -108,6 +108,7 @@ export type {
   DraftPersistenceOptions,
   SaveState,
   SaveStateKind,
+  SaveOutcome,
   Conflict,
 } from './persistence/useDraftPersistence.js'
 export { SaveStatus } from './persistence/SaveStatus.js'
@@ -181,3 +182,22 @@ export { startPointFor } from './preview/startPoint.js'
 export type { StartPoint } from './preview/startPoint.js'
 export { PREVIEW_PRESETS, PREVIEW_PRESET_ORDER, TYPE_FLOOR_PX, floorsFor } from './preview/constants.js'
 export type { ViewportPreset as ViewportPresetName } from './preview/constants.js'
+
+// Validation (feature 009) — the report surface. The engine itself is `@cuestack/core`'s.
+export { useValidation } from './validation/useValidation.js'
+export type { Validation, UseValidationOptions } from './validation/useValidation.js'
+export { ValidationReport } from './validation/ValidationReport.js'
+export type { ValidationReportProps } from './validation/ValidationReport.js'
+export { usePublishing } from './publishing/usePublishing.js'
+export type {
+  Publishing,
+  UsePublishingOptions,
+  PublishOutcome,
+  PublishRefusalReason,
+} from './publishing/usePublishing.js'
+export { PublishControls } from './publishing/PublishControls.js'
+export type { PublishControlsProps } from './publishing/PublishControls.js'
+export { VersionList } from './publishing/VersionList.js'
+export type { VersionListProps } from './publishing/VersionList.js'
+export { PublicationRecord } from './publishing/PublicationRecord.js'
+export type { PublicationRecordProps } from './publishing/PublicationRecord.js'

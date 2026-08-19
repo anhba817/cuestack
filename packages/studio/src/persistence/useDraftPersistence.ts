@@ -42,6 +42,17 @@ export interface SaveState {
   readonly attemptsSpent?: boolean
 }
 
+/**
+ * What became of a save a caller asked for and waited on.
+ *
+ * `nothing-to-save` is a success rather than a failure: a caller publishing an unchanged draft has
+ * everything it needs, and treating "already saved" as an error would make publishing fail for the
+ * commonest state an editor is in.
+ */
+export type SaveOutcome =
+  | { readonly ok: true; readonly reason: 'saved' | 'nothing-to-save' }
+  | { readonly ok: false; readonly reason: 'offline' | 'unauthorized' | 'conflict' }
+
 export interface DraftPersistenceOptions {
   readonly storage: StorageAdapter
   readonly lessonId: string
@@ -77,7 +88,16 @@ export interface DraftPersistence {
   /** The version storage last acknowledged. */
   readonly token: VersionToken
   /** Save now rather than waiting out the interval (FR-020). */
-  saveNow(): void
+  /**
+   * Save now, and say whether it landed.
+   *
+   * Returns a promise because publishing has to know. Feature 009 saves before it publishes, and a
+   * publish that proceeded on hope would publish a state storage never held — producing a version
+   * nobody can reproduce and a record that points at nothing (FR-018a).
+   *
+   * Additive: every existing caller invokes this for its effect and ignores the return.
+   */
+  saveNow(): Promise<SaveOutcome>
   /** Try again once the automatic attempts are spent (FR-022). */
   retry(): void
   /** Present until the teacher answers it. Autosave is stopped while it stands (FR-032). */
@@ -215,8 +235,8 @@ export function useDraftPersistence(options: DraftPersistenceOptions): DraftPers
    * "every method returns a result" was for: an editor that autosaves meets storage failure as
    * an expected condition, not an exceptional one.
    */
-  const attemptSave = useCallback(async (): Promise<void> => {
-    if (inFlight.current) return
+  const attemptSave = useCallback(async (): Promise<SaveOutcome> => {
+    if (inFlight.current) return { ok: true, reason: 'nothing-to-save' }
     const manifest = draftRef.current
     inFlight.current = true
     setState({ kind: 'saving' })
@@ -266,7 +286,8 @@ export function useDraftPersistence(options: DraftPersistenceOptions): DraftPers
         setState({ kind: 'pending' })
         schedule(IDLE_MS)
       }
-      return
+      // Acknowledged either way — the newer state is a *further* save, not a failed one.
+      return { ok: true, reason: 'saved' }
     }
 
     // Anything short of an acknowledgement means the work is only here, so keep it. A
@@ -286,14 +307,14 @@ export function useDraftPersistence(options: DraftPersistenceOptions): DraftPers
       conflictRef.current = found
       setConflict(found)
       setState({ kind: 'failed', message: CONFLICT, attemptsSpent: true })
-      return
+      return { ok: false, reason: 'conflict' }
     }
 
     if (result.reason === 'unauthorized') {
       // Not retried: attempting again cannot change the answer, and five refusals is five
       // ways of telling a teacher the same thing.
       setState({ kind: 'failed', message: UNAUTHORIZED, attemptsSpent: true })
-      return
+      return { ok: false, reason: 'unauthorized' }
     }
 
     // Unreachable. Back off, and stop claiming to be trying once the attempts are spent.
@@ -301,10 +322,13 @@ export function useDraftPersistence(options: DraftPersistenceOptions): DraftPers
     const delay = backoffFor(attempt.current)
     if (delay === null) {
       setState({ kind: 'failed', message: UNAVAILABLE, attemptsSpent: true })
-      return
+      return { ok: false, reason: 'offline' }
     }
     setState({ kind: 'offline', message: UNAVAILABLE })
     schedule(delay)
+    // A retry is scheduled, but this attempt did not land — and a caller waiting on it needs the
+    // truth now rather than in two minutes.
+    return { ok: false, reason: 'offline' }
   }, [storage, lessonId, schedule])
 
   useEffect(() => {
@@ -363,18 +387,18 @@ export function useDraftPersistence(options: DraftPersistenceOptions): DraftPers
     })
   }, [connectivity, clearTimer])
 
-  const saveNow = useCallback((): void => {
+  const saveNow = useCallback(async (): Promise<SaveOutcome> => {
     // While a conflict is unanswered this attempts nothing and puts the choice back in front
     // of the teacher. Sending a save that is known to be refused teaches them the control does
     // nothing, which costs more than the one refused request saves (FR-020).
     if (conflictRef.current) {
       setConflict({ ...conflictRef.current })
-      return
+      return { ok: false, reason: 'conflict' }
     }
-    if (!dirty.current) return
+    if (!dirty.current) return { ok: true, reason: 'nothing-to-save' }
     clearTimer()
     attempt.current = 0
-    void attemptSave()
+    return attemptSave()
   }, [clearTimer, attemptSave])
 
   const retry = useCallback((): void => {
@@ -429,7 +453,7 @@ export function useDraftPersistence(options: DraftPersistenceOptions): DraftPers
     (label?: string): void => {
       requested.current = true
       requestedLabel.current = label ?? null
-      if (dirty.current) saveNow()
+      if (dirty.current) void saveNow()
     },
     [saveNow],
   )

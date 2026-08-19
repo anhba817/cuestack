@@ -4,6 +4,12 @@ import axe from 'axe-core'
 import { SaveStatus } from '../../src/persistence/SaveStatus.js'
 import { ConflictNotice } from '../../src/persistence/ConflictNotice.js'
 import { VersionHistory } from '../../src/persistence/VersionHistory.js'
+import { ValidationReport } from '../../src/validation/ValidationReport.js'
+import { PublishControls } from '../../src/publishing/PublishControls.js'
+import { VersionList } from '../../src/publishing/VersionList.js'
+import { PublicationRecord } from '../../src/publishing/PublicationRecord.js'
+import type { PublishedVersion } from '@cuestack/core'
+import type { Publishing } from '../../src/publishing/usePublishing.js'
 import { RecoveryPrompt } from '../../src/persistence/RecoveryPrompt.js'
 import { renderEditor } from '../harness/editor.js'
 import { element, hidden, lessonWith, notYet, oneOfEachType } from '../harness/corpus.js'
@@ -294,5 +300,187 @@ describe('the surfaces feature 008 adds', () => {
       <RecoveryPrompt movedOn onRestore={() => {}} onDiscard={() => {}} />,
     )
     expect(container.querySelector('dialog')?.getAttribute('aria-label')).toBeTruthy()
+  })
+
+  it('reports nothing for the validation report, in all three of its states', async () => {
+    const issues = [
+      {
+        source: 'semantic' as const,
+        code: 'QUESTION_DEAD_END',
+        severity: 'error' as const,
+        message: 'A learner who runs out of attempts is stuck here.',
+        path: ['slides', 0],
+        location: { slideId: 'slide_0', elementId: 'q1' },
+      },
+      {
+        source: 'semantic' as const,
+        code: 'ACCESSIBILITY_METADATA_ABSENT',
+        severity: 'warning' as const,
+        message: 'This image has no alternative text.',
+        path: ['slides', 0],
+        location: { slideId: 'slide_0', elementId: 'img' },
+      },
+    ]
+
+    for (const report of [null, { issues: [], blocks: false }, { issues, blocks: true }]) {
+      const { container } = render(<ValidationReport report={report} onSelect={() => {}} />)
+      expect(describeViolations(await violations(container))).toBe('')
+      cleanup()
+    }
+  })
+
+  it('gives the validation report an accessible name', () => {
+    const { container } = render(<ValidationReport report={null} />)
+    expect(container.querySelector('.cs-report')?.getAttribute('aria-label')).toBeTruthy()
+  })
+
+  it('does not convey severity by colour alone', () => {
+    /**
+     * NFR-ACC-003. axe cannot see this one — a rule rendered only as a red bar passes every
+     * automated check and tells a learner using a screen reader nothing — so it is asserted
+     * directly: each row carries its severity as a word in the accessible text.
+     */
+    const { container } = render(
+      <ValidationReport
+        report={{
+          issues: [
+            {
+              source: 'semantic',
+              code: 'QUESTION_DEAD_END',
+              severity: 'error',
+              message: 'Stuck.',
+              path: [],
+              location: { slideId: 's', elementId: 'q' },
+            },
+          ],
+          blocks: true,
+        }}
+      />,
+    )
+    expect(container.querySelector('[data-cs-report-issue]')?.textContent).toContain('error')
+  })
+
+  it('reports nothing for the publish controls, idle, busy, and refused', async () => {
+    const base: Publishing = {
+      outcome: null,
+      busy: false,
+      report: null,
+      publish: async () => ({ ok: true }) as never,
+      withdraw: async () => ({ ok: true }),
+      restore: async () => ({ ok: true }),
+    }
+    const refused: Publishing = {
+      ...base,
+      outcome: {
+        ok: false,
+        reason: 'invalid',
+        message: 'This lesson has errors that would reach a learner, so it was not published.',
+        issues: [
+          {
+            source: 'semantic',
+            code: 'QUESTION_DEAD_END',
+            severity: 'error',
+            message: 'A learner who runs out of attempts is stuck here.',
+            path: [],
+            location: { slideId: 's', elementId: 'q' },
+          },
+        ],
+      },
+    }
+
+    for (const publishing of [base, { ...base, busy: true }, refused]) {
+      const { container } = render(<PublishControls publishing={publishing} active />)
+      expect(describeViolations(await violations(container))).toBe('')
+      cleanup()
+    }
+  })
+
+  it('announces a refusal rather than only rendering it', () => {
+    /**
+     * The refusal reuses `SaveStatus`, whose region is `role="status"` with `aria-live="polite"`.
+     * A teacher who pressed Publish and is looking at their slide learns nothing from a message
+     * that only appears — which is the whole reason ED-5's component is shared rather than
+     * reimplemented here (Constitution III).
+     */
+    const { container } = render(
+      <PublishControls
+        publishing={{
+          outcome: { ok: false, reason: 'permission', message: 'You do not have permission.' },
+          busy: false,
+          report: null,
+          publish: async () => ({ ok: true }) as never,
+          withdraw: async () => ({ ok: true }),
+          restore: async () => ({ ok: true }),
+        }}
+      />,
+    )
+    const status = container.querySelector('.cs-save-status')!
+    expect(status.getAttribute('role')).toBe('status')
+    expect(status.getAttribute('aria-live')).toBe('polite')
+    expect(status.textContent).toContain('permission')
+  })
+
+  it('reports nothing for the published version list, in all three of its states', async () => {
+    const version = (n: number): PublishedVersion => ({
+      id: `pv_${n}`,
+      manifest: { schemaVersion: '1.0' } as never,
+      versionNumber: n,
+      publishedBy: 'ms-okafor',
+      publishedAt: 1_700_000_000_000 + n * 60_000,
+      schemaVersion: '1.0',
+    })
+
+    const states = [
+      { versions: [], unavailable: true },
+      { versions: [] },
+      { versions: [version(2), version(1)], activeId: 'pv_2' },
+    ]
+    for (const props of states) {
+      const { container } = render(<VersionList {...props} />)
+      expect(describeViolations(await violations(container))).toBe('')
+      cleanup()
+    }
+  })
+
+  it('marks the live version with a word rather than with emphasis alone', () => {
+    const { container } = render(
+      <VersionList
+        versions={[
+          {
+            id: 'pv_1',
+            manifest: { schemaVersion: '1.0' } as never,
+            versionNumber: 1,
+            publishedBy: 'ms-okafor',
+            publishedAt: 1_700_000_000_000,
+            schemaVersion: '1.0',
+          },
+        ]}
+        activeId="pv_1"
+      />,
+    )
+    expect(container.querySelector('[data-cs-published-active]')?.textContent).toBe('Live now')
+  })
+
+  it('reports nothing for the publication record, in all three of its states', async () => {
+    const entries = [
+      { action: 'published' as const, versionId: 'pv_1', actor: 'ms-okafor', at: 1_700_000_000_000 },
+      { action: 'withdrawn' as const, versionId: 'pv_1', actor: 'mr-adeyemi', at: 1_700_000_060_000 },
+    ]
+    for (const props of [{ entries: [], unavailable: true }, { entries: [] }, { entries }]) {
+      const { container } = render(<PublicationRecord {...props} />)
+      expect(describeViolations(await violations(container))).toBe('')
+      cleanup()
+    }
+  })
+
+  it('names each action in words rather than by its stored token', () => {
+    const { container } = render(
+      <PublicationRecord
+        entries={[
+          { action: 'withdrawn', versionId: 'pv_1', actor: 'mr-adeyemi', at: 1_700_000_000_000 },
+        ]}
+      />,
+    )
+    expect(container.querySelector('.cs-record-what')?.textContent).toBe('Withdrawn')
   })
 })
