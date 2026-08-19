@@ -24,6 +24,17 @@ const EXPECTED_VALUES = [
   'createElementRegistry',
   // Adapters
   'memoryAdapters',
+  // Publishing (Wave 5). Listed here for the reason this file exists: a capability that is built,
+  // tested, and unexported is one a later wave finds by needing it.
+  'createMemoryPublishing',
+  'builtinElements',
+  'checkLesson',
+  'withAssetIssues',
+  'severityFor',
+  'collectAssetRefs',
+  'checkAssets',
+  'accessibilityIssues',
+  'SEMANTIC_CODES',
   // Interactions (Wave 3)
   'isComplete',
   'isUnsatisfiable',

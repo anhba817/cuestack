@@ -57,6 +57,15 @@ export {
   type AdvanceCause,
 } from './advance/controller.js'
 
+/**
+ * The seven MVP element types as complete plugins (feature 009).
+ *
+ * A host registering a type of its own must **compose** rather than replace:
+ * `createElementRegistry([...builtinElements, mine])`. A registry that omits these reports all
+ * seven as unknown, because a non-empty registry turns off the "everything is known" escape.
+ */
+export { builtinElements } from './elements/builtin/index.js'
+
 // Ports and adapters
 export type {
   Ports,
@@ -81,6 +90,25 @@ export type {
 } from './adapters/index.js'
 export type { MemoryStorageOptions } from './adapters/memory/index.js'
 export { memoryAdapters, createMemoryStorage, createMemoryAssets, createMemoryAnalytics } from './adapters/memory/index.js'
+
+/**
+ * Publishing (feature 009) — the fourth adapter, and the boundary a lesson does not come back
+ * across. Note what it deliberately lacks: no update, no delete, no record edit, no arbitrary
+ * `setActive`. Absence is the enforcement (BR-008).
+ */
+export type {
+  PublishingAdapter,
+  PublishedVersion,
+  PublishedVersionId,
+  PublishAction,
+  PublishRefusal,
+  PublishResult,
+  LoadPublishedResult,
+  ActionResult,
+  RecordEntry,
+} from './publishing/index.js'
+export type { MemoryPublishingOptions } from './publishing/memory/index.js'
+export { createMemoryPublishing } from './publishing/memory/index.js'
 
 /**
  * Interactions — what a learner answered, and whether it counts (Wave 3).
@@ -114,3 +142,30 @@ export {
   MEDIA_REPORT_INTERVAL_MS,
 } from './media/reconcile.js'
 export type { MediaLink, Reconciliation } from './media/reconcile.js'
+
+/**
+ * The validation engine (feature 009).
+ *
+ * `checkLesson` is the whole surface for the pure half; `checkAssets` is the one question that
+ * needs the outside world and is therefore a separate call a caller may skip (FR-016a).
+ */
+export {
+  checkLesson,
+  withAssetIssues,
+  severityFor,
+  collectAssetRefs,
+  checkAssets,
+  accessibilityIssues,
+  SEMANTIC_CODES,
+} from './validation/index.js'
+export type {
+  ValidationReport,
+  ReportIssue,
+  CheckOptions,
+  ValidationPolicy,
+  SemanticCode,
+  IssueSource,
+  Severity,
+  AssetRef,
+  UnresolvedAsset,
+} from './validation/index.js'
