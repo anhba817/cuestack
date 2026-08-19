@@ -173,3 +173,68 @@ the input edge and is the only place in the package permitted to measure anythin
 **Everything a teacher does is one `Edit`.** `applyEdit` is pure, never mutates its input,
 validates its result, refuses everything in read-only, and skips locked elements rather than
 failing whole selections. It is also the seam undo will wrap.
+
+## Undo, autosave, and recovery (feature 008)
+
+### Undo lives on the session
+
+`undo`, `redo`, `canUndo`, `canRedo`, and `endEditRun` are members of `EditorSession`, not a hook
+you wrap around it. Five surfaces call `session.apply` directly, so a history you had to route
+through would be one four of them could bypass — silently, with undo appearing to work and
+skipping whichever was wired last.
+
+```tsx
+const session = useEditorSession({ manifest, slideId })
+useHistoryShortcuts(session, editorRootElement) // Cmd/Ctrl+Z, Shift+Z, Ctrl+Y
+```
+
+`useHistoryShortcuts` takes an element rather than binding to `document`: the studio exports
+parts you compose and does not own your page. A keystroke inside an input, textarea, or
+contenteditable is left to the platform's own undo.
+
+### `endEditRun` is a surface's obligation
+
+A run of the same kind of change to the same elements collapses into one reversal step, so ten
+arrow-key nudges undo in one press. Runs end on a selection change, a slide change, a committed
+text edit, and on `endEditRun()` — which the canvas, the timeline, and the inspector call when a
+gesture or a field finishes.
+
+If you build a surface that emits repeated edits, call it when the gesture ends. Forgetting
+degrades gracefully — steps merge that should not have — rather than corrupting anything.
+
+### Saving
+
+```tsx
+const persistence = useDraftPersistence({
+  storage,          // your StorageAdapter
+  lessonId,
+  openedAt,         // the token your load returned
+  draft: session.draft,
+  scheduler: browserScheduler(),      // from @cuestack/react
+  connectivity: browserConnectivity(), // optional, resumes on reconnect
+  identity,          // optional; see below
+  ports: { visibility },              // optional, for the pre-unload flush
+})
+```
+
+The scheduler comes from `@cuestack/react` because `no-clock-in-studio` forbids this package
+from constructing one — the same route `usePlayback` takes for its clock.
+
+**`identity` decides where unsaved work is kept.** Supply one and work is kept durably and
+offered back only to that person. Omit it and an in-memory keeper is selected: an interruption
+still costs nothing within the session, and nothing is written to a shared machine at all.
+
+### Recovery runs before the editor
+
+```tsx
+const recovery = useDraftRecovery({ storage, lessonId, identity })
+if (recovery.status === 'offer') return <RecoveryPrompt {...} />
+if (recovery.status === 'ready') return <Editor manifest={recovery.manifest!} />
+```
+
+It blocks, and a conflict does not. The editor cannot render a lesson until it knows which copy
+it is rendering; a conflict arrives with an hour of work already on screen, where a dialogue is
+the surest way to lose it.
+
+`useDraftRecovery` also brings every manifest from storage to the current format before anything
+sees it, so a version written months ago opens rather than being refused by the validator.

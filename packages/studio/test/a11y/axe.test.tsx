@@ -1,6 +1,10 @@
-import { act, cleanup, fireEvent } from '@testing-library/react'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import axe from 'axe-core'
+import { SaveStatus } from '../../src/persistence/SaveStatus.js'
+import { ConflictNotice } from '../../src/persistence/ConflictNotice.js'
+import { VersionHistory } from '../../src/persistence/VersionHistory.js'
+import { RecoveryPrompt } from '../../src/persistence/RecoveryPrompt.js'
 import { renderEditor } from '../harness/editor.js'
 import { element, hidden, lessonWith, notYet, oneOfEachType } from '../harness/corpus.js'
 import { fakePorts } from '../harness/editor.js'
@@ -75,12 +79,15 @@ describe('the editor has no WCAG 2.2 AA violations', () => {
     expect(describeViolations(await violations(container))).toBe('')
   })
 
-  it('with the delete confirmation open', async () => {
+  it('after a deletion, with its announcement showing', async () => {
+    // Feature 008 removed the delete confirmation this case used to open. What it checked is
+    // still worth checking, moved to the surface that replaced the prompt: the live region
+    // that tells a screen-reader user something was removed and can be brought back.
     const { handle, container } = renderEditor(lessonWith([element()]))
     act(() => handle.session.select([handle.session.draft.slides[0]!.elements[0]!.id]))
     act(() => void fireEvent.click(container.querySelector('[data-cs-delete]')!))
 
-    expect(container.querySelector('[data-cs-confirm="delete"]')).not.toBeNull()
+    expect(container.querySelector('[data-cs-announcer]')?.textContent).toMatch(/undo/i)
     expect(describeViolations(await violations(container))).toBe('')
   })
 
@@ -131,14 +138,13 @@ describe('the surfaces feature 006 adds', () => {
     expect(await violations(container)).toEqual([])
   })
 
-  it('reports nothing with the Custom confirmation open', async () => {
+  it('reports nothing after a Custom relationship is applied', async () => {
     /**
      * Two overlapping elements and nothing else, so exactly one row is Custom.
      *
-     * `full()` will not do: its second element starts 1 600 ms after the fade ends, which
-     * classifies as a *delay* and applies without asking. That fixture passed this assertion
-     * before `afterEach(cleanup)` was added — the dialog it found belonged to a previous
-     * test's tree. Cleanup is what made the suite honest about it.
+     * Feature 008 removed the confirmation this case used to open — the relationship applies
+     * at once and one undo takes it back — so what is checked now is the sequence surface in
+     * the state that follows it.
      */
     const { container } = renderEditor(
       timelineLesson([element({ startMs: 0, endMs: 4000 }), element({ startMs: 2000, endMs: 6000 })]),
@@ -149,10 +155,7 @@ describe('the surfaces feature 006 adds', () => {
         target: { value: 'after-previous' },
       }),
     )
-    expect(container.querySelector('[role="alertdialog"]')).toBeTruthy()
-    expect(
-      (await violations(container)).map((v) => `${v.id} | ${v.nodes[0]?.html?.slice(0, 120)}`),
-    ).toEqual([])
+    expect(describeViolations(await violations(container))).toBe('')
   })
 
   it('reports nothing with an overrun panel showing', async () => {
@@ -221,5 +224,75 @@ describe('the preview has no WCAG 2.2 AA violations', () => {
   it('names the dialog itself, which axe will not ask for', async () => {
     const { container } = renderEditor(multiSlideLesson(), { preview: 'beginning' })
     expect(preview(container).getAttribute('aria-label')).toBeTruthy()
+  })
+})
+
+/**
+ * The surfaces feature 008 adds.
+ *
+ * Author-facing rather than learner-facing, so Constitution III's WCAG gate applies through
+ * the editor's own bar rather than the player's — but the reasoning is the same, and these
+ * are the surfaces a teacher meets at the worst moments: work that failed to save, work
+ * recovered from an interruption, and somebody else's version arriving on top of theirs.
+ *
+ * Every one of them says its state in words. Nothing here depends on colour to be understood
+ * (NFR-ACC-003), which is why the assertions below are about names and prose rather than
+ * about styling.
+ */
+describe('the surfaces feature 008 adds', () => {
+  it('reports nothing for the save status, in every state it has', async () => {
+    for (const kind of ['idle', 'pending', 'saving', 'saved', 'offline', 'failed'] as const) {
+      const { container } = render(
+        <SaveStatus state={{ kind, message: 'Something to read.' }} onRetry={() => {}} />,
+      )
+      expect(describeViolations(await violations(container))).toBe('')
+      cleanup()
+    }
+  })
+
+  it('announces the save status politely rather than interrupting', () => {
+    const { container } = render(<SaveStatus state={{ kind: 'saved' }} />)
+    const node = container.querySelector('.cs-save-status')!
+    expect(node.getAttribute('aria-live')).toBe('polite')
+  })
+
+  it('reports nothing for the conflict notice', async () => {
+    const { container } = render(
+      <ConflictNotice
+        conflict={{ lessonId: 'lesson', currentToken: 'v2' }}
+        onTakeStored={() => {}}
+        onKeepMine={() => {}}
+      />,
+    )
+    expect(describeViolations(await violations(container))).toBe('')
+  })
+
+  it('reports nothing for the version history, listed or unavailable', async () => {
+    const listed = render(
+      <VersionHistory
+        versions={[{ token: 'v1', versionNumber: 1, recordedAt: 1_700_000_000_000 }]}
+        unavailable={false}
+        onRestore={() => {}}
+      />,
+    )
+    expect(describeViolations(await violations(listed.container))).toBe('')
+    cleanup()
+
+    const unavailable = render(<VersionHistory versions={[]} unavailable />)
+    expect(describeViolations(await violations(unavailable.container))).toBe('')
+  })
+
+  it('reports nothing for the recovery prompt', async () => {
+    const { container } = render(
+      <RecoveryPrompt movedOn={false} onRestore={() => {}} onDiscard={() => {}} />,
+    )
+    expect(describeViolations(await violations(container))).toBe('')
+  })
+
+  it('gives the recovery prompt an accessible name', () => {
+    const { container } = render(
+      <RecoveryPrompt movedOn onRestore={() => {}} onDiscard={() => {}} />,
+    )
+    expect(container.querySelector('dialog')?.getAttribute('aria-label')).toBeTruthy()
   })
 })

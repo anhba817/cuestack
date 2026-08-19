@@ -101,6 +101,30 @@ export { runKeyOf, COLLAPSIBLE_KINDS } from './history/runKey.js'
 export { MAX_DEPTH } from './history/stack.js'
 export type { HistoryStep, HistoryStack } from './history/stack.js'
 
+// Persistence (feature 008) — saving without being asked, and saying only what is true.
+export { useDraftPersistence } from './persistence/useDraftPersistence.js'
+export type {
+  DraftPersistence,
+  DraftPersistenceOptions,
+  SaveState,
+  SaveStateKind,
+  Conflict,
+} from './persistence/useDraftPersistence.js'
+export { SaveStatus } from './persistence/SaveStatus.js'
+export { ConflictNotice } from './persistence/ConflictNotice.js'
+export { VersionHistory } from './persistence/VersionHistory.js'
+export type { VersionHistoryProps } from './persistence/VersionHistory.js'
+export type { ConflictNoticeProps } from './persistence/ConflictNotice.js'
+export type { SaveStatusProps } from './persistence/SaveStatus.js'
+export { IDLE_MS, BACKOFF_MS, MAX_ATTEMPTS, CHECKPOINT_INTERVAL_MS, isCheckpoint, backoffFor } from './persistence/schedule.js'
+export { useDraftRecovery } from './persistence/useDraftRecovery.js'
+export type { DraftRecovery, DraftRecoveryOptions, RecoveryStatus } from './persistence/useDraftRecovery.js'
+export { RecoveryPrompt } from './persistence/RecoveryPrompt.js'
+export type { RecoveryPromptProps } from './persistence/RecoveryPrompt.js'
+export { onPageHidden } from './persistence/flush.js'
+export { browserKeeper, memoryKeeper, keeperFor, keyFor } from './persistence/keeper.js'
+export type { DraftKeeper, KeepResult, KeptWork } from './persistence/keeper.js'
+
 // The session — draft, selection, authoring time, mode, clipboard.
 export { useEditorSession } from './session/useEditorSession.js'
 export type { EditorSession, EditorSessionOptions, EditorMode } from './session/useEditorSession.js'

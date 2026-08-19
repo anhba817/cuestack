@@ -548,3 +548,105 @@
   margin: 0;
   color: var(--cs-theme-text-secondary, #444444);
 }
+
+/*
+ * Saving, Saved, Offline, Save Failed (feature 008).
+ *
+ * One surface and one vocabulary, shared with publishing by Constitution III — so nothing
+ * here assumes the status describes a *draft* save. The state is carried by the word, never
+ * by colour alone (NFR-ACC-003): the muted tone below is emphasis on top of prose that
+ * already says everything.
+ */
+.cs-save-status {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cs-save-status-word {
+  font-weight: 600;
+  color: var(--cs-theme-text, #111111);
+}
+
+.cs-save-status-detail {
+  color: var(--cs-theme-text-muted, #666666);
+}
+
+.cs-save-status[data-cs-save-status='failed'] .cs-save-status-word,
+.cs-save-status[data-cs-save-status='offline'] .cs-save-status-word {
+  color: var(--cs-theme-text-warning, #8a4b00);
+}
+
+/*
+ * The recovery offer (feature 008, FR-027a).
+ *
+ * A modal `<dialog>`, so the top layer and the backdrop are the platform's — the same choice
+ * the preview made, and for the same reason: focus containment written by hand is focus
+ * containment with a bug in it.
+ */
+.cs-recovery {
+  max-width: 34rem;
+  padding: 16px;
+  border: 1px solid var(--cs-theme-border, #cccccc);
+  border-radius: 4px;
+  background: var(--cs-theme-surface, #ffffff);
+  color: var(--cs-theme-text, #111111);
+}
+
+.cs-recovery button {
+  margin-right: 8px;
+}
+
+/*
+ * The conflict notice (feature 008, FR-032a).
+ *
+ * Persistent and in the flow rather than over it: it stays until answered and never blocks the
+ * work behind it. Styled to be read, not to be dismissed — there is no close control, because
+ * a conflict waved away is one the teacher meets again at a worse moment.
+ */
+.cs-conflict {
+  padding: 12px;
+  border: 1px solid var(--cs-theme-border-warning, #8a4b00);
+  border-radius: 4px;
+  background: var(--cs-theme-surface-raised, #f2f2f2);
+  color: var(--cs-theme-text, #111111);
+}
+
+.cs-conflict p {
+  margin: 0 0 8px;
+}
+
+.cs-conflict button {
+  margin-right: 8px;
+}
+
+/*
+ * Version history (feature 008, US5).
+ *
+ * A list of checkpoints, not of saves — so it stays short enough to read. Each row carries
+ * when it was recorded and its name where the teacher gave one; nothing here depends on
+ * colour to say what a row is.
+ */
+.cs-versions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cs-version {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--cs-theme-border-muted, #e0e0e0);
+}
+
+.cs-version-when {
+  color: var(--cs-theme-text, #111111);
+}
+
+.cs-version-label {
+  color: var(--cs-theme-text-muted, #666666);
+  font-style: italic;
+}
