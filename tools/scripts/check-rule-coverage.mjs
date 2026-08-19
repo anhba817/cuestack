@@ -21,10 +21,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 /**
  * Business rules with subject matter in the codebase today, and where each lives.
  *
- * The remaining rules have no code to test yet:
- *   BR-008, BR-009  publishing and immutable versions   — Wave 5
- *   BR-012          accessibility policy enforcement    — organisation policy, Wave 5
- *   BR-018          published asset references           — Wave 5
+ * **As of feature 009 this is every rule in the specification.** The four that had no code to test
+ * — BR-008, BR-009, BR-012, BR-018 — were all waiting on Wave 5, and Wave 5 supplied them. The
+ * deferred set is now empty, which is the state this gate was built to be able to report honestly:
+ * the count is derived from the filesystem, so it could not have arrived here by anybody deciding
+ * it had.
  */
 const EXPECTED = {
   'BR-001': 'schema',
@@ -44,6 +45,14 @@ const EXPECTED = {
   // that could enforce it until the timeline existed.
   'BR-016': 'studio',
   'BR-017': 'studio',
+  // Wave 5, feature 009. The first three are publishing's: a version that is never modified, a
+  // draft whose edits cannot reach it, and a published package that references only assets that
+  // resolve. BR-012 is the one policy-governed rule, and it lives in core because `accessibility`
+  // is a common element field a plugin cannot see.
+  'BR-008': 'core',
+  'BR-009': 'core',
+  'BR-012': 'core',
+  'BR-018': 'core',
 }
 
 function rulesIn(pkg) {
@@ -104,4 +113,8 @@ console.log(
   `check-rule-coverage: ok — ${found.size} of ${total} business rules have rule-named tests ` +
     `(${[...found.keys()].sort().join(', ')})`,
 )
-console.log(`  The other ${total - found.size} have no code to test yet; see EXPECTED for which wave supplies each.`)
+if (found.size < total) {
+  console.log(`  The other ${total - found.size} have no code to test yet; see EXPECTED for which wave supplies each.`)
+} else {
+  console.log('  Every business rule in the specification now has a rule-named test.')
+}

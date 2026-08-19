@@ -6,19 +6,31 @@ import {
   EditorCanvas,
   Inspector,
   Preview,
+  PublicationRecord,
+  PublishControls,
   SaveStatus,
   Timeline,
+  ValidationReport,
   VersionHistory,
+  VersionList,
   builtinElementEditors,
   createElementEditorRegistry,
   useDraftPersistence,
   useEditorSession,
   useHistoryShortcuts,
   usePlayback,
+  usePublishing,
+  useValidation,
   type PreviewStart,
 } from '@cuestack/studio'
 import { browserScheduler, browserConnectivity, browserPorts } from '@cuestack/react'
-import { createMemoryStorage } from '@cuestack/core'
+import {
+  createMemoryAssets,
+  createMemoryPublishing,
+  createMemoryStorage,
+  type PublishedVersion,
+  type RecordEntry,
+} from '@cuestack/core'
 import type { LessonManifest } from '@cuestack/schema'
 
 const editors = createElementEditorRegistry(builtinElementEditors)
@@ -60,6 +72,15 @@ export function EditorView({ lesson }: { lesson: LessonManifest }) {
     memory.seed('demo-lesson', lesson)
     return memory
   }, [lesson])
+  /**
+   * Publishing, over the in-memory reference (feature 009).
+   *
+   * The same argument as storage above, and FR-037 asks for it explicitly: validation, the publish
+   * gate, immutability, withdrawal, and the record all work here with no backend at all. A host
+   * swaps this one object for its own and changes nothing else on this page.
+   */
+  const publishingAdapter = useMemo(() => createMemoryPublishing({ now: () => Date.now() }), [])
+  const assets = useMemo(() => createMemoryAssets(), [])
   const scheduler = useMemo(() => browserScheduler(), [])
   const connectivity = useMemo(() => browserConnectivity(), [])
   const visibility = useMemo(() => browserPorts().visibility, [])
@@ -103,6 +124,42 @@ export function EditorView({ lesson }: { lesson: LessonManifest }) {
   useEffect(() => setRootEl(root.current), [])
   useHistoryShortcuts(session, rootEl)
 
+  const validation = useValidation({
+    draft: session.draft,
+    goToSlide: session.goToSlide,
+    select: session.select,
+  })
+
+  const publishing = usePublishing({
+    publishing: publishingAdapter,
+    lessonId: 'demo-lesson',
+    draft: session.draft,
+    by: 'demo-teacher',
+    saveNow: persistence.saveNow,
+    assets,
+  })
+
+  /**
+   * The published versions and the record, refreshed after anything that could change them.
+   *
+   * Held here rather than inside the hook because they are the host's to fetch: `usePublishing`
+   * runs the ordered flow and does not poll, so a host that never shows a version list never pays
+   * for one.
+   */
+  const [versions, setVersions] = useState<readonly PublishedVersion[]>([])
+  const [entries, setEntries] = useState<readonly RecordEntry[]>([])
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const refreshPublished = useMemo(
+    () => async () => {
+      setVersions(await publishingAdapter.listPublished('demo-lesson'))
+      setEntries(await publishingAdapter.readRecord('demo-lesson'))
+      const active = await publishingAdapter.loadPublished('demo-lesson')
+      setActiveId(active.ok ? active.version.id : null)
+    },
+    [publishingAdapter],
+  )
+  useEffect(() => void refreshPublished(), [refreshPublished, publishing.outcome])
+
   const playback = usePlayback(session)
   const slide = session.draft.slides.find((s) => s.id === session.slideId) ?? session.draft.slides[0]!
 
@@ -144,6 +201,15 @@ export function EditorView({ lesson }: { lesson: LessonManifest }) {
           ? 'Nothing changed yet. Edits live in this page and are not saved anywhere.'
           : `${saved} edit${saved === 1 ? '' : 's'} applied — held in memory only.`}
       </p>
+      <p>
+        <button type="button" onClick={() => validation.run()}>
+          Check this lesson
+        </button>
+      </p>
+      <ValidationReport report={validation.report} onSelect={validation.jumpTo} />
+      <PublishControls publishing={publishing} active={activeId !== null} />
+      <VersionList versions={versions} activeId={activeId} />
+      <PublicationRecord entries={entries} />
       <EditorCanvas
         session={session}
         writer={playback.writer}
