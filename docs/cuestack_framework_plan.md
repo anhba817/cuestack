@@ -54,7 +54,7 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
     Wave 4 — Studio editor  (after Wave 3)
       ✅ EN-5 ──→ ✅ ED-1 ──→ ✅ ED-2
                     ├──→ ✅ ED-3 ──→ ✅ ED-4
-                    └──→ 🔲 ED-5
+                    └──→ ✅ ED-5
       ✅ RC-1 ──→ ✅ ED-6 ──→ ✅ QA-5               (preview reuses the player — parity by construction)
 
     Wave 5 — publish, portability, extensibility proof
@@ -101,7 +101,7 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 | 4 | ED-4 Simple Sequence Mode ↔ timeline | ED-3 | 3 | 2 | 1 | 1 | 7 | ✅ |
 | 4 | QA-5 editor↔player parity harness | ED-6 | 0 | 3 | 1 | 0 | 7 | ✅ |
 | 4 | ED-2 properties inspector (plugin-driven) | ED-1 | 3 | 1 | 1 | 0 | 6 | ✅ |
-| 4 | ED-5 undo/redo, autosave, offline queue | ED-1 | 3 | 2 | 0 | 2 | 5 | 🔲 |
+| 4 | ED-5 undo/redo, autosave, offline queue | ED-1 | 3 | 2 | 0 | 2 | 5 | ✅ |
 | 4 | ED-1 canvas: move/resize/rotate, snap, layers | EN-5 | 3 | 1 | 0 | 1 | 4 | ✅ |
 | 4 | ED-3 timeline UI: tracks, playhead, drag | ED-1 | 3 | 1 | 0 | 1 | 4 | ✅ |
 | 5 | DX-2 `@cuestack/element` web-component adapter | RC-1 | 1 | 3 | 1 | 0 | 8 | 🔲 |
@@ -272,23 +272,57 @@ mid-slide would never have mounted, and every planned test drove a seek, which r
 suite now carries one test that plays through an element's `startMs` with **no seek at all**. That
 is the same sentence `useFrameLoop`'s header already records about the player.
 
-**Proposed next tranche: ED-5, ED-6 and QA-5.** ED-6 arms the parity gate and is the smaller half
-of what remains; ED-5 owes undo, which two confirmations in this editor are standing in for.
+**Wave 4 is closed.** ED-5 landed undo, autosave, offline recovery, conflict refusal, and version
+history, and with it the wave's last item.
 
-Obligations carried forward, now five:
+**The pattern the wave kept finding, one more time — and this was the sharpest instance.** ED-5 is
+the first consumer of `Ports.storage`, which `browserPorts()` had been filling from the in-memory
+reference since Wave 1 with nothing reading it. Trying to use `StorageAdapter` found the gaps in
+one afternoon: a save could not declare itself a checkpoint, an entry could not say when it was
+recorded, and an earlier version's content could not be fetched **at all** — so FR-DAT-009 was not
+difficult against that boundary, it was impossible. That is the seventh member of the
+declared-with-no-producer family, after `ElementPlugin.inspector`, `EffectDescriptor.parameters`,
+`RenderState.problems`, `ResolveContext.effects`, `AdvanceControllerOptions.allowOverride`, and
+`Ports.assets`.
+
+The eighth turned up in the same feature and is worth recording separately, because it was only
+*safe* to ignore by accident. `migrate()` has been in `@cuestack/schema` since Wave 1 with no
+consumer anywhere, because nothing had ever loaded a lesson it did not itself construct. ED-5 loads
+one twice. Once restoring went through `applyEdit` — which validates against the *current* schema —
+a version written under an earlier format would have been refused, and the refusal would have read
+as data corruption to a teacher whose lesson was perfectly intact.
+
+**A lint rule shaped the design, and was not amended.** `no-clock-in-studio` bans `setTimeout`,
+`setInterval`, `requestAnimationFrame`, `Date`, and `performance.now` across `packages/studio/src`
+with no `ignores`, and ED-5 needs three delays. The route taken is the one the rule's own comment
+describes and ED-3 already used: the primitive lives in `@cuestack/react` and the studio imports it.
+The rule still has no exemptions. The same rule decided how a checkpoint's time is rendered —
+`new Date(ms)` fails it, `Intl.DateTimeFormat().format(ms)` does not.
+
+**What the timeline turned out to owe.** `timeline/Track.tsx` calls `onRetime` from
+`onPointerMove`, so a two-second drag is roughly 120 applied changes where `canvas/gesture.ts`
+commits once on release. Run-collapsing was specified for arrow keys and turned out to be what makes
+undo work on the timeline at all. The CPU cost of one clone and one full validation per frame is
+feature 006's and remains outstanding — collapsing hides it from history, not from the machine.
+
+Obligations carried forward:
 
 - **Navigation buttons render their action but do not act**, and `on_click` advance is therefore
   unreachable. The reference lesson's last slide uses it, which is why the example app ships a
   second, completable lesson beside it. Awaiting the delegation seam through the player.
 - **Asset ids are resolved by a host-supplied function**, with BR-018's publishing rule left to
   Wave 5.
+- **`set-timing` is emitted once per `pointermove`**, so a timeline drag costs one manifest clone
+  and one full Zod validation per frame. ED-5's run-collapsing removes the *history* consequence —
+  a drag is one undo step — and leaves the CPU cost, which belongs to feature 006 rather than here.
 - **A dead-end lesson is authorable.** A required `on_correct` question with one attempt can be
   written, reached, and is now reported to the *learner*. Reporting it to the author is Wave 5's
   validation engine (PB-1) — and an editor makes such a lesson easier to author, which strengthens
   rather than weakens the case for it.
-- **Deletion is confirmed, not undoable.** Constitution III accepts either; ED-5 owes the
-  replacement, and owes *removing* the prompt rather than leaving a tool that both confirms and
-  undoes every deletion.
+- ~~**Deletion is confirmed, not undoable.**~~ **Discharged by ED-5.** All three confirmations are
+  deleted — `DeleteConfirmation`, `CustomConfirmation`, and the inline effect-removal prompt — and
+  a repository check in `check-gates.test.ts` keeps them gone. Their suites were rewritten rather
+  than removed: what each was really guarding is now asserted as reversibility.
 - ~~**The authoring-time scrub is a second control writing a value the playhead will also
   write.**~~ **Discharged by ED-3.** `canvas/AuthoringTime.tsx` is deleted rather than deprecated,
   and its five focus tests migrated to the playhead — they were the playhead's requirements
