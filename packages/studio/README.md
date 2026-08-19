@@ -238,3 +238,69 @@ the surest way to lose it.
 
 `useDraftRecovery` also brings every manifest from storage to the current format before anything
 sees it, so a version written months ago opens rather than being refused by the validator.
+
+## Validation and publishing (feature 009)
+
+### The report
+
+`useValidation({ draft, goToSlide, select })` runs `@cuestack/core`'s engine **on request** and
+holds the result until asked again. On request rather than on every keystroke, deliberately: the
+engine is fast enough to run continuously, which is exactly the temptation to resist — a report
+that changes under someone's hands while they read it is one they stop reading.
+
+`report` is `null` until a teacher has asked once, which is a different thing from a report that
+found nothing. `<ValidationReport>` renders the three states as three sentences, never as an empty
+region.
+
+`jumpTo(issue)` uses the same `goToSlide` and `select` every other surface uses. An issue with no
+element selects **nothing** — selecting the slide's first element to have something selected points
+a teacher at the wrong thing, confidently.
+
+### The order publishing runs in
+
+`usePublishing` runs one ordered flow, and the order is the design:
+
+```
+1. saveNow()                  — and publish only if it lands (FR-018a)
+2. checkLesson(draft, policy) — freshly, never a cached report (FR-015)
+3. any error   -> refuse, naming them
+4. checkAssets(collectAssetRefs(draft))
+5. any missing -> refuse, naming them (BR-018)
+6. publish()
+```
+
+**Step 2 does not trust an earlier report**, including the one the panel is showing. The draft may
+have moved since it was produced, and a report costs a millisecond; trusting a stale one is how a
+lesson gets published carrying the error it was just shown to have.
+
+**Every refusal changes nothing**, and that is a property of the arrangement rather than of any
+cleanup — nothing in the flow writes to the draft. The only write is step 1's save, which happens
+before any refusal can occur and is the state the teacher already asked for.
+
+**Six refusals, six sentences.** `save-failed`, `invalid`, `assets`, `permission`, `unavailable`,
+and `conflict` say different things because a teacher told "could not publish" about a network
+failure searches their lesson for a fault that is not there — and finds one, because every lesson
+has something.
+
+### One status vocabulary, not two
+
+`PublishControls` renders its state through ED-5's `SaveStatus`. A publish in flight reads *Saving*
+and a refused one reads *Save Failed*, which sounds imprecise until you consider the alternative: a
+fifth and sixth word for a teacher to learn. Constitution III fixes the vocabulary at four, and the
+precision lives in the message beneath. `unavailable` maps to *Offline* rather than to failure,
+because it is the one refusal that will probably resolve itself.
+
+### Two version lists, deliberately not merged
+
+`VersionHistory` (feature 008) shows **checkpoints of a draft** — places a teacher can go back to
+while working. `VersionList` shows **what learners were given**, each written once and never
+changed. A single list would invite restoring a published version as if it were a draft checkpoint,
+which is precisely the confusion BR-008 exists to prevent.
+
+`PublicationRecord` is oldest first, unlike both, because a record is read as a sequence. Nothing in
+it can be pressed: the adapter has no method that edits an entry, and a view implying otherwise
+would promise something no host can deliver.
+
+Dates use `Intl.DateTimeFormat`, which takes a timestamp directly — `new Date(ms)` inside
+`packages/studio/src` fails `no-clock-in-studio`, and relative times would need a wall-clock *now*
+this package may not read.

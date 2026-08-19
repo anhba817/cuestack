@@ -172,3 +172,65 @@ New ports, declared here and implemented in `@cuestack/react`: `Scheduler` (defe
 and `Connectivity` (the network signal). Neither joins `Ports` — playback defers nothing and does
 not care whether the network is up — and both are the first ports here with no consumer inside
 core, which follows from core being the contract package.
+
+## The publishing boundary (feature 009)
+
+The fourth adapter, and the first thing this framework produces that has no edit path at all.
+
+```ts
+publish(lessonId, manifest, by)      -> PublishResult
+listPublished(lessonId)              -> readonly PublishedVersion[]   // newest first
+loadPublished(lessonId, versionId?)  -> LoadPublishedResult
+withdraw(lessonId, by)               -> ActionResult
+restore(lessonId, by)                -> ActionResult
+readRecord(lessonId)                 -> readonly RecordEntry[]
+```
+
+**What it deliberately lacks is the interface.** There is no `update`, no `delete`, no route to
+edit the record, and no arbitrary `setActive`. BR-008 says a published version is never modified,
+and a rule expressed as a guard is a rule some adapter forgets: expressed as an absence, a host
+implementing this interface has nowhere to put such a route even if it wants one. If a version is
+wrong, publish another and withdraw this one — both leave the wrong one on the record, which is
+the point.
+
+**Versions are deeply frozen on read, and the draft never is.** The object handed out is the one a
+renderer might mutate, and this framework ships a renderer that takes manifests. Affordable here in
+a way it would not be for a draft: a published version is read rarely, a draft is resolved sixty
+times a second.
+
+**The active pointer is a property of the lesson, not a field on a version.** That is what lets
+withdrawal change availability without touching anything immutable — `withdraw` clears the pointer
+and deletes nothing, so `loadPublished` answers *withdrawn* rather than *not found*, and `restore`
+puts the pointer back without creating a version.
+
+**`publishedAt` is the host's clock**, following the rule ED-5 set for checkpoints: your storage is
+the only participant with an authoritative clock, and the studio may not read one at all.
+`schemaVersion` is recorded so it can be honoured, never upgraded — bringing a published version
+forward would change what a learner receives.
+
+## Validation (feature 009)
+
+`checkLesson(manifest, { elements, effects, policy })` answers a different question from
+`@cuestack/schema`'s `validate`. That one asks *is this structurally a lesson*; this one asks *is
+this a lesson worth giving to a learner* — dead ends, unreachable slides, missing alt text,
+elements outside their slide.
+
+The test for which side a new rule belongs on: **could a well-formed lesson fail it?** If yes it is
+semantic and belongs here; if a manifest failing it could not be loaded at all, it belongs in the
+schema.
+
+It composes rather than checks. `validate`, `checkReachability`, `collectProblems`,
+`resolveElement`'s unknown-type reporting, each type's own `ElementPlugin.validate`, and one rule of
+its own — the static dead end, which lives in `interactions/policy.ts` beside the runtime predicate
+it mirrors. Pure, deterministic, and complete in one pass.
+
+**The asset check is separate and async on purpose.** `collectAssetRefs` is pure and shared by both
+the warning pass and the publish check; `checkAssets` is the round trip, and a caller that cannot
+afford it skips it and still gets every other issue.
+
+**`builtinElements`** registers the seven MVP types. Their `resolve` is inert — `{ visible: true }`,
+exactly what the resolver already did with no plugin — so registering them changes nothing a learner
+sees. Note the consequence: `resolve` treats an **empty** registry as "every type is known", so with
+a non-empty default an unregistered type is now reported. A host adding one composes
+`createElementRegistry([...builtinElements, mine])`; a registry holding only a custom plugin reports
+all seven MVP types as unknown.

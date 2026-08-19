@@ -58,7 +58,7 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
       ✅ RC-1 ──→ ✅ ED-6 ──→ ✅ QA-5               (preview reuses the player — parity by construction)
 
     Wave 5 — publish, portability, extensibility proof
-      ✅ SCH-2 ──→ 🔲 PB-1 ──→ 🔲 PB-2
+      ✅ SCH-2 ──→ ✅ PB-1 ──→ ✅ PB-2
       ✅ SCH-2 ──→ 🔲 SCH-3                           (portable export/import package)
       ✅ EN-6 ──→ 🔲 PB-3                           (HTTP reference adapter)
       ✅ EN-5 ──→ 🔲 DX-1
@@ -108,8 +108,8 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 | 5 | PB-3 `@cuestack/adapter-http` reference REST adapter | EN-6 | 3 | 2 | 2 | 1 | 8 | 🔲 |
 | 5 | SCH-3 portable export/import package | SCH-2 | 3 | 2 | 1 | 1 | 7 | 🔲 |
 | 5 | DX-1 docs + plugin authoring guide | EN-5 | 1 | 2 | 2 | 0 | 7 | 🔲 |
-| 5 | PB-1 validation engine (errors/warnings/jump) | SCH-2 | 2 | 2 | 1 | 1 | 6 | 🔲 |
-| 5 | PB-2 immutable publish + version history | PB-1 | 2 | 2 | 1 | 2 | 5 | 🔲 |
+| 5 | PB-1 validation engine (errors/warnings/jump) | SCH-2 | 2 | 2 | 1 | 1 | 6 | ✅ |
+| 5 | PB-2 immutable publish + version history | PB-1 | 2 | 2 | 1 | 2 | 5 | ✅ |
 
 ## Next steps
 
@@ -310,15 +310,17 @@ Obligations carried forward:
 - **Navigation buttons render their action but do not act**, and `on_click` advance is therefore
   unreachable. The reference lesson's last slide uses it, which is why the example app ships a
   second, completable lesson beside it. Awaiting the delegation seam through the player.
-- **Asset ids are resolved by a host-supplied function**, with BR-018's publishing rule left to
-  Wave 5.
+- ~~**Asset ids are resolved by a host-supplied function**, with BR-018's publishing rule left to
+  Wave 5.~~ **Discharged by PB-2.** `collectAssetRefs` is pure and shared by the warning pass and
+  the publish check, so the two cannot disagree about which assets a lesson uses; `checkAssets` is
+  the round trip, and the publish check runs its own rather than reusing the report's answer.
 - **`set-timing` is emitted once per `pointermove`**, so a timeline drag costs one manifest clone
   and one full Zod validation per frame. ED-5's run-collapsing removes the *history* consequence —
   a drag is one undo step — and leaves the CPU cost, which belongs to feature 006 rather than here.
-- **A dead-end lesson is authorable.** A required `on_correct` question with one attempt can be
-  written, reached, and is now reported to the *learner*. Reporting it to the author is Wave 5's
-  validation engine (PB-1) — and an editor makes such a lesson easier to author, which strengthens
-  rather than weakens the case for it.
+- ~~**A dead-end lesson is authorable.**~~ **Discharged by PB-1.** `isDeadEnd` sits in
+  `interactions/policy.ts` immediately below the `isUnsatisfiable` it mirrors — one rule asked at
+  two moments, and separating them is how they come to disagree. The author is told before a
+  learner meets it, and the code is an error no policy can lower.
 - ~~**Deletion is confirmed, not undoable.**~~ **Discharged by ED-5.** All three confirmations are
   deleted — `DeleteConfirmation`, `CustomConfirmation`, and the inline effect-removal prompt — and
   a repository check in `check-gates.test.ts` keeps them gone. Their suites were rewritten rather
@@ -334,12 +336,50 @@ Obligations carried forward:
   ≥ 0, not the positive `msDuration` an earlier design document asserted from memory — so a slide
   advancing `on_click` may carry none. Every element on it overruns, correctly; the timeline says
   so once, about the slide.
-- **`ElementPlugin.validate` still has no consumer.** This feature gave `inspector` its first after
-  three waves; `validate` is now in exactly that position, and PB-1 is the item that owes it one.
+- ~~**`ElementPlugin.validate` still has no consumer.**~~ **Discharged by PB-1 — and it needed a
+  producer too**, which nobody had noticed. See the Wave 5 note below.
 - **The theme-values gate cannot see CSS.** It delegates to ESLint, which does not parse
   stylesheets, so colour literals there are convention-enforced project-wide — measured at 46 of 46
   already correct in the player's CSS. Recorded rather than closed, because fixing it would retrofit
   a check onto the player inside a feature about the editor.
+
+**Wave 5's validation and publishing are complete.** PB-1 gave the framework a report a teacher can
+act on; PB-2 gave it the first thing it produces that has no edit path at all. `check:rules` now
+reports **18 of 18** — every business rule in the specification has a rule-named test, and the
+deferred set is empty for the first time.
+
+**The declared-with-no-producer pattern, and the sharpest instance yet.** `ElementPlugin.validate`
+was recorded above as the ninth member — but the finding when PB-1 went to use it was worse than
+"no consumer": **there were no concrete `ElementPlugin` implementations in the shipped framework at
+all.** The seven MVP types carried a renderer and an editor registration and no core plugin, so the
+seam was real and empty, and SC-001's "no branch on element type" was vacuous — there was nothing
+behind the seam to branch away from. The seven arrived here with an inert `resolve`
+(`{ visible: true }`, exactly what the resolver already did with no plugin) so that adding them
+changed nothing a learner sees; a parity test asserts that across the change rather than assuming
+it. `ElementPlugin.schema` was the tenth, found the same afternoon and for the same reason.
+
+**Registering them turned off an escape, deliberately.** `resolve/element.ts` reads
+`elements.types().length === 0` as "every type is known", which is why the player worked without
+plugins — and why `UNKNOWN_ELEMENT_TYPE` could never fire. With a non-empty default it can. The
+consequence a host meets: a supplied registry **replaces** the default rather than extending it, so
+a custom type must be composed as `createElementRegistry([...builtinElements, mine])` or all seven
+MVP types are reported unknown. Written down in `packages/core/README.md` rather than discovered.
+
+**Three validators already existed, and two of them overlap.** The schema's Tier 2 and
+`checkReachability` both check the same four advance conditions — `advanceOnNonMedia` is reported by
+both, with different codes. That overlap predates this feature and is the reason the engine
+**composes** rather than checks: a fourth opinion would drift from the player, and a report that
+disagrees with the thing it describes is worse than no report. Every issue carries a `source`
+because `UNKNOWN_ELEMENT_TYPE` and `UNKNOWN_EFFECT_TYPE` are declared by *both* vocabularies and
+mean different things at the two tiers.
+
+**A plugin validator that restated the format got caught by checking.** The first `question` plugin
+reported fewer than two options and an empty prompt; `interactionSchema` declares
+`options: z.array(optionSchema).min(2)` and `prompt: z.string().min(1)`, so both were already
+rejected and the plugin was producing a second issue for one fault. What the format genuinely cannot
+say replaced them: two options whose *labels* read the same (the format checks ids, never labels),
+and a `true_false` question with more than two answers. The lesson generalises — FR-006c's rule
+holds only if somebody reads the schema rather than assuming it.
 
 ## Open design questions
 
