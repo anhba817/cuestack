@@ -117,7 +117,8 @@ export function Preview({ session, from, onClose, resolveAsset, ports }: Preview
    * The opener is captured during the *first render*, not in this effect: `autoFocus` on the
    * close button fires before effects run, so an effect reading `document.activeElement`
    * would find the preview's own control and close would return focus to a node that no
-   * longer exists. Feature 005's delete confirmation has the same line and the same comment.
+   * longer exists. Feature 005's delete confirmation had the same line and the same comment, before
+   * feature 008 removed it in favour of undo.
    */
   useEffect(() => {
     const dialog = dialogRef.current

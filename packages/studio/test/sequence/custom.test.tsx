@@ -40,55 +40,47 @@ describe('an event no relationship describes', () => {
 })
 
 describe('returning it to a simple relationship (FR-032)', () => {
-  it('asks first, and moves nothing until it is answered', () => {
-    const { handle, container } = overlapping()
-    const before = handle.session.draft.slides[0]!.elements[1]!.startMs
-
-    act(() => {
-      fireEvent.change(ui(container).getByLabelText('Starts'), { target: { value: 'after-previous' } })
-    })
-
-    expect(ui(container).getByRole('alertdialog')).toBeTruthy()
-    expect(handle.session.draft.slides[0]!.elements[1]!.startMs).toBe(before)
-  })
-
-  it('states the current time and the one the change would produce', () => {
-    const { container } = overlapping()
-    act(() => {
-      fireEvent.change(ui(container).getByLabelText('Starts'), { target: { value: 'after-previous' } })
-    })
-
-    const message = ui(container).getByRole('alertdialog').textContent ?? ''
-    // The problem, the affected object, and what will happen (NFR-USA-004).
-    expect(message).toContain('body')
-    expect(message).toContain('2.00')
-    expect(message).toContain('4.00')
-    expect(message).toMatch(/lost/i)
-  })
-
-  it('applies the relationship when confirmed', () => {
+  /**
+   * Rewritten in feature 008. This block used to assert a confirmation appeared before a
+   * Custom event lost its authored timing — a prompt feature 006 introduced with its reason
+   * written on it: "undo does not exist until ED-5, so the confirmation is the only thing
+   * standing between an experiment and a loss."
+   *
+   * Undo exists. What the prompt was protecting — that a teacher who applies a relationship
+   * by mistake does not lose timing they set on purpose — is now protected by being able to
+   * take it back, which is the answer Constitution III prefers.
+   */
+  it('applies at once, with nothing to answer first', () => {
     const { handle, container } = overlapping()
     act(() => {
       fireEvent.change(ui(container).getByLabelText('Starts'), { target: { value: 'after-previous' } })
-    })
-    act(() => {
-      fireEvent.click(ui(container).getByRole('button', { name: /move it/i }))
     })
 
     expect(handle.session.draft.slides[0]!.elements[1]!.startMs).toBe(4000)
+    expect(ui(container).queryByRole('alertdialog')).toBeNull()
   })
 
-  it('keeps the authored timing when declined', () => {
+  it('and one undo restores the timing the teacher authored', () => {
     const { handle, container } = overlapping()
     act(() => {
       fireEvent.change(ui(container).getByLabelText('Starts'), { target: { value: 'after-previous' } })
     })
-    act(() => {
-      fireEvent.click(ui(container).getByRole('button', { name: /keep the timing/i }))
-    })
+    act(() => handle.session.undo())
 
     expect(handle.session.draft.slides[0]!.elements[1]!.startMs).toBe(2000)
-    expect(ui(container).queryByRole('alertdialog')).toBeNull()
+  })
+
+  it('restores it exactly, not approximately', () => {
+    // The whole manifest, byte for byte: a reversal that put the element back at roughly the
+    // right moment would be worse than the prompt it replaced.
+    const { handle, container } = overlapping()
+    const before = JSON.stringify(handle.session.draft)
+    act(() => {
+      fireEvent.change(ui(container).getByLabelText('Starts'), { target: { value: 'after-previous' } })
+    })
+    act(() => handle.session.undo())
+
+    expect(JSON.stringify(handle.session.draft)).toBe(before)
   })
 
   it('does not ask when the event was already simple', () => {

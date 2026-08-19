@@ -94,34 +94,33 @@ describe('the playhead (FR-008, FR-037 carried forward)', () => {
   })
 })
 
-describe('the delete confirmation (FR-039)', () => {
-  const open = () => {
+describe('deleting keeps the keyboard user oriented (FR-039)', () => {
+  /**
+   * Rewritten in feature 008. These cases guarded the focus behaviour of a confirmation that
+   * no longer exists — it opened, took focus, and gave it back. Removing the prompt removes
+   * that choreography, but not the requirement underneath it: a keyboard user must not be
+   * left with focus on `<body>`, starting again from the top of the document.
+   */
+  const deleteOne = () => {
     const fixture = setup([element()])
     act(() => fixture.session.session.select([fixture.session.session.draft.slides[0]!.elements[0]!.id]))
     act(() => void fireEvent.click(fixture.container.querySelector('[data-cs-delete]')!))
     return fixture
   }
 
-  it('takes focus when it opens', () => {
-    const { container } = open()
-    expect(document.activeElement).toBe(container.querySelector('[data-cs-confirm-delete]'))
+  it('does not drop focus to the document when the element goes', () => {
+    deleteOne()
+    expect(document.activeElement).not.toBe(document.body)
   })
 
-  it('is dismissible by keyboard', () => {
-    const { session, container } = open()
-    act(() =>
-      void fireEvent.keyDown(container.querySelector('[data-cs-confirm="delete"]')!, { key: 'Escape' }),
-    )
-    expect(container.querySelector('[data-cs-confirm="delete"]')).toBeNull()
-    expect(session.session.draft.slides[0]!.elements).toHaveLength(1)
+  it('announces the deletion rather than leaving it silent', () => {
+    const { container } = deleteOne()
+    expect(container.querySelector('[data-cs-announcer]')?.textContent).toMatch(/deleted/i)
   })
 
-  it('returns focus when it closes, rather than dropping it to the document', () => {
-    const { container } = open()
-    act(() => void fireEvent.click(container.querySelector('[data-cs-confirm-cancel]')!))
-
-    // Somewhere in the editor, not on <body> — which is where focus goes when nobody
-    // restores it, and where a keyboard user has to start again from the top.
+  it('keeps focus in the editor after undoing it too', () => {
+    const { session } = deleteOne()
+    act(() => session.session.undo())
     expect(document.activeElement).not.toBe(document.body)
   })
 })
@@ -211,15 +210,18 @@ describe('the new surfaces show a visible focus indicator (FR-046)', () => {
     }
   })
 
-  it('takes focus and gives it back around the Custom confirmation', () => {
+  it('keeps focus on the control after a Custom relationship applies', () => {
+    // The Custom confirmation this checked was removed in feature 008. What remains worth
+    // asserting is that applying a relationship does not move focus away from the select the
+    // teacher is using — a keyboard user working down the sequence list should not be thrown
+    // back to the top by the change they just made.
     const { container } = openCustom()
     const select = within(container.querySelector('.cs-sequence') as HTMLElement).getByLabelText('Starts')
+    act(() => void select.focus())
     act(() => void fireEvent.change(select, { target: { value: 'after-previous' } }))
 
-    const dialog = container.querySelector('[role="alertdialog"]')!
-    expect(dialog).toBeTruthy()
-    act(() => void fireEvent.click(within(dialog as HTMLElement).getByRole('button', { name: /keep the timing/i })))
     expect(container.querySelector('[role="alertdialog"]')).toBeNull()
+    expect(document.activeElement).not.toBe(document.body)
   })
 })
 

@@ -6,12 +6,17 @@ import { countingIds } from '../harness/ids.js'
 import { element, lessonWith } from '../harness/corpus.js'
 
 /**
- * T081 — FR-033, FR-039, SC-013.
+ * Deleting is immediate, and takes one press to undo.
  *
- * The bar Constitution III sets is "undoable **or** confirmed", and this feature takes the
- * second. Recorded as temporary throughout: ED-5 brings real undo and should *remove* this
- * prompt rather than keep it alongside, because a tool that both confirms and undoes every
- * deletion is one that has stopped trusting its own history.
+ * **Rewritten in feature 008, not deleted.** This file used to assert that a confirmation
+ * appeared, and what it was really guarding was Constitution III's rule that a destructive
+ * action must be undoable **or** confirmed. Feature 005 took the second because undo did not
+ * exist, and said so in the component: the prompt was to be *removed* when ED-5 landed real
+ * undo, "because a tool that both confirms and undoes every deletion is one that has stopped
+ * trusting its own history."
+ *
+ * The requirement survives; only its mechanism changed. Deleting the tests along with the
+ * component would have quietly dropped the requirement with them.
  */
 function setup(elements = [element()], select = [0]) {
   const lesson = lessonWith(elements)
@@ -20,120 +25,93 @@ function setup(elements = [element()], select = [0]) {
     useEditorSession({ manifest: lesson, slideId: lesson.slides[0]!.id, idSource }),
   )
   act(() => result.current.select(select.map((i) => lesson.slides[0]!.elements[i]!.id)))
-  /**
-   * Rendered once, then reused.
-   *
-   * The confirmation is `Overlay`'s own state, not the session's — a prompt nobody answers
-   * must not touch the draft. So re-rendering between assertions would mount a fresh Overlay
-   * with the prompt closed again, and every assertion after the click would look at a
-   * component that never saw it.
-   */
   const { container } = render(<EditorCanvas session={result.current} />)
-  return { result, container }
+  return { result, container, lesson }
 }
 
-describe('deleting asks first', () => {
-  it('removes nothing when the delete control is pressed', () => {
+const press = (container: HTMLElement, selector: string): void => {
+  act(() => void fireEvent.click(container.querySelector<HTMLButtonElement>(selector)!))
+}
+
+describe('deleting happens at once', () => {
+  it('removes the element when the delete control is pressed', () => {
     const { result, container } = setup()
-    const trigger = container.querySelector<HTMLButtonElement>('[data-cs-delete]')!
-
-    act(() => void fireEvent.click(trigger))
-
-    expect(result.current.draft.slides[0]!.elements).toHaveLength(1)
-  })
-
-  it('opens a confirmation that names what will be removed', () => {
-    const { container } = setup()
-    const trigger = container.querySelector<HTMLButtonElement>('[data-cs-delete]')!
-    act(() => void fireEvent.click(trigger))
-
-    const dialog = container.querySelector('[data-cs-confirm="delete"]')
-    expect(dialog).not.toBeNull()
-    expect(dialog!.textContent).toContain('Delete the text element?')
-  })
-
-  it('removes the element once confirmed', () => {
-    const { result, container } = setup()
-    act(() => void fireEvent.click(container.querySelector<HTMLButtonElement>('[data-cs-delete]')!))
-    const confirm = container.querySelector<HTMLButtonElement>('[data-cs-confirm-delete]')!
-
-    act(() => void fireEvent.click(confirm))
-
+    press(container, '[data-cs-delete]')
     expect(result.current.draft.slides[0]!.elements).toHaveLength(0)
   })
 
-  it('keeps the element when cancelled, and closes the prompt', () => {
-    const { result, container } = setup()
-    act(() => void fireEvent.click(container.querySelector<HTMLButtonElement>('[data-cs-delete]')!))
-    const cancel = container.querySelector<HTMLButtonElement>('[data-cs-confirm-cancel]')!
-
-    act(() => void fireEvent.click(cancel))
-
-    expect(result.current.draft.slides[0]!.elements).toHaveLength(1)
-    expect(container.querySelector('[data-cs-confirm="delete"]')).toBeNull()
+  it('asks nothing first', () => {
+    const { container } = setup()
+    press(container, '[data-cs-delete]')
+    // The whole point of FR-012: no prompt remains for an action one reversal takes back.
+    expect(container.querySelector('[role="alertdialog"]')).toBeNull()
   })
 
-  /**
-   * One prompt for the whole selection.
-   *
-   * Seven prompts to delete seven things is how a teacher learns to click through prompts
-   * without reading them, which costs more safety than it buys.
-   */
-  it('asks once for a multiple selection, and states how many', () => {
+  it('removes a whole selection in one action', () => {
     const { result, container } = setup([element(), element(), element()], [0, 1, 2])
-    act(() => void fireEvent.click(container.querySelector<HTMLButtonElement>('[data-cs-delete]')!))
-
-    const dialogs = container.querySelectorAll('[data-cs-confirm="delete"]')
-    expect(dialogs).toHaveLength(1)
-    expect(dialogs[0]!.textContent).toContain('Delete 3 elements?')
-
-    act(() => void fireEvent.click(container.querySelector<HTMLButtonElement>('[data-cs-confirm-delete]')!))
+    press(container, '[data-cs-delete]')
     expect(result.current.draft.slides[0]!.elements).toHaveLength(0)
   })
+})
 
-  it('is announced as a modal alert, so it is not missed', () => {
-    const { container } = setup()
-    act(() => void fireEvent.click(container.querySelector<HTMLButtonElement>('[data-cs-delete]')!))
-    const dialog = container.querySelector('[data-cs-confirm="delete"]')!
-
-    expect(dialog.getAttribute('role')).toBe('alertdialog')
-    expect(dialog.getAttribute('aria-modal')).toBe('true')
-    expect(dialog.getAttribute('aria-label')).toContain('Delete')
-  })
-
-  it('takes focus when it opens (FR-039)', () => {
-    const { container } = setup()
-    act(() => void fireEvent.click(container.querySelector<HTMLButtonElement>('[data-cs-delete]')!))
-
-    expect(document.activeElement?.getAttribute('data-cs-confirm-delete')).toBe('')
-  })
-
-  it('dismisses on Escape without removing anything', () => {
+describe('and one undo brings it back', () => {
+  it('restores a single element exactly', () => {
     const { result, container } = setup()
-    act(() => void fireEvent.click(container.querySelector<HTMLButtonElement>('[data-cs-delete]')!))
-    const dialog = container.querySelector('[data-cs-confirm="delete"]')!
+    const before = JSON.stringify(result.current.draft)
+    press(container, '[data-cs-delete]')
 
-    act(() => void fireEvent.keyDown(dialog, { key: 'Escape' }))
-
-    expect(result.current.draft.slides[0]!.elements).toHaveLength(1)
-    expect(container.querySelector('[data-cs-confirm="delete"]')).toBeNull()
+    act(() => result.current.undo())
+    expect(JSON.stringify(result.current.draft)).toBe(before)
   })
 
-  it('says plainly that this cannot be undone yet', () => {
+  it('restores a multiple deletion in one press, not three', () => {
+    const { result, container } = setup([element(), element(), element()], [0, 1, 2])
+    const before = JSON.stringify(result.current.draft)
+    press(container, '[data-cs-delete]')
+
+    act(() => result.current.undo())
+    expect(JSON.stringify(result.current.draft)).toBe(before)
+    expect(result.current.canUndo).toBe(false)
+  })
+
+  it('selects what came back, so the teacher can see what happened', () => {
+    const { result, container, lesson } = setup()
+    const id = lesson.slides[0]!.elements[0]!.id
+    press(container, '[data-cs-delete]')
+    act(() => result.current.undo())
+    expect(result.current.selection).toEqual([id])
+  })
+
+  it('says so, for somebody who cannot see it happen', () => {
+    // The announcement replaces what the prompt used to convey: that something destructive
+    // occurred and there is a way back from it.
     const { container } = setup()
-    act(() => void fireEvent.click(container.querySelector<HTMLButtonElement>('[data-cs-delete]')!))
-    expect(container.querySelector('[data-cs-confirm="delete"]')!.textContent).toContain(
-      'cannot be undone yet',
-    )
+    press(container, '[data-cs-delete]')
+    expect(container.querySelector('[data-cs-announcer]')?.textContent).toMatch(/undo to bring it back/i)
   })
 
-  it('is the only route to a delete — nothing else removes an element', () => {
-    const { result, container } = setup()
-    // No control outside the confirmation applies a delete edit directly.
-    const direct = [...container.querySelectorAll('button')].filter(
-      (b) => b.hasAttribute('data-cs-delete') || b.hasAttribute('data-cs-confirm-delete'),
+  it('names the count for a multiple deletion', () => {
+    const { container } = setup([element(), element(), element()], [0, 1, 2])
+    press(container, '[data-cs-delete]')
+    expect(container.querySelector('[data-cs-announcer]')?.textContent).toMatch(/3 elements deleted/i)
+  })
+})
+
+describe('read-only still refuses', () => {
+  it('deletes nothing and offers no delete control', () => {
+    const lesson = lessonWith([element()])
+    const { result } = renderHook(() =>
+      useEditorSession({
+        manifest: lesson,
+        slideId: lesson.slides[0]!.id,
+        idSource: countingIds(),
+        mode: 'read-only',
+      }),
     )
-    expect(direct).toHaveLength(1)
+    act(() => result.current.select([lesson.slides[0]!.elements[0]!.id]))
+    const { container } = render(<EditorCanvas session={result.current} />)
+
+    expect(container.querySelector<HTMLButtonElement>('[data-cs-delete]')!.disabled).toBe(true)
     expect(result.current.draft.slides[0]!.elements).toHaveLength(1)
   })
 })

@@ -2,7 +2,6 @@ import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent, 
 import type { Element, Slide } from '@cuestack/schema'
 import { Ghost, ghostReason } from './Ghost.js'
 import { TextEditSurface } from './TextEditSurface.js'
-import { DeleteConfirmation } from './DeleteConfirmation.js'
 import { Announcer, describeNudge, describeSelection } from './Announcer.js'
 import { intentFor } from './shortcuts.js'
 import { scaleOf } from './pointer.js'
@@ -58,9 +57,6 @@ export function Overlay({ session, slide, absent, canvas, editors, atMs }: Overl
   const root = useRef<HTMLDivElement>(null)
   const [gesture, setGesture] = useState<GestureState | null>(null)
   const [frame, setFrame] = useState<GestureFrame | null>(null)
-  // Deletion is confirmed, never immediate (FR-033). Holding the pending set here rather
-  // than in the session keeps a prompt that is never answered from touching the draft.
-  const [pendingDelete, setPendingDelete] = useState<readonly string[] | null>(null)
   const [announcement, setAnnouncement] = useState('')
 
   const absentIds = new Set(absent.map((e) => e.id))
@@ -135,6 +131,36 @@ export function Overlay({ session, slide, absent, canvas, editors, atMs }: Overl
     [gesture, preview],
   )
 
+  /**
+   * Delete, and say so.
+   *
+   * One handler for the button and the keyboard, because the announcement is the part that is
+   * easy to attach to one route and forget on the other — which is exactly what happened in
+   * the first draft of this change.
+   */
+  const deleteSelected = useCallback(
+    (ids: readonly string[]): void => {
+      if (ids.length === 0) return
+      const result = session.apply({ kind: 'delete', ids })
+      if (!result.ok) return
+      /**
+       * Keep the keyboard user somewhere.
+       *
+       * Deleting empties the selection, which disables the control that was just pressed — and
+       * a disabled element cannot hold focus, so the browser drops it to `<body>` and a
+       * keyboard user starts again from the top of the document. The confirmation used to
+       * mask this by restoring focus on its way out; removing it exposed it (FR-039).
+       */
+      root.current?.focus()
+      setAnnouncement(
+        ids.length === 1
+          ? '1 element deleted. Undo to bring it back.'
+          : `${ids.length} elements deleted. Undo to bring them back.`,
+      )
+    },
+    [session],
+  )
+
   const onPointerUp = useCallback(() => {
     if (!gesture || !frame) {
       setGesture(null)
@@ -144,6 +170,9 @@ export function Overlay({ session, slide, absent, canvas, editors, atMs }: Overl
     setGesture(null)
     setFrame(null)
     if (edit) session.apply(edit)
+    // The gesture is over, so the reversal run is too: the next drag of the same element is
+    // its own undo step rather than joining this one (FR-004a, research R-04).
+    session.endEditRun()
   }, [gesture, frame, session])
 
   const selectedGeometry = visible
@@ -227,8 +256,16 @@ export function Overlay({ session, slide, absent, canvas, editors, atMs }: Overl
           return
         case 'delete':
           event.preventDefault()
-          // Through the confirmation, which is the only route to a delete (FR-033).
-          if (selected.length > 0) setPendingDelete(selected)
+          /**
+           * Immediate, and undoable.
+           *
+           * Feature 005 put a confirmation here and recorded it as temporary: Constitution III
+           * accepts undoable **or** confirmed, and this took the lower bar because undo did not
+           * exist. It does now, so the prompt is gone rather than kept alongside it — a tool
+           * that both confirms and undoes every deletion has stopped trusting its own history
+           * (FR-012).
+           */
+          deleteSelected(selected)
           return
         case 'select-all':
           event.preventDefault()
@@ -263,6 +300,9 @@ export function Overlay({ session, slide, absent, canvas, editors, atMs }: Overl
       ref={root}
       className="cs-overlay"
       data-cs-overlay=""
+      // Focusable programmatically, not in the tab order: it is a landing place for focus
+      // after a deletion, never a stop on the way somewhere else.
+      tabIndex={-1}
       onKeyDown={readOnly ? undefined : onKeyDown}
       onPointerMove={gesture ? onPointerMove : undefined}
       onPointerUp={gesture ? onPointerUp : undefined}
@@ -396,18 +436,7 @@ export function Overlay({ session, slide, absent, canvas, editors, atMs }: Overl
       )}
       <AddMenu session={session} editors={editors} disabled={readOnly} />
       <ArrangeControls session={session} disabled={readOnly} />
-      <ManageControls session={session} onDelete={setPendingDelete} disabled={readOnly} />
-
-      {pendingDelete && (
-        <DeleteConfirmation
-          elements={slide.elements.filter((e) => pendingDelete.includes(e.id))}
-          onConfirm={() => {
-            session.apply({ kind: 'delete', ids: pendingDelete })
-            setPendingDelete(null)
-          }}
-          onCancel={() => setPendingDelete(null)}
-        />
-      )}
+      <ManageControls session={session} onDelete={deleteSelected} disabled={readOnly} />
 
       <Announcer message={announcement} />
       <span className="cs-overlay-slide" hidden data-cs-slide-id={slide.id} />
@@ -499,9 +528,9 @@ function ArrangeControls({
 /**
  * Layer order, lock, hide, duplicate, copy, paste, and delete (FR-027, FR-029, FR-032).
  *
- * Delete goes through `onDelete` rather than applying an edit, because the confirmation is the
- * only route to a `delete` (FR-033). Every other action here is immediate: none of them
- * destroys anything a teacher cannot reverse by doing the opposite.
+ * All of them immediate, delete included. It was the one exception until feature 008: a
+ * confirmation stood in for undo, and its own comment said it should be *removed* rather than
+ * kept alongside one. Now nothing here destroys anything a teacher cannot take back.
  */
 function ManageControls({
   session,
@@ -562,7 +591,12 @@ function ManageControls({
       >
         Paste
       </button>
-      <button type="button" data-cs-delete="" disabled={none} onClick={() => onDelete(ids)}>
+      <button
+        type="button"
+        data-cs-delete=""
+        disabled={none}
+        onClick={() => onDelete(ids)}
+      >
         Delete
       </button>
     </div>

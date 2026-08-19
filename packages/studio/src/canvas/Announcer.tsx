@@ -46,3 +46,28 @@ export function describeSelection(
 export function describeNudge(label: string, x: number, y: number): string {
   return `${label} moved to ${Math.round(x)}, ${Math.round(y)}.`
 }
+
+/**
+ * What a reversal took back, or put back.
+ *
+ * FR-010 asks each reversal to announce *what* it reversed, not that one happened. "Undone"
+ * alone tells a screen-reader user that something changed and leaves them to find out what —
+ * which is the same defect feature 004 found in the player's progress bar, a position with no
+ * subject.
+ *
+ * The count is the honest thing to say. History records a step, not a sentence: a run of ten
+ * nudges collapses into one step and there is no stored description of "moved right ten
+ * times". What can be said truthfully is which slide the change was on and how many elements
+ * came back, so that is what is said.
+ */
+export function describeReversal(
+  direction: 'undo' | 'redo',
+  detail: { restored: number; slideChanged: boolean },
+): string {
+  const verb = direction === 'undo' ? 'Undone' : 'Redone'
+  const parts = [`${verb}.`]
+  if (detail.restored === 1) parts.push('1 element restored.')
+  else if (detail.restored > 1) parts.push(`${detail.restored} elements restored.`)
+  if (detail.slideChanged) parts.push('Moved to the slide that changed.')
+  return parts.join(' ')
+}

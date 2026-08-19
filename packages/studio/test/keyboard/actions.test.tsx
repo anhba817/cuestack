@@ -129,17 +129,20 @@ describe('the rest of US1–US3, from the keyboard alone (SC-005)', () => {
     expect(a!.zIndex).toBeGreaterThan(b!.zIndex)
   })
 
-  it('deletes through the confirmation, never directly (FR-033)', () => {
+  it('deletes at once, and one undo brings it back (FR-012)', () => {
+    // This asserted the confirmation the Delete key used to open. Feature 008 removed it, so
+    // what the keyboard now owes is the same as the mouse: the deletion happens, it is
+    // announced, and it is reversible in one action.
     const { result, container, press } = setup([element()])
     act(() => result.session.select([ids(result)[0]!]))
+    const before = JSON.stringify(result.session.draft)
+
     press('Delete')
-
-    expect(result.session.draft.slides[0]!.elements).toHaveLength(1)
-    const dialog = container.querySelector('[data-cs-confirm="delete"]')
-    expect(dialog).not.toBeNull()
-
-    act(() => void fireEvent.click(container.querySelector('[data-cs-confirm-delete]')!))
     expect(result.session.draft.slides[0]!.elements).toHaveLength(0)
+    expect(container.querySelector('[data-cs-announcer]')?.textContent).toMatch(/undo/i)
+
+    act(() => result.session.undo())
+    expect(JSON.stringify(result.session.draft)).toBe(before)
   })
 
   it('enters text-edit mode on Enter', () => {

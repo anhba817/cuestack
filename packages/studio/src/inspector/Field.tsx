@@ -8,6 +8,17 @@ export interface FieldProps {
   readonly source: Record<string, unknown>
   readonly disabled: boolean
   readonly onCommit: (value: unknown) => void
+  /**
+   * End the reversal run when this field loses focus.
+   *
+   * Every control here commits on `onChange`, so typing a label is one applied change per
+   * keystroke and they collapse into one undo step. Leaving the field and coming back must
+   * start a new step — otherwise a teacher who set a value, went elsewhere, and returned would
+   * lose both visits to a single undo.
+   *
+   * A prop rather than a session read: this component holds no session, and `Inspector` does.
+   */
+  readonly onEndRun?: () => void
 }
 
 /**
@@ -21,7 +32,7 @@ export interface FieldProps {
  * Every control carries a label associated by id, so the panel is navigable by keyboard and
  * announceable (FR-038, NFR-ACC-003).
  */
-export function Field({ field, source, disabled, onCommit }: FieldProps): ReactNode {
+export function Field({ field, source, disabled, onCommit, onEndRun }: FieldProps): ReactNode {
   const id = useId()
   const stored = readPath(source, field.key)
   const value = field.fromStored ? field.fromStored(stored) : (stored as string | number | boolean)
@@ -43,10 +54,11 @@ export function Field({ field, source, disabled, onCommit }: FieldProps): ReactN
           type="checkbox"
           disabled={disabled}
           checked={Boolean(value)}
+          onBlur={onEndRun}
           onChange={(e) => commit(e.target.checked)}
         />
       ) : field.kind === 'select' ? (
-        <select id={id} disabled={disabled} value={String(value ?? '')} onChange={(e) => commit(e.target.value)}>
+        <select id={id} disabled={disabled} onBlur={onEndRun} value={String(value ?? '')} onChange={(e) => commit(e.target.value)}>
           <option value="">—</option>
           {(field.options ?? []).map((option) => (
             <option key={option} value={option}>
@@ -59,6 +71,7 @@ export function Field({ field, source, disabled, onCommit }: FieldProps): ReactN
           id={id}
           type="number"
           disabled={disabled}
+          onBlur={onEndRun}
           value={value === undefined || value === null ? '' : String(value)}
           onChange={(e) => commit(e.target.value === '' ? 0 : Number(e.target.value))}
         />
@@ -71,6 +84,7 @@ export function Field({ field, source, disabled, onCommit }: FieldProps): ReactN
           id={id}
           type="text"
           disabled={disabled}
+          onBlur={onEndRun}
           value={value === undefined || value === null ? '' : String(value)}
           onChange={(e) => commit(e.target.value)}
         />

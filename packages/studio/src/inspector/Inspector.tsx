@@ -71,6 +71,7 @@ function SlidePanel({ session, slide }: { session: EditorSession; slide: Slide }
       <div data-cs-panel="slide">
         {SLIDE_FIELDS.map((field) => (
           <Field
+            onEndRun={session.endEditRun}
             key={field.key}
             field={field}
             source={slide as unknown as Record<string, unknown>}
@@ -122,6 +123,7 @@ function ElementPanel({
       <div data-cs-panel="type">
         {(typeFields ?? []).map((field) => (
           <Field
+            onEndRun={session.endEditRun}
             key={field.key}
             field={field}
             source={element as unknown as Record<string, unknown>}
@@ -135,6 +137,7 @@ function ElementPanel({
       <div data-cs-panel="common">
         {COMMON_FIELDS.map((field) => (
           <Field
+            onEndRun={session.endEditRun}
             key={field.key}
             field={field}
             source={element as unknown as Record<string, unknown>}

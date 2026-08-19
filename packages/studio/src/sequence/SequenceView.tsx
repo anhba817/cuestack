@@ -1,11 +1,10 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import type { Slide } from '@cuestack/schema'
 import type { EditorSession } from '../session/useEditorSession.js'
 import type { SequenceAssignment, SequenceRelationship } from '../draft/edit.js'
 import { eventsOf, keyOf } from './events.js'
-import { classify, resolveSequence } from './relationships.js'
+import { classify } from './relationships.js'
 import { SequenceRow } from './SequenceRow.js'
-import { CustomConfirmation } from './CustomConfirmation.js'
 
 export interface SequenceViewProps {
   readonly session: EditorSession
@@ -36,7 +35,6 @@ export function SequenceView({ session }: SequenceViewProps): ReactNode {
   const relationships = useMemo(() => classify(events), [events])
   const disabled = session.mode === 'read-only'
 
-  const [pending, setPending] = useState<{ index: number; kind: SequenceRelationship['kind'] } | null>(null)
 
   const apply = (index: number, relationship: SequenceRelationship): void => {
     const next = relationships.map((existing, i) => (i === index ? relationship : existing))
@@ -47,40 +45,20 @@ export function SequenceView({ session }: SequenceViewProps): ReactNode {
     session.apply({ kind: 'apply-sequence', relationships: assignments })
   }
 
+  /**
+   * Applied at once, Custom included.
+   *
+   * Feature 006 put a confirmation in front of leaving a Custom event, because applying a
+   * relationship discards timing a teacher set deliberately and undo did not exist. Its own
+   * comment said so: "undo does not exist until ED-5, so the confirmation is the only thing
+   * standing between an experiment and a loss." Undo exists, so the prompt is gone (FR-012).
+   */
   const choose = (index: number, kind: SequenceRelationship['kind']): void => {
     const relationship: SequenceRelationship =
       kind === 'after-previous-delay' ? { kind, delayMs: 500 } : ({ kind } as SequenceRelationship)
-
-    // Leaving Custom discards timing the teacher authored on purpose, and undo is ED-5's.
-    if (relationships[index]?.kind === 'custom') {
-      setPending({ index, kind })
-      return
-    }
     apply(index, relationship)
   }
 
-  const confirmPending = (): void => {
-    if (!pending) return
-    const relationship: SequenceRelationship =
-      pending.kind === 'after-previous-delay'
-        ? { kind: pending.kind, delayMs: 500 }
-        : ({ kind: pending.kind } as SequenceRelationship)
-    apply(pending.index, relationship)
-    setPending(null)
-  }
-
-  /** Where the pending relationship would put the event, so the confirmation can say so. */
-  const proposedMs = useMemo(() => {
-    if (!pending) return 0
-    const next = relationships.map((existing, i) =>
-      i === pending.index
-        ? pending.kind === 'after-previous-delay'
-          ? ({ kind: pending.kind, delayMs: 500 } as SequenceRelationship)
-          : ({ kind: pending.kind } as SequenceRelationship)
-        : existing,
-    )
-    return resolveSequence(events, next)[pending.index]?.startMs ?? 0
-  }, [pending, relationships, events])
 
   return (
     <section className="cs-sequence" aria-label="Sequence">
@@ -103,16 +81,6 @@ export function SequenceView({ session }: SequenceViewProps): ReactNode {
           ))}
         </ol>
       )}
-
-      {pending ? (
-        <CustomConfirmation
-          label={events[pending.index]?.label ?? 'this'}
-          currentMs={events[pending.index]?.startMs ?? 0}
-          proposedMs={proposedMs}
-          onConfirm={confirmPending}
-          onCancel={() => setPending(null)}
-        />
-      ) : null}
     </section>
   )
 }

@@ -20,8 +20,6 @@ export type { GhostProps, GhostReason } from './canvas/Ghost.js'
 export { isOffCanvas } from './canvas/Overlay.js'
 export { TextEditSurface } from './canvas/TextEditSurface.js'
 export type { TextEditSurfaceProps } from './canvas/TextEditSurface.js'
-export { DeleteConfirmation } from './canvas/DeleteConfirmation.js'
-export type { DeleteConfirmationProps } from './canvas/DeleteConfirmation.js'
 export { Announcer, describeSelection, describeNudge } from './canvas/Announcer.js'
 export type { AnnouncerProps } from './canvas/Announcer.js'
 export { intentFor } from './canvas/shortcuts.js'
@@ -48,7 +46,6 @@ export { overrunsOf, requiredDurationMs, isWholeSlideOverrun } from './timeline/
 export { SequenceView } from './sequence/SequenceView.js'
 export type { SequenceViewProps } from './sequence/SequenceView.js'
 export { SequenceRow } from './sequence/SequenceRow.js'
-export { CustomConfirmation } from './sequence/CustomConfirmation.js'
 export { eventsOf, keyOf } from './sequence/events.js'
 export type { SequenceEvent, EventKind } from './sequence/events.js'
 export { classify, resolveSequence, assignmentsFor } from './sequence/relationships.js'
@@ -91,6 +88,18 @@ export type { FieldProps } from './inspector/Field.js'
 export type { EditorField } from './inspector/fields.js'
 export { COMMON_FIELDS } from './inspector/common.js'
 export { SLIDE_FIELDS } from './inspector/slide.js'
+
+/**
+ * History (feature 008). Undo and redo live on the session itself — see `useEditorSession` —
+ * so what is exported here is the pure algebra, the run-key rule, and the keyboard binding a
+ * host attaches to its own editor root.
+ */
+export { useHistoryShortcuts } from './useHistoryShortcuts.js'
+export { historyIntentFor } from './history/shortcuts.js'
+export type { HistoryIntent, HistoryChord } from './history/shortcuts.js'
+export { runKeyOf, COLLAPSIBLE_KINDS } from './history/runKey.js'
+export { MAX_DEPTH } from './history/stack.js'
+export type { HistoryStep, HistoryStack } from './history/stack.js'
 
 // The session — draft, selection, authoring time, mode, clipboard.
 export { useEditorSession } from './session/useEditorSession.js'

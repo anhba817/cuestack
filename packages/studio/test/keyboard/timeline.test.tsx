@@ -91,7 +91,7 @@ describe('US2 — re-timing by keyboard', () => {
 })
 
 describe('US3 — authoring an effect by keyboard', () => {
-  it('adds, configures, and removes through the confirmation', () => {
+  it('adds, configures, and removes an effect, all from the keyboard', () => {
     const el = element()
     const { handle, container } = renderEditor(lessonWith([el]), { inspector: true })
     act(() => handle.session.select([el.id]))
@@ -106,23 +106,29 @@ describe('US3 — authoring an effect by keyboard', () => {
     act(() => void fireEvent.change(ui(container).getByLabelText(/duration/i), { target: { value: '900' } }))
     act(() => void fireEvent.change(ui(container).getByLabelText('Amount'), { target: { value: '0.3' } }))
 
+    // One press now: feature 008 removed the two-step confirmation, because an effect removed
+    // by mistake is one undo away.
     act(() => void fireEvent.click(ui(container).getByRole('button', { name: /^remove the pulse effect$/i })))
-    act(() => void fireEvent.click(ui(container).getByRole('button', { name: /^remove$/i })))
     expect(effects()).toHaveLength(0)
+
+    act(() => handle.session.undo())
+    expect(effects()).toHaveLength(1)
   })
 })
 
 describe('US4 — sequencing by keyboard', () => {
-  it('sets a relationship and confirms a Custom change', () => {
+  it('sets a relationship on a Custom event in one action', () => {
     const { handle, container } = open([
       element({ startMs: 0, endMs: 4000 }),
       element({ startMs: 2000, endMs: 6000 }),
     ])
 
     act(() => void fireEvent.change(ui(container).getByLabelText('Starts'), { target: { value: 'after-previous' } }))
-    act(() => void fireEvent.click(ui(container).getByRole('button', { name: /move it/i })))
-
     expect(handle.session.draft.slides[0]!.elements[1]!.startMs).toBe(4000)
+
+    // And the authored timing is one undo away, which is what the confirmation stood in for.
+    act(() => handle.session.undo())
+    expect(handle.session.draft.slides[0]!.elements[1]!.startMs).toBe(2000)
   })
 })
 

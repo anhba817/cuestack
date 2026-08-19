@@ -121,6 +121,32 @@ export function applyEdit(
     )
   }
 
+  /**
+   * The nineteenth kind branches here rather than in `dispatch`, and it has to.
+   *
+   * The frame binds `const next = clone(draft)` and `dispatch` mutates it in place, so a kind
+   * that *replaces* the whole manifest has nothing to mutate — and the slide lookup below
+   * would refuse a stale `ctx.slideId` on an edit that is about to discard that slide anyway.
+   *
+   * **Two entry points into one frame, not two write paths.** What makes it one frame is that
+   * both pass the same read-only refusal above and the same `validate` below (research R-12).
+   */
+  if (edit.kind === 'replace-draft') {
+    const replaced = clone(edit.manifest)
+    const incoming = validate(replaced)
+    if (!incoming.ok) {
+      const first = incoming.issues[0]
+      return fail(
+        'invalid',
+        first
+          ? `That version cannot be opened: ${first.message} (${first.code})`
+          : 'That version is not a lesson this editor can open.',
+        first?.location?.elementId,
+      )
+    }
+    return { ok: true, draft: replaced, idsCreated: [] }
+  }
+
   const next = clone(draft)
   const slide = slideOf(next, ctx.slideId)
   if (!slide) return fail('not-found', `No slide "${ctx.slideId ?? '<first>'}" in this lesson.`)

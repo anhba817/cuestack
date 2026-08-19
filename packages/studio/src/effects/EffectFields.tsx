@@ -8,6 +8,8 @@ export interface EffectFieldsProps {
   readonly parameters: Readonly<Record<string, string | number | boolean>>
   readonly disabled: boolean
   readonly onCommit: (key: string, value: string | number | boolean) => void
+  /** Ends the reversal run when a parameter field loses focus — see `Field`. */
+  readonly onEndRun?: () => void
 }
 
 /**
@@ -27,7 +29,7 @@ export interface EffectFieldsProps {
  * writing a default into the manifest would turn "unset" into "set to what it happened to be
  * when a teacher opened the panel".
  */
-export function EffectFields({ fields, parameters, disabled, onCommit }: EffectFieldsProps): ReactNode {
+export function EffectFields({ fields, parameters, disabled, onCommit, onEndRun }: EffectFieldsProps): ReactNode {
   if (fields.length === 0) return null
   return (
     <div className="cs-effect-fields">
@@ -37,6 +39,7 @@ export function EffectFields({ fields, parameters, disabled, onCommit }: EffectF
           field={field}
           source={parameters as Record<string, unknown>}
           disabled={disabled}
+          {...(onEndRun ? { onEndRun } : {})}
           onCommit={(value) => onCommit(field.key, value as string | number | boolean)}
         />
       ))}

@@ -120,6 +120,7 @@ export function Timeline({ session, playback }: TimelineProps): ReactNode {
               snapTargets={snapTargetsFor(slide, track.elementId)}
               onSelect={(id) => session.select([id])}
               onRetime={retime}
+              onEndRun={session.endEditRun}
             />
           ))}
         </ol>

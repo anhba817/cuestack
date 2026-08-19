@@ -14,6 +14,15 @@ export interface TrackProps {
   readonly onSelect: (elementId: string) => void
   /** One call per committed change. The reducer refuses a locked element; this does not. */
   readonly onRetime: (elementId: string, range: TimeRange) => void
+  /**
+   * End the reversal run when the gesture finishes.
+   *
+   * This component emits one `set-timing` per `pointermove`, so a drag is many applied
+   * changes that collapse into one undo step — and without a boundary the *next* drag would
+   * join the same step, putting one undo two drags back. Pointer-up is that boundary, and it
+   * is not elapsed time (research R-04).
+   */
+  readonly onEndRun?: () => void
 }
 
 /**
@@ -45,6 +54,7 @@ export function Track({
   snapTargets,
   onSelect,
   onRetime,
+  onEndRun,
 }: TrackProps): ReactNode {
   const gesture = useRef<{ kind: TimingGesture; originX: number; from: TimeRange } | null>(null)
   const range: TimeRange = { startMs: track.startMs, endMs: track.endMs }
@@ -76,6 +86,7 @@ export function Track({
 
   const end = (): void => {
     gesture.current = null
+    onEndRun?.()
   }
 
   /**

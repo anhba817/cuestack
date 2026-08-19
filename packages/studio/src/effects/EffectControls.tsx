@@ -37,12 +37,12 @@ interface StoredEffect {
  * without the other is worse than neither — an effect a teacher can add and the resolver
  * rejects as `UNKNOWN_EFFECT_TYPE`.
  *
- * Removal is confirmed, on the terms feature 005 set for delete. The confirmation is
- * expected to be **removed** when ED-5 lands real undo, not kept beside it.
+ * Removal is immediate and undoable (feature 008). It used to be confirmed, on the terms
+ * feature 005 set for delete, and that prompt always said it was standing in for something:
+ * it was to be **removed** when ED-5 landed real undo, not kept beside it.
  */
 export function EffectControls({ session, element, effects = DEFAULT_EFFECTS }: EffectControlsProps): ReactNode {
   const [pendingType, setPendingType] = useState(() => effects.types()[0] ?? '')
-  const [confirming, setConfirming] = useState<string | null>(null)
   const readOnly = session.mode === 'read-only'
 
   const stored = ((element as unknown as { effects?: readonly StoredEffect[] }).effects ?? []) as readonly StoredEffect[]
@@ -132,6 +132,7 @@ export function EffectControls({ session, element, effects = DEFAULT_EFFECTS }: 
                 fields={descriptor?.parameters ?? []}
                 parameters={effect.parameters ?? {}}
                 disabled={readOnly}
+                onEndRun={session.endEditRun}
                 onCommit={(key, value) =>
                   session.apply({
                     kind: 'set-effect',
@@ -142,31 +143,14 @@ export function EffectControls({ session, element, effects = DEFAULT_EFFECTS }: 
                 }
               />
 
-              {confirming === effect.id ? (
-                <span className="cs-effect-confirm" role="alertdialog" aria-label={`Remove the ${effect.type} effect?`}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      session.apply({ kind: 'remove-effect', id: element.id, effectId: effect.id })
-                      setConfirming(null)
-                    }}
-                  >
-                    Remove
-                  </button>
-                  <button type="button" onClick={() => setConfirming(null)}>
-                    Keep
-                  </button>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  disabled={readOnly}
-                  aria-label={`Remove the ${effect.type} effect`}
-                  onClick={() => setConfirming(effect.id)}
-                >
-                  Remove
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={readOnly}
+                aria-label={`Remove the ${effect.type} effect`}
+                onClick={() => session.apply({ kind: 'remove-effect', id: element.id, effectId: effect.id })}
+              >
+                Remove
+              </button>
             </li>
           )
         })}

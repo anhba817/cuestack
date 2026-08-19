@@ -368,16 +368,6 @@
   gap: 6px;
 }
 
-/*
- * The removal confirmation stands in for undo, which ED-5 owns. It is expected to be
- * *removed* when real undo lands rather than kept beside it — a confirmation and an undo
- * asking the same question twice is worse than either alone.
- */
-.cs-effect-confirm {
-  display: inline-flex;
-  gap: 4px;
-}
-
 .cs-effect-refusal {
   margin: 0;
   color: var(--cs-theme-text-muted, #666666);
@@ -430,20 +420,6 @@
 .cs-sequence-empty {
   margin: 0;
   color: var(--cs-theme-text-muted, #666666);
-}
-
-/*
- * The confirmation that stands between an experiment and a loss.
- *
- * Not styled to be dismissed quickly. Leaving Custom discards timing a teacher authored on
- * purpose, and undo does not exist until ED-5 — so this is the one moment where slowing
- * somebody down is the service.
- */
-.cs-sequence-confirm {
-  padding: 8px;
-  border: 1px solid var(--cs-theme-border-muted, #999999);
-  border-radius: 3px;
-  background: var(--cs-theme-surface-raised, #f2f2f2);
 }
 
 /*

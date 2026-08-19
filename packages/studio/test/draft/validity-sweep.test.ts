@@ -4,7 +4,7 @@ import { applyEdit } from '../../src/draft/reducer.js'
 import { EDIT_KINDS, type Edit } from '../../src/draft/edit.js'
 import { MIN_EXTENT_UNITS } from '../../src/geometry/constants.js'
 import { countingIds } from '../harness/ids.js'
-import { emptySlide } from '../harness/corpus.js'
+import { element, emptySlide, lessonWith } from '../harness/corpus.js'
 
 /**
  * T103 — SC-012, FR-045: no edit can produce a manifest the player would refuse.
@@ -41,6 +41,9 @@ function walker(seed: number): () => number {
  * not-found every time, and the sweep silently stops covering two of the six new kinds —
  * which is what the coverage assertion at the foot of this file caught.
  */
+/** A valid lesson to restore, built once so the seeded walk stays reproducible. */
+const REPLACEMENT = lessonWith([element()])
+
 function nextEdit(
   rand: () => number,
   ids: readonly string[],
@@ -110,6 +113,19 @@ function nextEdit(
       }
     case 'extend-slide':
       return { kind }
+    /**
+     * The sample for feature 008's nineteenth kind carries a **valid** manifest, deliberately.
+     *
+     * This file is a seeded random walk asserting that no edit yields a manifest the player
+     * would refuse. Handing `replace-draft` an invalid one would make it assert the opposite
+     * of its own header — the refusal case belongs in `replace-draft.pure.test.ts`, where a
+     * refusal is the expected result.
+     */
+    case 'replace-draft':
+      // One shared instance, not a fresh one per call: `lessonWith` mints a new lesson id
+      // every time, which would make two runs of the same seed differ for a reason that has
+      // nothing to do with the walk.
+      return { kind, manifest: REPLACEMENT }
   }
 }
 

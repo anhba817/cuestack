@@ -36,6 +36,19 @@ export const EDIT_KINDS = [
   'remove-effect',
   'apply-sequence',
   'extend-slide',
+  /**
+   * Feature 008: restoring an earlier version.
+   *
+   * A kind rather than a session method, and the difference is four guarantees. `applyEdit`
+   * holds the read-only refusal, the schema validation, the purity, and the clone; a method
+   * beside it inherits none of them — on the one input in this system that did not come from
+   * the editor's own reducer (research R-12).
+   *
+   * Being in this list also puts it inside feature 005's closure guarantee: the read-only
+   * suite enumerates `EDIT_KINDS`, so it is refused-by-default until somebody says otherwise
+   * deliberately.
+   */
+  'replace-draft',
 ] as const
 
 export type EditKind = (typeof EDIT_KINDS)[number]
@@ -72,6 +85,14 @@ export interface SequenceAssignment {
 }
 
 export type Edit =
+  /**
+   * Replace the whole draft with a lesson from storage.
+   *
+   * The manifest has already been brought to the current format by the persistence layer
+   * (FR-050) — the validator here judges against the current schema, so an unmigrated old
+   * version would be refused and the refusal would read as corruption.
+   */
+  | { readonly kind: 'replace-draft'; readonly manifest: LessonManifest }
   | { readonly kind: 'add-element'; readonly type: string; readonly at?: { x: number; y: number } }
   /**
    * `geometry` applies to every named element; `perId` overrides it for the ones listed.

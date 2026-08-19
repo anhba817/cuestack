@@ -20,6 +20,10 @@ import { element, lessonWith } from '../harness/corpus.js'
 /** One representative edit per kind. Kept exhaustive by the enumeration test below. */
 function sampleEdit(kind: Edit['kind'], id: string): Edit {
   switch (kind) {
+    case 'replace-draft':
+      // Feature 008's nineteenth kind. Read-only must refuse restoring a version as firmly as
+      // it refuses everything else — a lesson open for reading cannot be replaced wholesale.
+      return { kind, manifest: lessonWith([element()]) }
     case 'add-element':
       return { kind, type: 'text' }
     case 'transform-elements':
