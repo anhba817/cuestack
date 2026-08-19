@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -561,5 +561,72 @@ describe('gate: parity', () => {
     for (const suite of ['overlay', 'geometry', 'state', 'renderers']) {
       expect(output).toContain(suite)
     }
+  })
+})
+
+/**
+ * The confirmations feature 008 removed, kept removed.
+ *
+ * SC-004 asks that no confirmation remain for an action a single reversal can take back. That
+ * is a repository-wide property rather than a behaviour of any one component, so it is armed
+ * here as a check rather than left as a habit — the three prompts feature 008 deleted each had
+ * a comment saying they were temporary, and a fourth could arrive the same way.
+ *
+ * `readFileSync` over `execFileSync('grep')` on purpose: this has to fail with a message that
+ * names what it found, and a grep's exit code says only that something matched.
+ */
+describe('gate: no confirmation stands in for undo', () => {
+  const FORBIDDEN = [
+    'DeleteConfirmation',
+    'CustomConfirmation',
+    'cs-effect-confirm',
+    'cs-sequence-confirm',
+    'data-cs-confirm',
+  ]
+
+  /**
+   * Every source and test file in the editor, from the working tree.
+   *
+   * A filesystem walk rather than `git ls-files`: the index still lists a file that has been
+   * deleted but not yet staged, and what this check is about is what is actually there.
+   */
+  function studioFiles(dir: string, found: string[] = []): string[] {
+    for (const item of readdirSync(join(root, dir), { withFileTypes: true })) {
+      const path = `${dir}/${item.name}`
+      if (item.isDirectory()) {
+        if (item.name === 'node_modules' || item.name === 'dist' || item.name === '.next') continue
+        studioFiles(path, found)
+      } else if (/\.(ts|tsx|css)$/.test(item.name)) {
+        found.push(path)
+      }
+    }
+    return found
+  }
+
+  const editorFiles = (): string[] => [
+    ...studioFiles('packages/studio/src'),
+    ...studioFiles('packages/studio/test'),
+  ]
+
+  it('finds no confirmation surface anywhere in the editor (SC-004)', () => {
+    const offenders: string[] = []
+    for (const file of editorFiles()) {
+      const contents = readFileSync(join(root, file), 'utf8')
+      for (const marker of FORBIDDEN) {
+        // Prose is allowed: the code comments explaining *why* these were removed are the
+        // record of the decision, and deleting them would lose it. Only a live reference is
+        // a defect, so the marker must appear as an identifier or a class rather than in
+        // running text.
+        const live = new RegExp(`(<${marker}|from ['"].*${marker}|className=.*${marker}|\\.${marker}\\s*\\{|${marker}=)`)
+        if (live.test(contents)) offenders.push(`${file}: ${marker}`)
+      }
+    }
+    expect(offenders, `a confirmation surface is back: ${offenders.join(', ')}`).toEqual([])
+  })
+
+  it('and the components themselves are gone from disk', () => {
+    const present = editorFiles()
+    expect(present.some((f) => f.endsWith('DeleteConfirmation.tsx'))).toBe(false)
+    expect(present.some((f) => f.endsWith('CustomConfirmation.tsx'))).toBe(false)
   })
 })

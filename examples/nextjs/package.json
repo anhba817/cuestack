@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@cuestack/schema": "workspace:*",
+    "@cuestack/core": "workspace:*",
     "@cuestack/react": "workspace:*",
     "next": "16.3.1",
     "react": "19.2.8",

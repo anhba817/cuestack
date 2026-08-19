@@ -74,6 +74,9 @@ importers:
 
   examples/nextjs:
     dependencies:
+      '@cuestack/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@cuestack/react':
         specifier: workspace:*
         version: link:../../packages/react
