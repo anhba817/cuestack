@@ -56,6 +56,21 @@ export function Inspector({ session, slide, editors, plugins, effects }: Inspect
   )
 }
 
+/**
+ * The three members that describe *editing* rather than the field.
+ *
+ * Only these are overlaid. Copying the whole editor entry would let it override the plugin's own
+ * label and kind, which FR-018 gives to the plugin — and a host registering a plugin to rename a
+ * field would find the rename ignored.
+ */
+function editingExtras(field: EditorField): Partial<EditorField> {
+  return {
+    ...(field.toStored ? { toStored: field.toStored } : {}),
+    ...(field.fromStored ? { fromStored: field.fromStored } : {}),
+    ...(field.itemDefaults ? { itemDefaults: field.itemDefaults } : {}),
+  }
+}
+
 function Panel({ label, children }: { label: string; children: ReactNode }): ReactNode {
   return (
     <section className="cs-inspector" data-cs-inspector="" aria-label={label}>
@@ -101,14 +116,31 @@ function ElementPanel({
   effects?: EffectRegistry
 }): ReactNode {
   /**
-   * A registered plugin wins; the editor registry is the fallback for the built-ins.
+   * A registered plugin supplies the fields; this package overlays what *editing* adds.
+   *
+   * FR-018 settles which list wins: the inspector "MUST source an element type's fields from that
+   * type's registered plugin". So a plugin's list is the list — including for the seven builtins
+   * feature 009 registered, where `builtinElementEditors` derives from the same declaration and the
+   * two are identical by construction.
+   *
+   * What the overlay is for is the half a plugin cannot express. `EditorField extends
+   * InspectorField` by adding `fromStored`/`toStored` and `itemDefaults`, and the plugin path is a
+   * **cast** rather than a conversion — so choosing the plugin's list wholesale would drop them
+   * silently, leaving a teacher with, in `fields.ts`'s own words, "a colour picker that never
+   * works", or an "Add option" button that appears to do nothing.
+   *
+   * Merged **by key**, because those extras hang off individual fields rather than off the type.
    *
    * Note what a plugin receives to produce this: nothing. `inspector` is a declaration on the
    * registration, not a function called with the lesson — so a plugin cannot reach the draft,
    * its siblings, or the learner, which is FR-025 holding by shape rather than by discipline.
    */
   const pluginSpec = plugins?.get(element.type)?.inspector?.fields as readonly EditorField[] | undefined
-  const typeFields = pluginSpec ?? editors.get(element.type)?.inspector
+  const editorSpec = editors.get(element.type)?.inspector
+  const extras = new Map((editorSpec ?? []).map((f) => [f.key, editingExtras(f)]))
+  const typeFields = pluginSpec
+    ? pluginSpec.map((field) => ({ ...field, ...(extras.get(field.key) ?? {}) }))
+    : editorSpec
   const unrecognised = !typeFields
 
   return (

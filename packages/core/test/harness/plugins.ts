@@ -53,3 +53,26 @@ export function syntheticEffect(props: Record<string, unknown>): Effect {
     ...props,
   } as unknown as Effect
 }
+
+/**
+ * A plugin whose `validate` reports something, and one whose `validate` throws.
+ *
+ * The two doubles feature 009's engine is measured against. The first proves the engine has no
+ * branch on element type — it reports issues for a type it has never heard of. The second
+ * proves an author with one broken plugin still gets every other issue, which is the
+ * difference between a report that degrades and one that disappears.
+ */
+export function reportingPlugin(code = 'GAUGE_NEEDS_A_MAXIMUM'): ElementPlugin {
+  return syntheticPlugin({
+    validate: () => [{ code, message: 'A gauge needs a maximum, or it has nothing to fill.' }],
+  })
+}
+
+export function throwingPlugin(): ElementPlugin {
+  return syntheticPlugin({
+    type: 'broken',
+    validate: () => {
+      throw new Error('this plugin is broken')
+    },
+  })
+}

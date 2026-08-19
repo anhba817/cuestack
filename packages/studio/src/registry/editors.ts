@@ -1,4 +1,5 @@
 import { ELEMENT_TYPES } from '@cuestack/schema/validate'
+import { builtinElements } from '@cuestack/core'
 import type { EditorField } from '../inspector/fields.js'
 
 /**
@@ -10,9 +11,30 @@ import type { EditorField } from '../inspector/fields.js'
  * live until this package existed. The split follows Wave 2's: core holds what is
  * framework-agnostic, adapters hold components.
  *
- * Note what remains unconsumed even now: `ElementPlugin.validate`. PB-1 owes it a consumer
- * (spec.md, Obligations).
+ * ~~Note what remains unconsumed even now: `ElementPlugin.validate`.~~ **Discharged by feature 009**,
+ * which gave it a consumer *and* its first producers — there were no concrete `ElementPlugin`
+ * implementations in the framework at all until then.
+ *
+ * That changed where the inspector fields live. They are declared once, on the plugin in
+ * `@cuestack/core`, and this file **derives** them rather than restating them: two hand-maintained
+ * lists joined by a cast is exactly the duplication the validation engine is arranged against.
+ * What stays here is what editing needs and the format does not — defaults, the text surface, and
+ * field-level extras like `itemDefaults` and the `fromStored`/`toStored` transforms.
  */
+
+/**
+ * Core's fields for a type, with this package's per-field extras overlaid **by key**.
+ *
+ * Per key, not per type. `defaults` and `textSurface` describe a type; `itemDefaults` and the value
+ * transforms hang off individual fields — and `question`'s options field carries an `itemDefaults`
+ * *function* that `InspectorField` has no room for. A type-level spread would drop it, and the
+ * symptom would be "Add option" silently doing nothing, which is the exact failure that function's
+ * own comment records (research R-13).
+ */
+function fieldsFor(type: string, extras: Record<string, Partial<EditorField>> = {}): readonly EditorField[] {
+  const declared = builtinElements.find((p) => p.type === type)?.inspector.fields ?? []
+  return declared.map((field) => ({ ...field, ...(extras[field.key] ?? {}) }) as EditorField)
+}
 
 /** What a newly added element of this type starts as (FR-014). */
 export interface ElementDefaults {
@@ -124,34 +146,18 @@ export const builtinElementEditors: readonly ElementEditor[] = [
     type: 'text',
     defaults: { width: 600, height: 120, payload: { text: 'Text' } },
     textSurface: textAt('text') as TextSurface<unknown>,
-    inspector: [{ key: 'payload.text', label: 'Text', kind: 'text' }],
+    inspector: fieldsFor('text'),
   },
   {
     type: 'button',
     defaults: { width: 240, height: 80, payload: { label: 'Continue', action: 'next_slide' } },
     textSurface: textAt('label') as TextSurface<unknown>,
-    inspector: [
-      { key: 'payload.label', label: 'Label', kind: 'text' },
-      {
-        key: 'payload.action',
-        label: 'Action',
-        kind: 'select',
-        options: ['next_slide', 'previous_slide', 'replay_slide', 'open_url'],
-      },
-      { key: 'payload.url', label: 'URL', kind: 'text' },
-    ],
+    inspector: fieldsFor('button'),
   },
   {
     type: 'shape',
     defaults: { width: 300, height: 300, payload: { shape: 'rect' } },
-    inspector: [
-      {
-        key: 'payload.shape',
-        label: 'Shape',
-        kind: 'select',
-        options: ['rect', 'ellipse', 'line', 'arrow'],
-      },
-    ],
+    inspector: fieldsFor('shape'),
   },
   /*
    * A newly added media element references a placeholder asset, not an empty one.
@@ -165,32 +171,17 @@ export const builtinElementEditors: readonly ElementEditor[] = [
   {
     type: 'image',
     defaults: { width: 600, height: 400, payload: { asset: PLACEHOLDER_ASSET('image/png') } },
-    inspector: [
-      { key: 'payload.asset.assetId', label: 'Image asset', kind: 'asset' },
-      { key: 'payload.caption', label: 'Caption', kind: 'text' },
-    ],
+    inspector: fieldsFor('image'),
   },
   {
     type: 'video',
     defaults: { width: 800, height: 450, payload: { asset: PLACEHOLDER_ASSET('video/mp4') } },
-    inspector: [
-      { key: 'payload.asset.assetId', label: 'Video asset', kind: 'asset' },
-      { key: 'payload.asset.captionTrack', label: 'Captions', kind: 'asset' },
-      { key: 'payload.poster', label: 'Poster image', kind: 'asset' },
-      { key: 'payload.volume', label: 'Volume', kind: 'number' },
-      { key: 'payload.showControls', label: 'Show controls', kind: 'boolean' },
-      { key: 'payload.loop', label: 'Loop', kind: 'boolean' },
-    ],
+    inspector: fieldsFor('video'),
   },
   {
     type: 'audio',
     defaults: { width: 400, height: 120, payload: { asset: PLACEHOLDER_ASSET('audio/mpeg') } },
-    inspector: [
-      { key: 'payload.asset.assetId', label: 'Audio asset', kind: 'asset' },
-      { key: 'payload.asset.transcript', label: 'Transcript', kind: 'asset' },
-      { key: 'payload.volume', label: 'Volume', kind: 'number' },
-      { key: 'payload.showControls', label: 'Show controls', kind: 'boolean' },
-    ],
+    inspector: fieldsFor('audio'),
   },
   {
     type: 'question',
@@ -222,37 +213,18 @@ export const builtinElementEditors: readonly ElementEditor[] = [
      * seventh of seven is exactly the case where special-casing would prove the registry does
      * not work.
      */
-    inspector: [
-      { key: 'payload.prompt', label: 'Question', kind: 'text' },
-      {
-        key: 'payload.interactionType',
-        label: 'Type',
-        kind: 'select',
-        options: ['multiple_choice', 'true_false'],
+    inspector: fieldsFor('question', {
+      /**
+       * The one field-level extra this package owns.
+       *
+       * `itemDefaults` is a function, so it cannot live on core's `InspectorField` — and without it
+       * an item of blank strings fails the schema's minimums, so "Add option" is refused by
+       * validation and appears to do nothing. Overlaid **by key** for exactly that reason.
+       */
+      'payload.options': {
+        itemDefaults: (count: number) => ({ id: `option-${count + 1}`, label: `Option ${count + 1}` }),
       },
-      {
-        key: 'payload.options',
-        label: 'Answer options',
-        kind: 'list',
-        minItems: 2,
-        // Born valid: `id` and `label` both have a non-empty minimum in the schema, so an
-        // item of blank strings is refused and "Add option" silently does nothing.
-        itemDefaults: (count) => ({ id: `option-${count + 1}`, label: `Option ${count + 1}` }),
-        of: [
-          { key: 'id', label: 'ID', kind: 'text' },
-          { key: 'label', label: 'Label', kind: 'text' },
-        ],
-      },
-      { key: 'payload.correctResponse', label: 'Correct option ID', kind: 'text' },
-      { key: 'payload.required', label: 'Required to advance', kind: 'boolean' },
-      { key: 'payload.maxAttempts', label: 'Maximum attempts', kind: 'number' },
-      {
-        key: 'payload.completionPolicy',
-        label: 'Counts as complete',
-        kind: 'select',
-        options: ['on_first_attempt', 'on_correct', 'on_attempts_exhausted'],
-      },
-    ],
+    }),
   },
 ]
 

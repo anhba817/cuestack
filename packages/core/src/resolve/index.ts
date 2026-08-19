@@ -5,6 +5,7 @@ import { createElementRegistry, type ElementRegistry } from '../elements/registr
 import type { ThemeValues } from '../elements/contract.js'
 import { resolveElement } from './element.js'
 import { collectProblems } from './problems.js'
+import { builtinElements } from '../elements/builtin/index.js'
 import type { BlockingProblem, RenderProblem, RenderState, ResolvedElement } from './state.js'
 
 export interface ResolveContext {
@@ -14,7 +15,22 @@ export interface ResolveContext {
 }
 
 const DEFAULT_EFFECTS = createEffectRegistry(builtinEffects)
-const DEFAULT_ELEMENTS = createElementRegistry()
+/**
+ * The seven MVP types, registered by default (feature 009).
+ *
+ * Two consequences worth knowing before changing this line.
+ *
+ * **`assertComplete` runs here, at module scope, and throws.** A malformed builtin therefore fails
+ * the *import* of `@cuestack/core` rather than a test. That is the right trade — a missing
+ * `validate` on a builtin is exactly what PB-1 exists to stop passing silently — and it is a new
+ * failure mode for the package, so it is written down (research R-15).
+ *
+ * **It turns off the empty-registry escape.** `resolveElement` treats `types().length === 0` as
+ * "everything is known", so before this line no element type was ever reported unknown. Now an
+ * unregistered eighth type is — which is correct, and is why a host supplying its own registry must
+ * compose `createElementRegistry([...builtinElements, mine])` rather than replacing these.
+ */
+const DEFAULT_ELEMENTS = createElementRegistry(builtinElements)
 const EMPTY_THEME: ThemeValues = Object.freeze({})
 
 /**
