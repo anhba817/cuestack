@@ -103,6 +103,15 @@ importers:
         specifier: ^19.2.0
         version: 19.2.4(@types/react@19.2.18)
 
+  packages/adapter-http:
+    dependencies:
+      '@cuestack/core':
+        specifier: workspace:*
+        version: link:../core
+      '@cuestack/schema':
+        specifier: workspace:*
+        version: link:../schema
+
   packages/core:
     dependencies:
       '@cuestack/schema':

@@ -17,7 +17,7 @@ export default defineConfig({
   test: {
     projects: [
       // Node-environment packages. react is registered separately below with a DOM.
-      'packages/{schema,core,element}',
+      'packages/{schema,core,element,adapter-http}',
       // The React adapter needs a DOM. happy-dom over jsdom for speed, since the
       // suite has to stay fast enough that nobody is tempted to skip it.
       {
@@ -81,6 +81,13 @@ export default defineConfig({
         // modules US1 delivered; US2-US5 widen it to 'packages/core/src/**' as
         // each lands, exactly as US4 widened schema's scope to include migrate/.
         'packages/core/src/{resolve,effects,time,advance}/**/*.ts',
+        // Feature 010 T002: packaging joins the floor with the story that writes it, the same way
+        // resolve/ did in feature 002 and migrate/ did in 001. The scope has been widened once per
+        // feature by design — its own note above says so — and this is that widening. What it does
+        // NOT do is sweep in validation/, publishing/, and elements/, which features 009 left
+        // outside: closing those is a decision somebody should make deliberately, not a side effect
+        // of an unrelated diff.
+        'packages/core/src/packaging/**/*.ts',
         // Feature 003 T078: the adapter joins the floor now that it has behaviour to
         // cover. Components are included, not excluded as "hard to cover" — a renderer
         // with no test is a renderer nobody has seen output from.
