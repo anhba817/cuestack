@@ -1,0 +1,26 @@
+{
+  "name": "@cuestack/adapter-http",
+  "version": "0.0.0",
+  "description": "Cuestack reference adapter: the four persistence contracts over a host's own HTTP API",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "publishConfig": { "access": "public" },
+  "dependencies": {
+    "@cuestack/core": "workspace:*",
+    "@cuestack/schema": "workspace:*"
+  }
+}

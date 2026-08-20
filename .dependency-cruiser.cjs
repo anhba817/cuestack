@@ -32,7 +32,9 @@ module.exports = {
         'no-core-in-schema: dependencies flow schema <- core <- adapters, one direction only. ' +
         '@cuestack/schema is the format contract and must not depend on anything that consumes it.',
       from: { path: '^packages/schema/src' },
-      to: { path: '^(packages/(core|react|element|studio)/|@cuestack/(core|react|element|studio)($|/))' },
+      to: {
+        path: '^(packages/(core|react|element|studio|adapter-http)/|@cuestack/(core|react|element|studio|adapter-http)($|/))',
+      },
     },
     {
       name: 'no-adapters-in-core',
@@ -41,7 +43,23 @@ module.exports = {
         'no-adapters-in-core: @cuestack/core must not import an adapter. The arrow points the ' +
         'other way.',
       from: { path: '^packages/core/src' },
-      to: { path: '^(packages/(react|element|studio)/|@cuestack/(react|element|studio)($|/))' },
+      to: {
+        path: '^(packages/(react|element|studio|adapter-http)/|@cuestack/(react|element|studio|adapter-http)($|/))',
+      },
+    },
+    {
+      name: 'no-http-adapter-dependents',
+      severity: 'error',
+      comment:
+        'no-http-adapter-dependents: nothing ships depending on @cuestack/adapter-http (FR-027). ' +
+        'A host wanting none of it must be able to install none of it, and this is the first code ' +
+        'in the project that talks to a network — a property worth keeping behind a boundary a ' +
+        'build can see. Its own `from` clause names every existing package rather than borrowing ' +
+        "the two rules above, whose `from` is schema and core only: extending those would have " +
+        'left react and studio free to import it, which is a rule that reads as protection while ' +
+        'providing none.',
+      from: { path: '^packages/(schema|core|react|element|studio)/src' },
+      to: { path: '^(packages/adapter-http/|@cuestack/adapter-http($|/))' },
     },
     {
       name: 'no-studio-in-player',
