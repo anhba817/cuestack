@@ -59,8 +59,8 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
 
     Wave 5 — publish, portability, extensibility proof
       ✅ SCH-2 ──→ ✅ PB-1 ──→ ✅ PB-2
-      ✅ SCH-2 ──→ 🔲 SCH-3                           (portable export/import package)
-      ✅ EN-6 ──→ 🔲 PB-3                           (HTTP reference adapter)
+      ✅ SCH-2 ──→ ✅ SCH-3                           (portable export/import package)
+      ✅ EN-6 ──→ ✅ PB-3                           (HTTP reference adapter)
       ✅ EN-5 ──→ 🔲 DX-1
       ✅ RC-1 ──→ 🔲 DX-2                           (second adapter proves the core is framework-agnostic)
 
@@ -105,8 +105,8 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 | 4 | ED-1 canvas: move/resize/rotate, snap, layers | EN-5 | 3 | 1 | 0 | 1 | 4 | ✅ |
 | 4 | ED-3 timeline UI: tracks, playhead, drag | ED-1 | 3 | 1 | 0 | 1 | 4 | ✅ |
 | 5 | DX-2 `@cuestack/element` web-component adapter | RC-1 | 1 | 3 | 1 | 0 | 8 | 🔲 |
-| 5 | PB-3 `@cuestack/adapter-http` reference REST adapter | EN-6 | 3 | 2 | 2 | 1 | 8 | 🔲 |
-| 5 | SCH-3 portable export/import package | SCH-2 | 3 | 2 | 1 | 1 | 7 | 🔲 |
+| 5 | PB-3 `@cuestack/adapter-http` reference REST adapter | EN-6 | 3 | 2 | 2 | 1 | 8 | ✅ |
+| 5 | SCH-3 portable export/import package | SCH-2 | 3 | 2 | 1 | 1 | 7 | ✅ |
 | 5 | DX-1 docs + plugin authoring guide | EN-5 | 1 | 2 | 2 | 0 | 7 | 🔲 |
 | 5 | PB-1 validation engine (errors/warnings/jump) | SCH-2 | 2 | 2 | 1 | 1 | 6 | ✅ |
 | 5 | PB-2 immutable publish + version history | PB-1 | 2 | 2 | 1 | 2 | 5 | ✅ |
@@ -380,6 +380,64 @@ rejected and the plugin was producing a second issue for one fault. What the for
 say replaced them: two options whose *labels* read the same (the format checks ids, never labels),
 and a `true_false` question with more than two answers. The lesson generalises — FR-006c's rule
 holds only if somebody reads the schema rather than assuming it.
+
+**SCH-3 and PB-3 are complete, and the anti-lock-in promise is now something a teacher can press.**
+A lesson leaves as one JSON document anybody can read; a host persists to its own API through an
+adapter it may decline to install. The plan's settled answer — "we ship an in-memory reference and an
+HTTP reference adapter; we never run a server" — was, until this feature, half unbuilt.
+
+**`migrate` gained its second consumer, and its first untrusted input.** Feature 008's draft recovery
+was the first, reading a lesson this system had itself written. A package handed over from elsewhere
+is the first document this framework reads with no reason to believe a version of itself produced it.
+Two things followed from actually using it. `migrate` **already** distinguishes a newer manifest from
+an unsupported one, with a message worth quoting — so import delegates the lesson-version question
+entirely rather than re-deriving it. And `migrate` **always** ends with `validate`, so a second
+validation on the import path would have been redundant work and a second place to disagree about
+what valid means.
+
+**Two requirements were written against behaviour the code does not have, and implementing found
+both.** FR-017a justified the import registry option with "a custom element type reported unknown" —
+unreachable, because the format's element union is closed and a lesson carrying an unregistered type
+is refused before any registry is consulted. And a `read(body)` signature could not serve a host whose
+version token travels in a header, which is ordinary ETag-shaped concurrency; that surfaced only when
+the *second* API shape was written, which is precisely what SC-008 demands two shapes for.
+
+**The headless gate caught something no review would have.** `packages/core` must never reference
+`window`, `document`, `performance`, `requestAnimationFrame`, or `localStorage` — checked against the
+source text, because a reference guarded behind `typeof` still makes the package depend on a browser
+it claims not to need. A local variable and a field both named `document`, holding a parsed package,
+tripped it. Renamed to `envelope`, which is the better name anyway.
+
+**`pnpm test:coverage` is red, and was before this feature.** Branch coverage stands at **89.03%**
+against a 90% floor, and measuring it with feature 010's contribution removed gives **88.57%** — so
+this feature's code (`packaging/`, at 95.58% branches) *improved* the number and did not cause the
+shortfall. CI runs this gate at `.github/workflows/ci.yml:90`, so it is failing there too.
+
+The cause is a disagreement between the config and its own comment. `vitest.config.ts` says "the
+thresholds below stay scoped to core and schema", but `thresholds` in Vitest is **global** — it
+applies to everything in `include`, which is `packages/react/src/**` and `packages/studio/src/**` as
+well. The drags are `react/src/media` (0% branches, 21% statements), `studio/src/registry` (57%),
+`react/src/frame` (79%), and `studio/src/session` (82%). Fixing it means either raising those or
+scoping the thresholds to match the documented intent — **a repo-wide decision somebody should make
+deliberately**, which is why feature 010 surfaced it rather than quietly adjusting a gate.
+
+It surfaced at all because feature 010's task list was the first to run `pnpm test:coverage` as part
+of its own verification. Earlier features' equivalents ran `pnpm test`, which runs no coverage.
+
+**The coverage floor's scope is narrower than the constitution reads.** Constitution II states 90%
+line and branch coverage for `@cuestack/core`; `vitest.config.ts` scopes the `include` to
+`{resolve,effects,time,advance}` and widens "as each lands". That widening has been skipped for
+`validation/`, `publishing/`, and `elements/` — so most of core sits outside a floor the constitution
+states plainly. Feature 010 widened it for `packaging/` only. **Closing the rest is a decision
+somebody should make deliberately**, not a side effect of an unrelated diff, and it is recorded here
+so it is findable.
+
+**The format permits an executable address today, for any lesson.** `elementSchema` declares a
+button's address as `url: z.string().max(2000).optional()` — no scheme constraint — so a lesson
+authored in this editor can carry `javascript:` and nothing rejects it. Import now refuses one
+(NFR-SEC-007 for that path), and the editor still does not. Tightening the schema would reject
+manifests that are valid today and needs its own decision about `schemaVersion` and a migration,
+which is why this feature deliberately did not do it.
 
 ## Open design questions
 

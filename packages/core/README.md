@@ -234,3 +234,51 @@ sees. Note the consequence: `resolve` treats an **empty** registry as "every typ
 a non-empty default an unregistered type is now reported. A host adding one composes
 `createElementRegistry([...builtinElements, mine])`; a registry holding only a custom plugin reports
 all seven MVP types as unknown.
+
+## Portable packages (feature 010)
+
+`exportLesson(manifest, { kind })` produces one JSON document. `readPackage(text)` reads one back,
+and `importLesson(read, { lessonId, assets, elements })` turns it into a lesson.
+
+**The format is fixed by the framework**, which is unlike every other boundary here. Storage, assets,
+analytics, and publishing are all interfaces a host implements however it likes; a package is not,
+because a format each host serialized its own way would be portable *within* a system and nowhere
+else — the lock-in §7.7 exists to prevent, arriving one layer down.
+
+**Two asset modes, and the default is the harmless one.** Reference mode names the assets and is pure:
+no network, no waiting, no provider argument to supply. Files mode carries the bytes, is asynchronous,
+and fails loudly when content cannot be obtained — a package silently missing one image is worse than
+no package. The document says which mode produced it, so a reader can never mistake one for the other.
+
+**The framework never fetches.** `AssetAdapter.resolve` returns an address, not bytes. Files-mode
+export takes a content provider from the caller, because the host is the only participant that can
+reach its own assets — behind a signed URL, on a server's filesystem, or already in memory.
+
+**Bytes cross both boundaries as `Uint8Array`.** Base64 exists inside the document and nowhere else;
+a caller that had to encode would be reimplementing half the format in order to use it.
+
+**Import produces a lesson and stores nothing.** This is the point a host will otherwise learn the
+hard way: the caller saves the result through the path it already uses, so there is exactly one route
+by which a lesson reaches storage and exactly one place conflict, offline, and acknowledgement are
+handled. "A failed import leaves nothing behind" follows from that rather than being arranged.
+
+**Reading is separable from producing.** `readPackage` yields the versions, the kind, and the asset
+content as decoded bytes; `importLesson` then takes the identity you minted and a map from the
+package's asset ids to the ones you stored them under. That ordering is what makes "a lesson
+referencing an asset that was never stored" unreachable by ordinary use — you meet a storage failure
+before you have a lesson to save.
+
+**Pass your element registry to `importLesson`** if you have one. A supplied registry *replaces* the
+default rather than extending it, so compose `[...builtinElements, mine]`; without it your plugins'
+own `validate` never contributes to the issues an import reports.
+
+**A round trip preserves the lesson, not its key order.** `importLesson` delegates to `migrate`,
+which ends with `validate`, and the schema rebuilds objects in its own declared field order. So
+export → import → export produces a document with the same *data* and possibly a different byte
+sequence. Two exports of one lesson object are byte-identical; an export of a round-tripped lesson is
+normalised. Worth knowing before you diff two packages.
+
+**Import is hardened, and the boundary is stated.** Size is checked before parsing, depth immediately
+after, and address-bearing fields are restricted to schemes that cannot execute. Asset *content* is
+not inspected and markup is not rewritten — this package renders nothing, so it would be sanitizing
+against a renderer it has to guess at.

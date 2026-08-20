@@ -304,3 +304,30 @@ would promise something no host can deliver.
 Dates use `Intl.DateTimeFormat`, which takes a timestamp directly — `new Date(ms)` inside
 `packages/studio/src` fails `no-clock-in-studio`, and relative times would need a wall-clock *now*
 this package may not read.
+
+## Export and import (feature 010)
+
+`<PortabilityControls>` is two buttons and a sentence. Deliberately thin: export and import are
+momentary actions, not states, so they need no panel and add no fifth word to Saving/Saved/Offline/
+Save Failed.
+
+**Neither control touches a file.** `packages/studio/src` may not read the filesystem any more than it
+may read a clock. Export hands a value to `onExported` and stops; import calls the host's
+`requestPackage()` and imports what comes back. Where a package is written, what it is called, and
+where an imported one comes from are the host's — the example app supplies a download link and a file
+input, which is where a browser API belongs.
+
+**Importing replaces the lesson that is open, and undo takes it back.** Route it through
+`session.apply({ kind: 'replace-draft', manifest })` rather than saving the result directly: the
+autosave loop then sees an ordinary edit to the lesson it already owns, and `apply` records a history
+step for every successful edit. Replacing somebody's work is destructive, and this framework answers
+that with undo rather than a confirmation — the position it took when feature 008 deleted its last
+confirmation dialog.
+
+**Pass the open lesson's id to `importLesson`, never the package's.** `useDraftPersistence` binds to
+one lesson at mount, so handing it a lesson with a different identity writes one lesson's content into
+another's slot.
+
+**A published export needs a published manifest.** The `published` prop is optional and the control
+hides the second button without it — a control offering an export with nothing behind it would be a
+capability that only looks like one.
