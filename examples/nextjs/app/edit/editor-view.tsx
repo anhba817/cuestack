@@ -6,6 +6,7 @@ import {
   EditorCanvas,
   Inspector,
   Preview,
+  PortabilityControls,
   PublicationRecord,
   PublishControls,
   SaveStatus,
@@ -28,6 +29,9 @@ import {
   createMemoryAssets,
   createMemoryPublishing,
   createMemoryStorage,
+  importLesson,
+  readPackage,
+  type LessonPackage,
   type PublishedVersion,
   type RecordEntry,
 } from '@cuestack/core'
@@ -155,10 +159,86 @@ export function EditorView({ lesson }: { lesson: LessonManifest }) {
       setEntries(await publishingAdapter.readRecord('demo-lesson'))
       const active = await publishingAdapter.loadPublished('demo-lesson')
       setActiveId(active.ok ? active.version.id : null)
+      setPublishedManifest(active.ok ? active.version.manifest : null)
     },
     [publishingAdapter],
   )
   useEffect(() => void refreshPublished(), [refreshPublished, publishing.outcome])
+
+  /**
+   * The published manifest, held so it can be exported as well as listed.
+   *
+   * FR-004d wants both kinds reachable, and this page already loads the active version for the
+   * "Live now" marker — so offering the second export costs one piece of state rather than a
+   * feature. Without it `kind: 'published'` would be a value nothing here can produce.
+   */
+  const [publishedManifest, setPublishedManifest] = useState<LessonManifest | null>(null)
+
+  /**
+   * Where a package goes — the host's, deliberately.
+   *
+   * `@cuestack/studio` has no filesystem and should not grow one, so the download link lives here.
+   * This is the whole of research R-09's split: the studio hands over a value, the host decides what
+   * a file is. The other end — where an imported package comes from — arrives with import.
+   */
+  const download = (pkg: LessonPackage): void => {
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(pkg, null, 2)], { type: 'application/json' }),
+    )
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${pkg.lesson.lesson.id}.${pkg.kind}.cuestack.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  /**
+   * Where an imported package comes from — the host's, for the same reason the download is.
+   *
+   * A file input is a browser API, and `packages/studio/src` may not reach for one any more than it
+   * may read a clock. The studio asks; this page answers.
+   */
+  const pickPackage = (): Promise<string | null> =>
+    new Promise((resolve) => {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = 'application/json,.json'
+      input.onchange = () => {
+        const file = input.files?.[0]
+        if (!file) return resolve(null)
+        void file.text().then(resolve)
+      }
+      input.click()
+    })
+
+  /**
+   * Import replaces the lesson that is open, through `replace-draft`.
+   *
+   * Two things follow from routing it that way rather than saving the result directly. The autosave
+   * loop sees an ordinary edit to the lesson it already owns — so there is still exactly one route
+   * by which a lesson reaches storage — and the import becomes **undoable**, because `apply` records
+   * a history step for every successful edit. Replacing somebody's work is destructive, and this
+   * framework answers that with undo rather than with a confirmation (FR-015c).
+   *
+   * The identity passed to `importLesson` is the **open** lesson's. The package's own is discarded:
+   * honouring it would let a package from a stranger land on an unrelated lesson (FR-015a).
+   */
+  const acceptPackage = (text: string): string => {
+    const read = readPackage(text)
+    if (!read.ok) return read.message
+
+    const imported = importLesson(read.package, { lessonId: session.draft.lesson.id })
+    if (!imported.ok) return imported.message
+
+    session.apply({ kind: 'replace-draft', manifest: imported.lesson })
+
+    const migrated = imported.migrated.length > 0 ? ' It was brought forward from an older format.' : ''
+    const missing =
+      imported.unresolvedAssets.length > 0
+        ? ` ${imported.unresolvedAssets.length} file(s) it refers to are not in this system.`
+        : ''
+    return `Imported, replacing the lesson that was open — undo to get it back.${migrated}${missing}`
+  }
 
   const playback = usePlayback(session)
   const slide = session.draft.slides.find((s) => s.id === session.slideId) ?? session.draft.slides[0]!
@@ -208,6 +288,13 @@ export function EditorView({ lesson }: { lesson: LessonManifest }) {
       </p>
       <ValidationReport report={validation.report} onSelect={validation.jumpTo} />
       <PublishControls publishing={publishing} active={activeId !== null} />
+      <PortabilityControls
+        draft={session.draft}
+        {...(publishedManifest ? { published: publishedManifest } : {})}
+        onExported={download}
+        requestPackage={pickPackage}
+        onImport={acceptPackage}
+      />
       <VersionList versions={versions} activeId={activeId} />
       <PublicationRecord entries={entries} />
       <EditorCanvas

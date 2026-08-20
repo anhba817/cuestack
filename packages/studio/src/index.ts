@@ -201,3 +201,7 @@ export { VersionList } from './publishing/VersionList.js'
 export type { VersionListProps } from './publishing/VersionList.js'
 export { PublicationRecord } from './publishing/PublicationRecord.js'
 export type { PublicationRecordProps } from './publishing/PublicationRecord.js'
+
+// Portability (feature 010) — two thin controls. The package format is `@cuestack/core`'s.
+export { PortabilityControls } from './portability/PortabilityControls.js'
+export type { PortabilityControlsProps } from './portability/PortabilityControls.js'

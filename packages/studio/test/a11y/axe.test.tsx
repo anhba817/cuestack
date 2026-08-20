@@ -8,6 +8,7 @@ import { ValidationReport } from '../../src/validation/ValidationReport.js'
 import { PublishControls } from '../../src/publishing/PublishControls.js'
 import { VersionList } from '../../src/publishing/VersionList.js'
 import { PublicationRecord } from '../../src/publishing/PublicationRecord.js'
+import { PortabilityControls } from '../../src/portability/PortabilityControls.js'
 import type { PublishedVersion } from '@cuestack/core'
 import type { Publishing } from '../../src/publishing/usePublishing.js'
 import { RecoveryPrompt } from '../../src/persistence/RecoveryPrompt.js'
@@ -482,5 +483,40 @@ describe('the surfaces feature 008 adds', () => {
       />,
     )
     expect(container.querySelector('.cs-record-what')?.textContent).toBe('Withdrawn')
+  })
+
+  it('reports nothing for the portability controls, in each shape a host can give them', async () => {
+    const draft = lessonWith([element({ id: 'a', effects: [] })])
+    const shapes = [
+      { draft, onExported: () => {} },
+      { draft, published: draft, onExported: () => {} },
+      {
+        draft,
+        published: draft,
+        onExported: () => {},
+        requestPackage: async () => null,
+        onImport: () => 'done',
+      },
+    ]
+
+    for (const props of shapes) {
+      const { container } = render(<PortabilityControls {...props} />)
+      expect(describeViolations(await violations(container))).toBe('')
+      cleanup()
+    }
+  })
+
+  it('gives the portability controls an accessible name and announces their outcome', () => {
+    const draft = lessonWith([element({ id: 'a', effects: [] })])
+    const { container } = render(<PortabilityControls draft={draft} onExported={() => {}} />)
+
+    expect(container.querySelector('.cs-portability')?.getAttribute('aria-label')).toBeTruthy()
+    act(() => container.querySelector<HTMLButtonElement>('[data-cs-export-draft]')!.click())
+
+    const status = container.querySelector('.cs-portability-status')!
+    expect(status.getAttribute('role')).toBe('status')
+    expect(status.getAttribute('aria-live')).toBe('polite')
+    // NFR-ACC-003: the outcome is a sentence, not a colour.
+    expect(status.textContent?.length ?? 0).toBeGreaterThan(5)
   })
 })

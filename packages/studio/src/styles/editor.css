@@ -789,3 +789,19 @@
 .cs-record-when {
   color: var(--cs-theme-text-muted, #666666);
 }
+
+/* Export and import (feature 010). Momentary actions, so no status vocabulary of their own —
+   the outcome is a sentence, not one of the four save words. */
+.cs-portability {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem;
+  color: var(--cs-theme-text, #111111);
+}
+
+.cs-portability-status {
+  color: var(--cs-theme-text-muted, #666666);
+  font-size: 0.8125rem;
+}
