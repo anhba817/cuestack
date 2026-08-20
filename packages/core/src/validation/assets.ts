@@ -2,7 +2,14 @@ import type { Element, LessonManifest } from '@cuestack/schema'
 import type { AssetAdapter } from '../adapters/index.js'
 
 /**
- * Which assets a lesson references, and — separately — whether they exist.
+ * Asset references: found, checked, and rewritten.
+ *
+ * The file was "which assets a lesson references" until feature 010 needed to *change* them on
+ * import. Rewriting is not validation and the name says validation — but the finder and the
+ * rewriter must agree about what an asset reference is, and two walks in two files drift the first
+ * time an element type carries an asset somewhere new. That is the same argument that made the
+ * finder shared in the first place, so they live together and the header carries the explanation
+ * (research R-04).
  *
  * The split is the point. *Which* is a fact about the manifest: pure, synchronous, deterministic.
  * *Whether* is a question for the outside world, and only the second needs to wait — so the engine
@@ -21,13 +28,55 @@ export interface AssetRef {
   readonly elementId: string
 }
 
+/**
+ * The one rule, extracted so the finder and the rewriter cannot hold different opinions of it.
+ *
+ * Co-location would not have been enough: `idsIn` collects into an array and a rewriter has to build
+ * a new object, so there is no walk to share — only this predicate and the descent rule beside it.
+ */
+const isAssetId = (key: string, value: unknown): value is string =>
+  key === 'assetId' && typeof value === 'string' && value !== ''
+
 /** Every place an asset id can hide in an element's payload. */
 function idsIn(payload: unknown, into: string[]): void {
   if (payload === null || typeof payload !== 'object') return
   for (const [key, value] of Object.entries(payload as Record<string, unknown>)) {
-    if (key === 'assetId' && typeof value === 'string' && value !== '') into.push(value)
+    if (isAssetId(key, value)) into.push(value)
+    // Note the `else`: a value *under* an `assetId` key is not descended into. The rewriter below
+    // reproduces that exactly, because the two disagreeing is the defect this pairing prevents.
     else if (typeof value === 'object') idsIn(value, into)
   }
+}
+
+/**
+ * The same walk, producing a new value instead of a list.
+ *
+ * Used by import: the host stores the assets its own way and says which new identity replaced which
+ * old one, and this rewrites the lesson's references to match. A lesson pointing at the exporting
+ * system's ids is a lesson whose every image is blank while its manifest stays perfectly valid — a
+ * failure nothing would report (FR-014b).
+ *
+ * Pure: the input is never touched, and an identity the mapping does not cover is left exactly as it
+ * was so the caller can report it (FR-014c, FR-014d).
+ */
+function remapIn(value: unknown, mapping: ReadonlyMap<string, string>): unknown {
+  if (Array.isArray(value)) return value.map((item) => remapIn(item, mapping))
+  if (value === null || typeof value !== 'object') return value
+
+  const out: Record<string, unknown> = {}
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    if (isAssetId(key, nested)) out[key] = mapping.get(nested) ?? nested
+    else if (typeof nested === 'object') out[key] = remapIn(nested, mapping)
+    else out[key] = nested
+  }
+  return out
+}
+
+export function remapAssetIds(
+  manifest: LessonManifest,
+  mapping: ReadonlyMap<string, string>,
+): LessonManifest {
+  return remapIn(manifest, mapping) as LessonManifest
 }
 
 /**

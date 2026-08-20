@@ -169,3 +169,37 @@ export type {
   AssetRef,
   UnresolvedAsset,
 } from './validation/index.js'
+
+/**
+ * Portable packages (feature 010).
+ *
+ * `exportLesson` is pure and synchronous; `exportLessonWithFiles` is the deliberate mode that
+ * carries asset content and therefore waits. The framework never fetches — the caller supplies
+ * bytes, because only the host can reach its own assets (research R-02).
+ */
+export { exportLesson, exportLessonWithFiles, toBase64, fromBase64 } from './packaging/index.js'
+export { readPackage, importLesson, remapAssetIds } from './packaging/index.js'
+export {
+  PACKAGE_FORMAT_VERSION,
+  HARDENING_DEFAULTS,
+  comparePackageVersions,
+  isLessonPackage,
+} from './packaging/index.js'
+export type {
+  LessonPackage,
+  PackagedAsset,
+  PackageKind,
+  AssetMode,
+  ExportOptions,
+  FilesExportOptions,
+  AssetContentProvider,
+  ImportedPackage,
+  ImportedAsset,
+  ImportOptions,
+  ImportResult,
+  ReadResult,
+  ReadOptions,
+  PackageRefusal,
+  RefusalReason,
+  HardeningBounds,
+} from './packaging/index.js'
