@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { RenderState, ResolvedElement } from '@cuestack/core'
-import type { ElementRendererRegistry, InteractionAccess } from '../elements/registry.js'
+import type { ElementRendererRegistry, InteractionAccess, NavigationAccess } from '../elements/registry.js'
 import type { FrameWriter } from '../frame/FrameWriter.js'
 import { Placeholder } from '../elements/Placeholder.js'
 import { defaultAssetResolver, type AssetResolver } from '../elements/assets.js'
@@ -18,6 +18,8 @@ export interface SlideViewProps {
    * "interactions are available somewhere".
    */
   readonly interactionFor?: (element: ResolvedElement) => InteractionAccess | undefined
+  /** The same shape one type over: built per element, `undefined` for anything but a button. */
+  readonly navigationFor?: (element: ResolvedElement) => NavigationAccess | undefined
   /**
    * Changes when the learner retries a failed asset.
    *
@@ -47,6 +49,7 @@ export function SlideView({
   writer,
   resolveAsset = defaultAssetResolver,
   interactionFor,
+  navigationFor,
   retryToken = 0,
 }: SlideViewProps): ReactNode {
   return (
@@ -65,7 +68,8 @@ export function SlideView({
                 resolveAsset={resolveAsset}
                 {...(() => {
                   const access = interactionFor?.(element)
-                  return access ? { interaction: access } : {}
+                  const nav = navigationFor?.(element)
+                  return { ...(access ? { interaction: access } : {}), ...(nav ? { navigation: nav } : {}) }
                 })()}
               />
             ) : (

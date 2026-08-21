@@ -5,6 +5,7 @@ import {
   createAdvanceController,
   createMediaLink,
   createTransport,
+  learnerMayLeave,
   MEDIA_SYNC_TOLERANCE_MS,
   resolve,
   type Ports,
@@ -18,7 +19,7 @@ import {
 import { builtinRenderers } from '../elements/builtin/index.js'
 import { createRendererRegistry, type ElementRendererRegistry } from '../elements/registry.js'
 import type { AssetResolver } from '../elements/assets.js'
-import type { InteractionAccess } from '../elements/registry.js'
+import type { InteractionAccess, NavigationAccess } from '../elements/registry.js'
 import type { ThemeValues } from '../theme/tokens.js'
 import { createFrameWriter } from '../frame/FrameWriter.js'
 import { useFrameLoop } from '../frame/useFrameLoop.js'
@@ -243,6 +244,16 @@ export function LessonPlayerClient({
    * on honouring whatever the switch said at mount. The option is armed from the prop's
    * presence, which does not change; the signal is read from here, which does.
    */
+  /**
+   * The learner's request, raised by a press and consumed by the next evaluation.
+   *
+   * **Not held.** A flag left true advances every subsequent slide the moment it is evaluated —
+   * a lesson racing to its own ending, which is the failure `overrideAdvance`'s own header
+   * records. It is cleared where it is read.
+   */
+  /** The stage a learner is currently on, for placing focus after a slide change. */
+  const liveStageRef = useRef<HTMLDivElement | null>(null)
+  const learnerAdvancedRef = useRef(false)
   const overrideRef = useRef(overrideAdvance === true)
   overrideRef.current = overrideAdvance === true
 
@@ -365,7 +376,6 @@ export function LessonPlayerClient({
     analytics.current = (e: LessonEvent) => activePorts.analytics.record(e)
     activePorts.analytics.record(event(lesson, 'lesson_started'))
     let announced = -1
-    let completed = false
     /** Lesson time at which the completion set last grew, or null if it has not. */
     let completedAtMs: number | null = null
     let seenCompletions = 0
@@ -385,6 +395,21 @@ export function LessonPlayerClient({
       if (!active) return
 
       if (announced !== snapshot.slideIndex) {
+        /**
+         * Put a keyboard user on the slide they just arrived at.
+         *
+         * **Not on the first render.** `announced` starts at -1, so this runs only on a *change* —
+         * focusing the stage on mount would take focus from the host's page, which no learner
+         * asked for and a host experiences as the player hijacking their document.
+         *
+         * **Not the leaving stage.** During a transition two stages exist and the outgoing one
+         * carries `aria-hidden`; `:not([data-cs-transition="leaving"])` picks the arriving one.
+         *
+         * The announcement below is unchanged and is not duplicated here: the player already keys
+         * a live region on the slide index, and two mechanisms saying the same thing eventually
+         * disagree. What was missing was placement, not speech.
+         */
+        if (announced !== -1) liveStageRef.current?.focus()
         /**
          * Capture the outgoing slide here, where it still exists.
          *
@@ -500,7 +525,12 @@ export function LessonPlayerClient({
       if (completedAtMs !== null && snapshot.slideTimeMs - completedAtMs < FEEDBACK_DWELL_MS) return
 
       const decision = advance.evaluate(active, snapshot, {
-        learnerAdvanced: false,
+        // Read and cleared in one step: one press is one movement.
+        learnerAdvanced: ((): boolean => {
+          const asked = learnerAdvancedRef.current
+          learnerAdvancedRef.current = false
+          return asked
+        })(),
         // The learner's actual completions, under each question's authored policy. Wave 1
         // built this gate and passed it an empty set for two waves; this is what fills it.
         completedInteractions: completions.current,
@@ -526,8 +556,25 @@ export function LessonPlayerClient({
       const following = snapshot.slideIndex + 1
       if (following < lesson.slides.length) {
         t.goToSlide(following)
-      } else if (!completed) {
-        completed = true
+      } else {
+        /**
+         * **Unguarded, and the flag that used to guard it was a defect.**
+         *
+         * This line is reached only when the controller *decided*, and `createAdvanceController`
+         * keys its decided-set on `transport.instanceId` — "slide id plus visit counter" — so the
+         * kernel already guarantees one completion per visit. A `completed` flag added nothing on
+         * a first pass.
+         *
+         * What it added was a bug. It was scoped to the mount and never reset, so a learner who
+         * pressed Review played the whole lesson again, reached the end, and **saw nothing**: no
+         * completion screen, and no second `lesson_completed` for a host counting them. A learner
+         * who finished twice was recorded as finishing once.
+         *
+         * The identical flag was found and removed from `@cuestack/element` in feature 011. This
+         * one predates it and survived because no test replayed a lesson to its end — the shape
+         * of defensive code layered over a kernel guarantee: it costs nothing while it agrees, and
+         * the day it diverges nothing fails, because the case it gets wrong is the untested one.
+         */
         setComplete(true)
         activePorts.analytics.record(event(lesson, 'lesson_completed', active.id))
       }
@@ -634,6 +681,107 @@ export function LessonPlayerClient({
   }
 
   /**
+   * A button's capability: a verb, and whether it can be used. Never a noun.
+   *
+   * Built here beside `interactionFor` and passed down through `SlideView`, because a second
+   * pattern for the same problem is how two mechanisms end up disagreeing. `undefined` for
+   * everything that is not a button, which is what makes `navigation` mean *this element
+   * navigates* rather than *navigation exists somewhere*.
+   */
+  const navigationFor = (resolved: ResolvedElement): NavigationAccess | undefined => {
+    if (resolved.type !== 'button') return undefined
+    const action = (resolved.payload as { action?: string } | undefined)?.action
+    if (!action || action === 'open_url') return undefined
+
+    const t = transport
+    const index = t?.slideIndex ?? 0
+    const active = lesson.slides[index]
+
+    /**
+     * **Asked of the kernel, through the one query that changes nothing.**
+     *
+     * Not `advance.evaluate` — that records the decision, so computing availability with it would
+     * consume the one the slide needed and the slide would never advance again. `learnerMayLeave`
+     * exists for exactly this call.
+     *
+     * It answers *would anything refuse a learner who asked* — an unanswered required question on
+     * any advance mode (BR-005), or a mode that declares its own gate. Deliberately not *would the
+     * slide advance now*: a Continue button on a timed slide is a skip-ahead and must work before
+     * the clock runs out.
+     */
+    const mayLeave =
+      active !== undefined &&
+      learnerMayLeave(active, {
+        /**
+         * **Always false here, and never the ref.** This is a *query* about whether anything
+         * would refuse a learner who asked; it is not the asking. An earlier edit gave this call
+         * the read-and-clear used by the advance evaluation below — matching one string in two
+         * places — so computing a control's availability, which happens on every render, quietly
+         * consumed the press the frame loop was about to act on. `learnerMayLeave` ignores this
+         * field entirely; passing the ref could only ever destroy a signal.
+         */
+        learnerAdvanced: false,
+        completedInteractions: completions.current,
+      })
+
+    const available =
+      action === 'next_slide'
+        ? mayLeave && index < lesson.slides.length - 1
+        : action === 'previous_slide'
+          ? index > 0
+          : true
+
+    return {
+      available,
+      act: () => {
+        if (!t || !available) return
+        if (action === 'previous_slide') {
+          t.goToSlide(index - 1)
+          return
+        }
+        if (action === 'replay_slide') {
+          /**
+           * `goToSlide(current)`, never `restart()` — and the reason is narrower than it first
+           * looked, which is worth writing down rather than overstating.
+           *
+           * `restart()` resets the clock without bumping the visit counter; `instanceId` is "slide
+           * id plus visit counter" and the advance controller keys its decided-set on it, so a
+           * slide replayed that way stays decided and never advances again.
+           *
+           * **For this button that difference is currently unobservable**, and a control confirmed
+           * it: on any non-final slide a decision advances immediately, so a learner can never
+           * press Replay on a decided instance; on the final slide the completion view replaces the
+           * slide, so the button is gone. The trap is real and reaches the framework through the
+           * *review* path instead, where it was found — see the `completed` flag removed below.
+           *
+           * `goToSlide` stays because a replay *is* a new visit, and the day the completion view
+           * becomes an overlay rather than a replacement, `restart()` would strand a learner on the
+           * slide they chose to repeat.
+           */
+          t.goToSlide(index)
+          return
+        }
+        /**
+         * `next_slide` means two things and needs two paths.
+         *
+         * On an `on_click` slide the learner's request *is* the advance rule: raise the signal and
+         * let the controller decide, so the kernel's rule is honoured and the lesson records
+         * `learner_action` as the cause rather than the slide simply changing under it.
+         *
+         * Anywhere else the button is a navigation command. Raising the signal there would do
+         * nothing — the controller consults it only for `on_click` — and an author who puts
+         * Continue on a timed slide wants a skip-ahead.
+         */
+        if (active?.advance.mode === 'on_click') {
+          learnerAdvancedRef.current = true
+          return
+        }
+        t.goToSlide(index + 1)
+      },
+    }
+  }
+
+  /**
    * What the learner is shown when the lesson cannot continue.
    *
    * Derived from `RenderState.blocked` — and deliberately **not** from `RenderState.problems`.
@@ -666,6 +814,10 @@ export function LessonPlayerClient({
       renderers={elements}
       writer={writer}
       interactionFor={interactionFor}
+      navigationFor={navigationFor}
+      stageRef={(node) => {
+        liveStageRef.current = node
+      }}
       retryToken={retryToken}
       {...(theme ? { theme } : {})}
       {...(resolveAsset ? { resolveAsset } : {})}

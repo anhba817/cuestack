@@ -16,17 +16,17 @@ interface ButtonPayload {
  * click handler: the native elements bring keyboard operability, focus behaviour, and the
  * right role for free, and every hand-rolled substitute has to earn all three back.
  *
- * **`open_url` works now. The navigation actions do not.** Advancing a slide needs the
- * transport, and a renderer receives only its element — deliberately, so that the lesson
- * shape can change without breaking third-party renderers. The action reaches the markup as
- * a data attribute, which is the seam Wave 3 wires up through the player rather than by
- * handing every renderer a transport.
+ * **All four actions work.** The three navigation ones were inert from Wave 2 until feature 012,
+ * under a note in this header promising "the seam Wave 3 wires up" — Wave 3 shipped, then 4, then
+ * 5. A teacher's default button, `next_slide` labelled "Continue", rendered correctly and did
+ * nothing.
  *
- * Until then, `aria-disabled` rather than `disabled`: a `disabled` button leaves the tab
- * order, so a learner using a screen reader would never reach it to hear that it is inert.
- * Announcing an inoperable control is worse than announcing why it is inoperable.
+ * A renderer still receives only its element and a narrow capability. It is handed a verb and no
+ * nouns: `navigation.act()` performs *this button's* authored action and takes no argument, so a
+ * renderer cannot perform any other. It never learns that a transport exists — which is what lets
+ * the lesson shape change without breaking third-party renderers.
  */
-function ButtonComponent({ element }: ElementRendererProps): ReactNode {
+function ButtonComponent({ element, navigation }: ElementRendererProps): ReactNode {
   const payload = element.payload as ButtonPayload | undefined
   const label = payload?.label ?? element.accessibility?.label ?? 'Button'
   const action = payload?.action ?? 'next_slide'
@@ -47,12 +47,27 @@ function ButtonComponent({ element }: ElementRendererProps): ReactNode {
     )
   }
 
+  /**
+   * `aria-disabled`, not `disabled` — and what it guards has changed.
+   *
+   * The choice is the same and the reason is the same: a `disabled` button leaves the tab order,
+   * so a learner using a screen reader would never reach it to hear that it is inert. Announcing
+   * an inoperable control is worse than announcing why it is inoperable.
+   *
+   * What it *means* is different. It used to say "this framework has not wired this up" — for
+   * every navigation action, permanently, for three waves. It now says "this action has nowhere
+   * to go from here": Back on the first slide, Continue on the last, or Continue on a slide that
+   * waits for a required question. A fact about the lesson rather than about the framework.
+   */
+  const operable = navigation?.available === true
+
   return (
     <button
       className="cs-element-button"
       type="button"
       data-cs-action={action}
-      aria-disabled="true"
+      {...(operable ? {} : { 'aria-disabled': 'true' as const })}
+      onClick={operable ? navigation?.act : undefined}
     >
       {label}
     </button>

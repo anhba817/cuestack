@@ -26,6 +26,31 @@ export interface ElementRendererProps {
    * than the one that happened.
    */
   readonly interaction?: InteractionAccess
+  /**
+   * Present only on a button, and absent everywhere else — which is what makes `navigation` mean
+   * "this element navigates" rather than "navigation is available somewhere".
+   */
+  readonly navigation?: NavigationAccess
+}
+
+export interface NavigationAccess {
+  /**
+   * Perform this button's authored action.
+   *
+   * **Takes nothing, deliberately.** Which action it performs was decided when the capability was
+   * built, from the element's own payload. A signature like `act(action)` would let any renderer
+   * holding one perform any action — the button labelled *Back* could advance the lesson.
+   */
+  readonly act: () => void
+  /**
+   * Whether that action can move the learner from where they are.
+   *
+   * For `next_slide` this is *would the lesson let the learner leave*, which only the player can
+   * answer: an unanswered required question (BR-005, on every advance mode) or a mode that
+   * declares its own gate both refuse. A renderer knows its own element and nothing about
+   * position or about what the slide is waiting for.
+   */
+  readonly available: boolean
 }
 
 export interface InteractionAccess {

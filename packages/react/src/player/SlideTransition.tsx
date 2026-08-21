@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { RenderState } from '@cuestack/core'
 import type { LessonManifest } from '@cuestack/schema'
-import type { ElementRendererRegistry, InteractionAccess } from '../elements/registry.js'
+import type { ElementRendererRegistry, InteractionAccess, NavigationAccess } from '../elements/registry.js'
 import type { AssetResolver } from '../elements/assets.js'
 import type { FrameWriter } from '../frame/FrameWriter.js'
 import type { ThemeValues } from '../theme/tokens.js'
@@ -24,6 +24,10 @@ export interface SlideTransitionProps {
   readonly theme?: ThemeValues
   readonly resolveAsset?: AssetResolver
   readonly interactionFor?: (element: ResolvedElement) => InteractionAccess | undefined
+  /** Live half only, like `interactionFor` — the leaving slide is no longer operable. */
+  readonly navigationFor?: (element: ResolvedElement) => NavigationAccess | undefined
+  /** Handed to the stage a learner is arriving at, so the player can place focus there. */
+  readonly stageRef?: (node: HTMLDivElement | null) => void
   /** Changes when the learner retries a failed asset, remounting the elements that hold them. */
   readonly retryToken?: number
 }
@@ -56,6 +60,8 @@ export function SlideTransition({
   theme,
   resolveAsset,
   interactionFor,
+  navigationFor,
+  stageRef,
   retryToken,
 }: SlideTransitionProps): ReactNode {
   const view = (state: RenderState, live: boolean): ReactNode => (
@@ -69,12 +75,13 @@ export function SlideTransition({
       {...(live && writer ? { writer } : {})}
       {...(resolveAsset ? { resolveAsset } : {})}
       {...(live && interactionFor ? { interactionFor } : {})}
+      {...(live && navigationFor ? { navigationFor } : {})}
     />
   )
 
   if (!outgoing) {
     return (
-      <Stage lesson={lesson} {...(theme ? { theme } : {})}>
+      <Stage lesson={lesson} {...(theme ? { theme } : {})} {...(stageRef ? { stageRef } : {})}>
         {view(incoming, true)}
       </Stage>
     )
@@ -93,6 +100,7 @@ export function SlideTransition({
         lesson={lesson}
         {...(theme ? { theme } : {})}
         transition={{ role: 'entering', type, durationMs }}
+        {...(stageRef ? { stageRef } : {})}
       >
         {view(incoming, true)}
       </Stage>

@@ -68,7 +68,15 @@ describe('the question renderer', () => {
     // `disabled` would make it unreachable, so the explanation below could never be
     // heard by the learner it is for.
     expect(html).not.toMatch(/<input[^>]*\sdisabled/)
-    expect(html).not.toMatch(/tabindex="-1"/)
+    /**
+     * Scoped to the inputs rather than to the whole markup.
+     *
+     * A bare `/tabindex="-1"/` over the container also matched the stage, which carries it as a
+     * focus target so a slide change has somewhere to put a keyboard user (feature 012). That is
+     * the opposite of the defect this line guards: a container focus can be *sent* to, versus a
+     * control a learner can no longer tab to.
+     */
+    expect(html).not.toMatch(/<input[^>]*tabindex="-1"/)
   })
 
   it('says why it does nothing', () => {

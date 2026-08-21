@@ -19,6 +19,13 @@ export interface StageProps {
    * so the animation is declarative and the transition is not a re-render per frame.
    */
   readonly transition?: StageTransition
+  /**
+   * The live stage, handed back so the player can place focus on it after a slide change.
+   *
+   * Set only on the stage a learner is arriving at — never on the leaving half of a transition,
+   * which carries `aria-hidden` and is no longer the lesson.
+   */
+  readonly stageRef?: (node: HTMLDivElement | null) => void
 }
 
 /**
@@ -35,7 +42,7 @@ export interface StageProps {
  * new ratio, and the canvas numbers are needed anyway, since every element coordinate
  * is relative to them.
  */
-export function Stage({ lesson, theme, children, transition }: StageProps): ReactNode {
+export function Stage({ lesson, theme, children, transition, stageRef }: StageProps): ReactNode {
   const style = {
     ...stageProperties(lesson, theme),
     ...(transition ? { '--cs-transition-ms': String(transition.durationMs) } : {}),
@@ -43,7 +50,18 @@ export function Stage({ lesson, theme, children, transition }: StageProps): Reac
 
   return (
     <div
+      ref={stageRef}
+      tabIndex={-1}
       className="cs-stage"
+      /**
+       * A programmatic focus target, so a slide change has somewhere to put a keyboard user.
+       *
+       * `-1` rather than `0`: the stage is not a stop on the way through a page, it is somewhere
+       * focus is *sent* when the content under it is replaced. Without it, pressing Continue
+       * removes the button the learner was on and focus falls to `document.body` — the
+       * announcement is still heard and the learner is nowhere.
+       */
+
       style={style as React.CSSProperties}
       data-cs-aspect={lesson.lesson.aspectRatio}
       lang={lesson.lesson.language}

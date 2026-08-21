@@ -16,7 +16,20 @@ import { testPorts } from '../harness/ports.js'
  * `aria-hidden` on an ancestor, is in the markup and not reachable.
  */
 
-const INTERACTIVE_SELECTOR = 'button, a[href], input, select, textarea, video[controls], audio[controls], [tabindex]'
+/**
+ * What counts as a control a keyboard user must be able to reach.
+ *
+ * `[tabindex]:not([tabindex="-1"])` rather than `[tabindex]`, because `-1` means the opposite of
+ * being in the tab order: focus can be *sent* there programmatically and a learner cannot tab to
+ * it. Feature 012 gave the stage `tabindex="-1"` so a slide change has somewhere to put focus, and
+ * the broader selector counted that container as a control removed from the tab order — which is
+ * the correct verdict for a `<button>` and the wrong one for a focus target.
+ *
+ * The assertions below still bite where it matters: a real control carrying `tabindex="-1"` is
+ * selected by its own clause and reported.
+ */
+const INTERACTIVE_SELECTOR =
+  'button, a[href], input, select, textarea, video[controls], audio[controls], [tabindex]:not([tabindex="-1"])'
 
 /**
  * Whether a control would be announced with a name.
