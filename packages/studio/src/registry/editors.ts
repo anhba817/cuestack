@@ -66,18 +66,23 @@ export interface ElementEditor<TPayload = unknown> {
   /**
    * The type's own inspector fields, beyond the ones every element has.
    *
-   * FR-018 says these come from "that type's registered plugin", and for a third-party type
-   * they do: the inspector reads `ElementPlugin.inspector` from `@cuestack/core` first and
-   * only falls back here. The fallback exists because **the seven built-in types have no
-   * `ElementPlugin`** — they are handled by the schema's per-variant validation, by the
-   * resolver's own path, and by the React renderer registry, and core's plugin registry is
-   * empty by default.
+   * FR-018 says these come from "that type's registered plugin", and they now do for every type:
+   * the inspector reads `ElementPlugin.inspector` from `@cuestack/core` first, and `fieldsFor`
+   * above derives this list from the same place rather than restating it.
    *
-   * Authoring seven plugins to hold seven field lists was the alternative. It would mean
-   * writing `schema`, `resolve`, and `validate` for types core already handles internally —
-   * a second source of truth for what a text element is, which is a worse outcome than a
-   * registry lookup with two places to look. Recorded in
-   * contracts/element-editor-contract.md.
+   * **What this paragraph used to say, and why it was wrong.** Until feature 009 it read: *"the
+   * seven built-in types have no `ElementPlugin` … and core's plugin registry is empty by
+   * default"*, and it argued at length that authoring seven plugins would mean a second source of
+   * truth for what a text element is. Feature 009 wrote those seven plugins — `builtinElements`,
+   * imported at the top of this file — and the predicted duplication did not happen, because the
+   * plugins *are* the source of truth and the schema validates against them rather than beside
+   * them. The comment survived two shipped features after the code it described stopped being
+   * true, which is the ordinary way a comment goes wrong: nothing fails when it does.
+   *
+   * So the field stays, but for a different reason than the one recorded in
+   * contracts/element-editor-contract.md: editing needs things the format does not carry —
+   * defaults, the text surface, `itemDefaults`, the stored-value transforms — and those have
+   * nowhere else to live.
    */
   readonly inspector: readonly EditorField[]
 }

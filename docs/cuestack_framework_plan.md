@@ -61,8 +61,8 @@ artifacts: the spec (requirements) and the constitution (gates); this plan is th
       ✅ SCH-2 ──→ ✅ PB-1 ──→ ✅ PB-2
       ✅ SCH-2 ──→ ✅ SCH-3                           (portable export/import package)
       ✅ EN-6 ──→ ✅ PB-3                           (HTTP reference adapter)
-      ✅ EN-5 ──→ 🔲 DX-1
-      ✅ RC-1 ──→ 🔲 DX-2                           (second adapter proves the core is framework-agnostic)
+      ✅ EN-5 ──→ ✅ DX-1
+      ✅ RC-1 ──→ ✅ DX-2                           (second adapter proves the core is framework-agnostic)
 
     Critical path:
       IN-1 → SCH-1 → EN-5 → EN-4 → EN-1 → EN-2 → EN-3 → RC-1 → NX-1 → NX-3
@@ -104,10 +104,10 @@ U/C/E/R are 0–3; Score = U + 2C + E − R (see rubric).
 | 4 | ED-5 undo/redo, autosave, offline queue | ED-1 | 3 | 2 | 0 | 2 | 5 | ✅ |
 | 4 | ED-1 canvas: move/resize/rotate, snap, layers | EN-5 | 3 | 1 | 0 | 1 | 4 | ✅ |
 | 4 | ED-3 timeline UI: tracks, playhead, drag | ED-1 | 3 | 1 | 0 | 1 | 4 | ✅ |
-| 5 | DX-2 `@cuestack/element` web-component adapter | RC-1 | 1 | 3 | 1 | 0 | 8 | 🔲 |
+| 5 | DX-2 `@cuestack/element` web-component adapter | RC-1 | 1 | 3 | 1 | 0 | 8 | ✅ |
 | 5 | PB-3 `@cuestack/adapter-http` reference REST adapter | EN-6 | 3 | 2 | 2 | 1 | 8 | ✅ |
 | 5 | SCH-3 portable export/import package | SCH-2 | 3 | 2 | 1 | 1 | 7 | ✅ |
-| 5 | DX-1 docs + plugin authoring guide | EN-5 | 1 | 2 | 2 | 0 | 7 | 🔲 |
+| 5 | DX-1 docs + plugin authoring guide | EN-5 | 1 | 2 | 2 | 0 | 7 | ✅ |
 | 5 | PB-1 validation engine (errors/warnings/jump) | SCH-2 | 2 | 2 | 1 | 1 | 6 | ✅ |
 | 5 | PB-2 immutable publish + version history | PB-1 | 2 | 2 | 1 | 2 | 5 | ✅ |
 
@@ -347,6 +347,409 @@ Obligations carried forward:
 act on; PB-2 gave it the first thing it produces that has no edit path at all. `check:rules` now
 reports **18 of 18** — every business rule in the specification has a rule-named test, and the
 deferred set is empty for the first time.
+
+**Wave 5 is closed.** DX-1 and DX-2 shipped together as feature 011, and with them the last two
+items on the board.
+
+### Documentation claims this feature falsified
+
+Research R-09 predicted that writing a guide precisely is what finds what else is untrue, and that
+the list would grow while the guide was written. It did — from one confirmed instance to six.
+
+| Claim | Where | Why it was false |
+| --- | --- | --- |
+| "the seven built-in types have no `ElementPlugin`", "core's plugin registry is empty by default" | `studio/src/registry/editors.ts` | Feature 009 wrote all seven. The comment also argued at length that writing them *would* create a second source of truth for what a text element is; it did not, because the plugins became the source of truth. Two features shipped on top of a comment describing code that no longer existed. |
+| The root README listed four packages | `README.md` | `@cuestack/studio` and `@cuestack/adapter-http` were absent — two of the six, one of them the editor. Nobody reading the front door could learn the editor exists. |
+| "Web components adapter (Wave 5)" | `README.md` | True and badly misleading: it names a category and omits that four of seven element types do not render. A host reading "adapter" installs a player and discovers the gap from a learner. |
+| `@cuestack/element` read `--cs-theme-text`, `--cs-theme-stage`, `--cs-theme-font`, `--cs-theme-font-small` | `element/src/styles.ts` | The player writes `--cs-theme-text-default`, `--cs-theme-surface-default`, `--cs-theme-font-body`, `--cs-theme-font-size-caption`. Four tokens, no error, no failing test — every `var()` silently took its fallback, so a host theming both would have found one of them simply ignoring the theme. The vocabulary is a convention (`themeProperty` accepts any key), so nothing could have rejected it. The test now reads the expected names out of the player's sources. |
+| The stranding problem used `role="status"` | `element/src/LessonElement.ts` | `PlaybackProblem.tsx` uses `role="alert"` and its comment explains why: this *is* an interruption. A polite live region waits for a pause that, on a slide that never ends, never comes. |
+| `drawn.className === 'cs-unavailable'` marked the frame | `element/src/LessonElement.ts` | Exactly true only while the notice carried precisely one class. Not false yet — false the first time anybody added a second one, and silently. Now asked of the node as an attribute. |
+
+### What the second adapter reported
+
+The point of DX-2 is what it finds, and an adapter that found nothing would have been the surprising
+outcome rather than the good one.
+
+- **Ten modules in `@cuestack/react` import no React, and reference no React type.** Measured this
+  feature rather than recalled: `assets.ts`, `elements/builtin/static.ts`, `frame/applyVisual.ts`,
+  `frame/FrameWriter.ts`, `frame/properties.ts`, `media/domMediaPort.ts`, `player/browserPorts.ts`,
+  `player/browserTiming.ts`, `player/problems.ts`, `theme/tokens.ts` — none of them names `ReactNode`,
+  `JSX`, or `createElement` either. (Thirteen files have no React import; three of those are
+  re-export barrels that carry components across, so they do not count.) Feature 010 recorded this as
+  eight; the number was wrong, and it was wrong in the direction that matters — there is more
+  framework-agnostic code in the framework adapter than the earlier count suggested.
+  This adapter had to either import them across a boundary it should not cross or restate them. It
+  restated the small parts. They want extracting into core; **not acted on**, because moving public
+  exports out of `@cuestack/react` is a breaking change that belongs in its own feature.
+- **The kernel could not report the adapter's own limits, and this was not anticipated.** The plan
+  assumed `resolve`'s `blocked` would cover a slide gated on an unrenderable interaction. It does
+  not: `question` *is* registered, so from the kernel's view nothing is wrong. Only the adapter knows
+  it declines to draw it. The stop-condition ("if the adapter needs its own resolve, stop and
+  report") did not trigger, correctly — this needed no second resolver, only the adapter comparing
+  the slide's advance rule against its own covered set. But an adapter that had assumed the kernel
+  would tell it would have stranded learners silently.
+- **`prefers-reduced-motion` has no meaning for a fade.** The reduced-motion fixture was written with
+  a fade and asserted a mirrored property set that never appeared. A fade *is* the reduced form —
+  BR-015 turns a slide-in into a fade rather than into an instant appearance — so `reduced` is null
+  for effects that never moved. The rule is right; the test asserted it of the one effect it cannot
+  apply to.
+- **happy-dom does not cascade custom properties at all.** Not a shadow-DOM limitation: a `--x` set
+  on a parent reads back `""` on its child in plain light DOM. The claim that theming pierces the
+  shadow boundary is a CSS-spec guarantee that this test environment cannot confirm either way, so
+  it moved to the manual pass rather than being asserted past. What is checkable in CI is that the
+  token *names* match, which is the half we can get wrong.
+- **Generalising the README check found where it should *not* apply**, which is the more useful
+  result. `@cuestack/adapter-http` documents four of the twelve entries in `OPERATIONS` — the exact
+  shape of the defect found twice already, and not one: its README says in bold that the mapping is
+  *"an example, not a specification"* and points at the contract for the full list. A document that
+  disclaims completeness is not a reference. The surface was added, failed, and was removed after
+  reading what the README actually says; the rule is now written down, because the next person
+  extending that list will meet the same temptation.
+- **A blanket "every export appears in its README" rule was measured and rejected.** It reports
+  ninety undocumented exports in the editor and thirty-five in the kernel, nearly all internal
+  constants like `CLAMP_CEILING_MS`. A check that cries wolf about a hundred names is one somebody
+  turns off, and the useful rule is narrower: a table that *presents itself* as the reference for a
+  surface must be complete, because a reader treats it as such and a missing member is invisible
+  rather than merely undocumented.
+- **The scoped-search trap, for the third time in this feature.** The new check searched the whole
+  README and passed its own negative control: deleting the `overrideAdvance` row changed nothing,
+  because the name also appears in prose two sections down. Scoped to table rows under one heading,
+  it fails. The plan-coverage check had the identical bug, and so did the advance-rule pattern
+  before it. **Every one was found by running the control rather than by reading the test.**
+
+- **A backgrounded tab did not pause the lesson, and the React player's does.** The element's
+  default visibility port was `subscribe: () => () => undefined` — inert — so the kernel's
+  `pausedByVisibility` could never fire. Measured on one lesson: with a real subscription, five
+  seconds hidden leaves a learner on slide one; with the inert default, on slide two. A learner who
+  switched tabs came back to a lesson that had run on without them. FR-011, and the most
+  learner-facing defect since the README example.
+- **It survived because every test injects `ports`.** Constitution II requires a hand-driven clock,
+  so all hundred-odd suites supply one — leaving the branch a real host takes as the only branch
+  never executed. **`browserPorts.ts` in `@cuestack/react` opens by recording this exact lesson**:
+  *"every test that exercised playback passed `ports`, so the one path a real host takes was the one
+  path untested."* It was written when the React player hit the identical problem, and it did not
+  carry, because a lesson in a comment protects the file it is in. Extracting `src/ports.ts` makes
+  the default testable, which is the part that carries.
+- **Found by reading coverage as behaviour rather than as a number** — and the first framing was
+  wrong. The element package measures 83.76% branches, which looked like a floor violation and is
+  not one: the constitution says UI packages carry no numeric floor, *behavioural tests instead of
+  coverage theater*, and the coverage config excludes the package deliberately. The threshold error
+  came from an ad-hoc `--coverage.include` override pointing the global threshold somewhere it does
+  not apply. The uncovered *lines* were still the route to the defect.
+- **The comments-versus-code trap, a fourth time.** The new parity check asserted the source
+  contains `performance.now` — and the file's own comment says "`performance.now`, not `Date.now`",
+  so swapping the actual call changed nothing and the control passed. Stripped comments, as
+  `one-kernel.test.ts` already had to. Four instances now, every one found by running the control
+  rather than by reading the test.
+
+- **Two of the guide's four pieces were never exercised.** SC-013 asks that the example "compiles,
+  registers, and is exercised by the suite". The core plugin had four suites — registration,
+  completeness, inertness, saving — and the renderer and the editor registration had none; nothing
+  anywhere imported them. Removing a required member from either *does* fail `pnpm typecheck`, so
+  the criterion's other clause held — but it held through the compiler, not the suites, and a
+  renderer that satisfied `ElementRenderer` and threw the moment it drew would have passed
+  everything. That matters more here than for most fixtures, because the guide's promise is *do this
+  and it works*, and a shape check does not make that promise good.
+- **The test written to close that gap was itself shape-broken.** It ran green under vitest and
+  failed `pnpm typecheck`: `ElementRendererProps` requires `resolveAsset` even for a type with no
+  assets, and the first draft omitted it. Passing is not compiling — the same split the tests were
+  added to close, arriving in the tests themselves within the hour.
+- **Sweeping the harness found nothing, which is the useful answer.** Seven deliberate faults —
+  a clock that stops ticking, a clock frozen at zero, `autoplay` never set, `frame()` without a real
+  rAF, listeners never attached, `resolveAsset` never passed, `unmount()` that leaves the element —
+  each broke between one and twenty-two suites. A lying harness makes every suite that uses it lie,
+  and ninety-eight tests rest on this one, so a clean sweep here is worth more than a finding.
+
+- **The problem notice followed a learner onto slides it did not describe.** `#reportProblems`
+  appended a node and deduped with a `Set` keyed `slideId:code`; nothing removed the node, so
+  stranding on one slide and moving on left "This slide continues once the question on it is
+  answered" sitting on a slide with no question. The same key outlived its visit, so a learner
+  returning to the wall was told nothing at all.
+  **Both were unreachable until `seekToSlide` shipped** — the only stranding fixture gated on a
+  question and therefore never advanced, so in ninety-five tests nothing could leave a problem
+  behind. A new API enlarges the state space and the fixtures have to grow with it, or the new
+  states are untested by construction. That is the single-slide-fixture failure again, one wave on.
+- **The imperative adapter reintroduced a bug the declarative one cannot have.** `LessonPlayerClient`
+  recomputes `reach` every step and calls `setUnreachable(reach)` whenever the code changes,
+  *including to null* — so a value derived each frame has nowhere for staleness to live. Appending a
+  node and remembering that you did is the other shape, and the removal is the half that gets
+  forgotten. The element now compares the current code per frame and clears on slide entry. **This
+  is the kind of finding a second adapter exists to produce** (SC-012): not a slip, a property of
+  the boundary.
+- **A sweep of twelve deliberate breakages found six that ninety-eight tests did not catch**, all
+  from one gap. `agreement.test.ts` evaluates the `.cs-element` rules against a container box *it
+  supplies itself* — the only way to compare two stylesheets in a DOM with no layout, and a quiet
+  assumption of the other half. Nothing asked whether the stage establishes that container or carries
+  the numbers the rules divide by. Removing `container-type`, `aspect-ratio`, `overflow: hidden`, the
+  `--cs-canvas-w/h` writes, `data-cs-element-type`, or the leaving half's duration all passed.
+  `test/stage.test.ts` closes them, comparing the shared values against the player's own stylesheet
+  rather than restating them.
+- **`git checkout` cut both ways in one session.** Earlier it was a no-op on an untracked file and a
+  breakage survived its cleanup. This time it succeeded on a *tracked* one — `index.ts` existed as
+  the Wave 0 stub — and reverted the whole file to `ELEMENT_WAVE = 0`, discarding the feature's work
+  on it. Restored from the content read earlier in the session, then confirmed by typecheck, the
+  suite, and lint together. The rule that would have prevented both: **check what a file's status
+  actually is before using a command whose behaviour depends on it.**
+
+- **A learner who finished a lesson twice was reported as finishing it once.** An
+  `#announcedComplete` flag guarded `cuestack:completed`, and deleting it failed no test — so it
+  read as dead code, since `createAdvanceController` keys decisions on `transport.instanceId` and
+  returns null once a slide has decided. **That reasoning was right about the first pass and wrong
+  about replay**: seeking back bumps the visit count, the last slide gets a new instance id, the
+  kernel decides again, and the flag swallowed the second completion. Measured both ways rather than
+  argued — with the flag, one completion across a replay; without, two.
+  The shape generalises: **a defensive flag layered over a kernel guarantee reads as belt-and-braces
+  and is really a second, worse rule that eventually disagrees.** It cost nothing while it agreed,
+  and the day it diverged nothing failed, because the case it got wrong was the one no test covered.
+- **An assertion can be true and prove nothing.** `expect(started).toHaveLength(1)` passed with the
+  idempotence guard deleted, because `play()` was called exactly once in that test's lifetime — it
+  proved *one call produces one event*, never *repeated calls produce one*. The guard's own comment
+  named the untested path ("a host would count a pause as a second start") and the only `pause()` in
+  the suite never resumed.
+- **Nine negative controls, seven bit.** Run because three checks in this feature had already passed
+  their own controls, which retires "the test looks right" as evidence. Both misses were on the same
+  two lines — one guard that mattered and was untested, one that did not matter and was wrong — and
+  neither would have been found by reading. Two controls also caught their breakage in a *second*
+  suite (`reference-lesson` alongside `stranded`, `a11y` alongside `transitions`), which is the
+  signal worth having: independent routes to one guarantee.
+- **A restore can fail silently.** `git checkout` is a no-op on an untracked file, so an `innerHTML`
+  breakage survived its cleanup and turned up as two failures in the next full run. Caught by
+  re-running rather than assuming, then independently confirmed by `pnpm lint`, whose rule bans
+  `innerHTML` in that package. Two mechanisms agreeing is worth more than either alone.
+
+- **This section rotted while it was being written.** Every count in it was true when typed and false
+  within the session: "eight analysis passes" became twelve, "twenty-three findings across eight
+  rounds" stopped being countable, "4 of 30 code blocks" became 4 of 32, and the plan's "61 tests /
+  2770 across the workspace / 53 tasks" were all wrong by the end. Nothing failed, because nothing
+  checks a number in prose.
+  That is this feature's own thesis landing on its own documentation. `ElementEditor`'s header — the
+  claim that started all of this — was true when written too. **The durable form records what
+  happened, not how many**; counts that survive here are the ones that mean something when they move
+  (a coverage threshold) or that carry an argument (the pass count, because yield tracked distinct
+  questions rather than passes). The rest are one command away and have been deleted.
+
+- **The same broken-first-example defect was in `@cuestack/react`, the package every host is told to
+  use.** Found by asking whether the previous round's finding was an instance or a class. Its opening
+  example is `<LessonPlayer lesson={lesson} />` beneath the sentence *"that is the whole minimum"*,
+  and a lesson started that way renders a correct first frame that never moves — confirmed on one
+  lesson with the prop on and off: `t=6000: first` against `t=6000: second`.
+  **Neither package's API was wrong.** The element documents its `autoplay` attribute; the player
+  documents `autoPlay` and gives a good reason for defaulting it to false — audible media needs a
+  gesture, so a self-starting lesson would be blocked by the browser or would talk over a page
+  nobody was looking at. The defect was only ever in *the first thing a reader copies*, which no
+  check in this repository looked at.
+  The fix is therefore **not** to add `autoPlay` to the examples, which would contradict the
+  documented rationale — it is to show `PlaybackControls`, which is how a learner actually starts a
+  lesson, and to say plainly that something must.
+- **Fixing an instance and scoping the mechanism to one package is how a class survives.** The check
+  written after the element README was scoped to `packages/element`. The identical defect was two
+  directories away. `tools/scripts/__tests__/readme-examples.test.ts` now covers every package README
+  plus the root: a document whose first code block puts a player on a page must also show what starts
+  it — `PlaybackControls`, `autoplay`, `play()`, or `usePlayer()`. Controls confirm it reproduces
+  both defects. Later blocks are exempt and the document must say they are fragments, because
+  requiring the start step in every one-prop example buries the prop it is showing.
+- **The anti-rot mechanism reaches only the guide.** `check-doc-snippets.mjs` reads `docs/`, so every
+  code block across the six package READMEs — the large majority of the runnable examples in this
+  repository — sits outside the tool built to stop exactly this. (An earlier draft of this line said
+  "4 of 30". It was 4 of 32 two passes later, which is the joke telling itself: a count in prose is a
+  claim with a half-life.)
+  Recorded rather than closed: extending extraction to those blocks is a larger change than this
+  round, and the first-example check above covers the failure that actually occurred.
+- **`COVERED`, `NOT_COVERED` and `covers()` were exported and undocumented** — a deliberate API for
+  deciding *before* embedding whether a lesson is playable, discoverable only by reading the source.
+  The member-level README check could not see it: it reads `LessonElement.ts` and these live in
+  `covered.ts`. Widened to the package's exports, skipping type-only ones.
+
+- **The README's headline example stopped working, and its prose insisted it was complete.** Making
+  `autoplay` honour the contract was a correct change; the documentation half was never done. Run
+  verbatim — place the tag, assign a manifest — the example rendered the first frame and held
+  forever, under the sentence *"That is the whole integration… there is nothing to call."* Verified
+  by executing it rather than reading it: 6000ms of lesson time, still on slide one. The API table
+  documented four members of ten; `play`, `pause`, `seekToSlide`, `autoplay`, and three of the four
+  events were absent entirely.
+- **Every audit this session ran in one direction, and this one needed the other.** The method that
+  found the missing transitions, the missing API clauses, and the missing effect properties asks
+  *does the code do what the documents promise*. Nothing asked *does the documentation still
+  describe what the code does* — so a correct code change silently falsified a document, which is
+  the one failure that reaches a reader before it reaches a test. `packages/element/test/documented.test.ts`
+  now closes it: public methods, settable properties, `observedAttributes` entries, and dispatched
+  events are read out of the source and required to appear in the README, and the opening example
+  must autoplay or call `play()`. Three controls confirm it reproduces both defects.
+- **`data-model.md` was right about the API all along.** It listed `src`, `autoplay`, and all four
+  events while the implementation had none of them — the audit direction matters twice over, because
+  the document that was *ahead* of the code looked identical to one that was behind it until someone
+  compared them. Its one inaccuracy was "no ports": a `ports` test seam exists and is settable, so
+  the claim was right in spirit and wrong in print.
+
+- **The two adapters laid a lesson out differently, and nothing could see it.** The React player
+  resolves every coordinate to a proportion of the canvas through container-query units; the web
+  component resolved them to raw pixels — a 1600-unit canvas at 1600 physical pixels whatever the
+  container was, so the same lesson rendered twice the size on an 800px page and overflowed instead
+  of scaling. **The agreement suite was structurally incapable of catching it**: it compares the
+  custom properties an adapter *writes*, and both wrote `--cs-x: 0`. The disagreement lived in the
+  stylesheet reading them. Fixed by adopting the player's rules character for character — including
+  the transform order, which a first pass got backwards, and transforms do not commute.
+- **Authored rotation was dropped entirely, by the fix for the previous item.** `geometry.rotation`
+  is in `ResolvedElement`, the player writes `--cs-rotation`, and the adapter wrote nothing. The
+  round that added the missing *effect* properties added the transform set and stopped — geometry
+  rotation is a different property with a nearly identical name, and it stayed missing through the
+  fix for its own defect class. **A defect class is not enumerated by the first instance found.**
+- **A comparison of CSS inputs is not a comparison of layout.** The fix is to evaluate both
+  stylesheets rather than compare their text — using the evaluator `packages/react/test/harness/`
+  already had, whose own header makes the argument: a wrong-axis rule has the right shape.
+- **One axis substitution is undetectable, and that is algebra rather than a weak test.** Swapping
+  divisor *and* unit together — `y/H*100cqh` for `y/W*100cqw` — produces identical results for every
+  value, because the stage's aspect ratio is derived from the canvas, so `cqh/cqw` is exactly
+  `canvas-h/canvas-w`. A matched swap is a different spelling of the same rule. Swapping only the
+  divisor is caught. Established by running all three controls rather than by reasoning about them.
+- **The adapter had never played the reference lesson.** `tourLesson` — the manifest the published
+  example ships — existed throughout and no test in `packages/element` referenced it; every fixture
+  was written in the adapter's own harness, shaped to what the adapter does. That is the shape that
+  hid FR-010 for the whole feature. Playing it corrected an expectation immediately: the first draft
+  asserted every slide is reached, and the adapter was *right* to stop at the interaction-gated
+  second slide, because reaching the third would mean carrying a learner past a question they were
+  required to answer.
+
+- **`highlight` and `dim` were silently inert in the web component.** Two of the eight builtin
+  effects change brightness rather than moving anything, and the adapter's frame layer wrote only
+  the transform set — no `--cs-brightness`, no `--cs-blur`, and no `filter` declaration in its
+  stylesheet. A learner simply never saw the thing an author drew attention to: no error, no missing
+  element. Found by the agreement suite the *first time it was asked to compare effect values*.
+- **The suite that exists to satisfy SC-005 skipped SC-005's hardest clause.** The criterion reads
+  "the same slides, elements, and **effects** at the same times"; the comparison listed
+  `--cs-x/y/w/h/opacity/z` and ran over fixtures carrying no effect at all. It reported agreement
+  and had never asked the question. Two renderers agreeing about static geometry is the easy half —
+  effects are the kernel's most intricate computation and the likeliest place to diverge. Now
+  sampled every 200ms through both effects' windows, with a counter asserting something was actually
+  mid-flight.
+- **The transition DOM was never seen by axe**, because every lesson in the a11y suite was a single
+  slide. Two full stages coexist during a slide change, which is precisely the shape that produces
+  duplicated content and a focus order visiting a slide the learner has left. It passes; it was
+  simply never asked. The companion assertion is that only the *outgoing* half is `aria-hidden` — a
+  transition that hid both would silence the lesson for the length of every slide change.
+- **A stale constitution assessment is the same failure as a stale comment.** plan.md's Principle IV
+  row said "no budget is touched — the adapter computes what the React player computes." True when
+  written; false once a slide change began deep-cloning a stage. Nothing re-reads an assessment when
+  the code beneath it changes.
+- **A wall-clock budget in happy-dom is weaker than it looks, and the number says how much.**
+  ≈1.6ms per frame on a 55-element slide against a 15ms budget, and a full stage clone at ≈0.015ms —
+  forty extra clones per slide change do not trip it. Measured rather than assumed, after the
+  negative control passed. The assertion that carries the weight is the invariant beside it:
+  structure built once per element, never per frame, checked by node identity. A rebuild-every-frame
+  regression costs nothing in a DOM with no layout and drops frames in a browser.
+
+- **The same method, applied to the contract, found six more missing clauses.** After FR-010 turned
+  up by reading the spec's requirement list against the built adapter, the same pass over
+  `contracts/element-adapter.md` found that §2's `src` and `autoplay` attributes, §3's `play()`,
+  `pause()` and `seekToSlide()`, and three of §4's four events did not exist. The task that asked for
+  all of them was **marked complete**, against a test file named `api.test.ts` that tested
+  registration, the manifest property, and disconnect. A file named after a contract is not a test of
+  it.
+  Worst of the set: `observedAttributes` returned `['src', 'autoplay']` with no
+  `attributeChangedCallback`. That is not merely absent — it announces to the platform, and to anyone
+  reading the class, that the element reacts to those names.
+- **Reading an artifact back against the thing it describes is now the method, not an accident.**
+  Repeatedly it found what the analysis passes did not, and always because it asks a different
+  question: not *is anything wrong with what was written*, but *is each thing that was promised
+  actually here*. An omission has no wrong-looking artifact to find. `plan-coverage.test.ts` makes
+  the requirement half mechanical; the contract half is still a reading, and is recorded as T053.
+- **Eight analysis passes missed a MUST with zero tasks.** FR-010 names "slide playback, timing,
+  effects, transitions" as the adapter's required coverage. The word *transition* appears nowhere in
+  `plan.md` or `tasks.md` — the requirement was dropped between spec and plan and never picked back
+  up, through every `/speckit-analyze` run before implementation — whose Coverage Gaps pass exists
+  precisely to find "requirements with zero associated tasks". Those passes were productive on other
+  axes and blind to this one, and the reason looks structural:
+  each pass asked what was *wrong with what was written*, and this was a requirement absent from
+  everything downstream of the spec, so there was nothing wrong-looking to find. It surfaced only
+  when the finished feature was read back against the spec's own FR list, one requirement at a time.
+  **Analysis over the artifacts is not a substitute for checking the artifacts against the spec.**
+- **The adapter did not advance slides, and no test noticed, because every fixture was one slide.**
+  FR-010 lists slide playback and transitions first, and neither was implemented. Nothing failed:
+  the harness had four fixtures and all four were single-slide, so the suite reported a working
+  player it had never asked to change slide. The structural "same kernel" test did not catch it
+  either — it checked `resolve` and `createTransport`, both of which *were* shared, so an adapter
+  that never advanced at all passed every claim truthfully. **A fixture set that never crosses a
+  boundary will report a player that cannot cross it as working**, and a structural check only
+  covers the rules it names. Both are now fixed: two-slide fixtures, and `createAdvanceController`
+  named in the one-kernel test alongside a pattern for the hand-rolled duration comparison it
+  replaces.
+- **The check written to catch that passed its own negative control.** The first pattern was
+  `slideTimeMs\s*>=?\s*\w*[Dd]urationMs`, which reads tight and matches nothing anybody writes —
+  the real shape is `transport.slideTimeMs >= (slide.durationMs as number)`, and a parenthesis
+  defeated it. It was found only because the control was actually run rather than assumed to work,
+  which is the argument for T042 existing at all.
+- **A structural check that reads comments cannot tell code from prose.** The same pattern matched
+  the sentence in `#advanceIfDue`'s header explaining why a duration comparison would be wrong. A
+  test that punishes explaining yourself is backwards, so the code-shape checks now strip comments
+  and the import checks still read the file as written.
+- **Advance is a kernel rule, not a player convenience.** Writing `slideTimeMs >= durationMs` in the
+  adapter would have been three lines and wrong about `after_media_ends`, `after_interaction`, and
+  the per-*instance* decision that lets a learner replay a slide. FR-009's "same kernel" covers
+  every rule the kernel owns, and the adapter now takes this one from `createAdvanceController` with
+  no media port — whose honest answer is that media never ends, which is what makes a media-gated
+  slide report itself unsatisfiable here instead of being skipped.
+- **`class extends HTMLElement` crashes every server that imports the package**, and no suite in the
+  repository could have found it. The declaration is evaluated at module load, so
+  `import '@cuestack/element'` throws `ReferenceError: HTMLElement is not defined` in any node
+  process — every host doing SSR, in a module shared between server and client, before a browser is
+  involved. The `customElements` guard around `define` does not help: the crash is on the line above
+  it. Found by `check:element-isolation`, which imports the packed tarball in a bare node process;
+  every test in the suite runs in happy-dom, where `HTMLElement` exists. Fixed by resolving the base
+  class at load time and falling back to an inert stand-in.
+- **Two adapters had two DOM contracts.** The player writes `data-cs-element-id` and
+  `data-cs-element-type`; the web component's first draft wrote a single `data-cs-element` holding
+  the id. Same information, different name — a host styling or testing against one would have found
+  the other silently different, and the agreement suite could not compare them at all because it
+  could not find the same nodes twice. The element adapter now matches `ElementFrame.tsx` exactly.
+- **Identity values must be omitted, not written.** `visualProperties` in `@cuestack/react` skips
+  `--cs-opacity: 1` and the identity transform, because the stylesheet's fallbacks supply them and
+  most elements are untouched most of the time. The element adapter wrote all six unconditionally,
+  and the two disagreed about `--cs-opacity` on every element at every instant — invisible on
+  screen, because the fallback and the written value are the same number, and invisible to every
+  other test. Matching the rule then required a second change nothing else needed: properties must
+  be *removed* when they return to identity, or an element that faded to 0.4 and back keeps 0.4
+  forever, since the frame that restores it writes nothing.
+- **Comparing two adapters means advancing them the same way, not to the same number.** The clock
+  clamps a single tick, so a jump from 0 to 5000 in one frame advances a lesson by the ceiling, not
+  by five seconds. The first agreement run jumped React's clock and stepped the element's, and
+  reported `later: present in element only` — which read exactly like a finding about element
+  lifetimes and was an artefact of the harness. Two further artefacts wore the same disguise: a
+  `Ports` missing `media` and the memory adapters, and a player that had never been told
+  `autoPlay`. Three harness bugs, all of which produced a plausible-looking finding first.
+- **A comparison's real failure mode is comparing nothing.** With React rendering an empty
+  container, every element was "present in one only", nothing could disagree about a *value*, and
+  the suite reported a clean pass. It now counts how many elements both adapters actually rendered
+  and asserts that count, because "they agree" and "nothing was asked" are otherwise the same
+  output.
+- **The framework has no spacing token**, found while asserting that every design value in the
+  element's stylesheet resolves from one. Every `--cs-theme-*` name any package reads is a colour, a
+  type value, or `--cs-theme-radius`; `@cuestack/react`'s own CSS writes `gap: 8px` and
+  `padding: 12px` as literals, and `gate:theme-values` cannot see them because ESLint does not parse
+  CSS. Not acted on — inventing a name no lesson theme can supply and no other package reads would
+  hold the demonstration adapter to a stricter standard than the shipped player. Recorded, with a
+  test that fails if a spacing token ever appears.
+- **The theme-literal lint rule has a measured gap.** A hex inside a template literal is now caught
+  (a `TemplateElement` selector was added this feature — `Literal[value=/^#/]` does not match one).
+  What still escapes is a colour the AST never sees as a colour: `['#','8a','8a','8a'].join('')`
+  interpolated into a stylesheet passes `pnpm lint` cleanly. Both were tried against the real
+  config; the emitted-CSS test catches what the rule cannot, which is why Constitution III now has
+  an assertion as well as a rule.
+- **`core-freshness.test.ts` fails intermittently on mtime ordering.** It compares the newest
+  `core/src` mtime against the newest `core/dist` one, and a turbo cache restore can leave `dist`
+  older than a source file nothing changed — so `pnpm test` fails with every test passing and a
+  message telling you to build. `pnpm build && pnpm test` is reliable. Pre-existing, not this
+  feature's to fix, and recorded because a contributor meeting it reads it as a flake.
+- **A registration side effect needs an idempotence test nobody writes by default.** `customElements.define`
+  throws `NotSupportedError` on a second call and takes the page with it — a host with two bundles,
+  or one importing both the element and something re-exporting it, would have hit it in production
+  rather than in CI.
+
+**Agreement between adapters is reported, not gated (FR-011),** and the reason is worth keeping
+because it looks like Constitution V being ignored. Preview-versus-playback is one renderer compared
+against itself, so a difference is a bug and gates. Element-versus-React is two renderers by design
+over one kernel: this one draws a notice where the other draws a video, and disagreement is the
+specification. A gate would have to encode which differences are permitted, and that list is exactly
+what goes stale.
 
 **The declared-with-no-producer pattern, and the sharpest instance yet.** `ElementPlugin.validate`
 was recorded above as the ninth member — but the finding when PB-1 went to use it was worse than

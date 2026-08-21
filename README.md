@@ -55,9 +55,19 @@ not whether it passes but when it starts to move.
 | Package | What it is |
 |---|---|
 | `@cuestack/schema` | The lesson format: types, validators, migrations |
-| `@cuestack/core` | Headless kernel — clock, resolver, registries (Wave 1) |
-| `@cuestack/react` | React adapter, server-renderable (Wave 2) |
-| `@cuestack/element` | Web components adapter (Wave 5) |
+| `@cuestack/core` | Headless kernel — clock, resolver, registries, validation, publishing, packaging |
+| `@cuestack/react` | React adapter, server-renderable. **The complete player** |
+| `@cuestack/studio` | The authoring editor — canvas, timeline, inspector. Optional |
+| `@cuestack/adapter-http` | Save, load, publish and list over your own API |
+| `@cuestack/element` | `<cuestack-lesson>`, a framework-free adapter. **Deliberately partial** |
+
+**[docs/packages.md](docs/packages.md) says which of these you need for a stated goal**, and answers
+the three questions people ask first: no, this ships no backend; no, playback needs no server; no,
+the editor is not required.
+
+To add an element type of your own, see
+**[docs/authoring-elements.md](docs/authoring-elements.md)** — one plugin, one renderer, and no
+change to any package here.
 
 `@cuestack/schema` has two entry points and the split is load-bearing:
 

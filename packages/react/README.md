@@ -13,15 +13,31 @@ page is not a slow page, it is a broken one.
 ## Rendering a lesson
 
 ```tsx
-import { LessonPlayer } from '@cuestack/react'
+import { LessonPlayer, PlaybackControls } from '@cuestack/react'
 import '@cuestack/react/styles.css'
 
 export function Lesson({ lesson }) {
-  return <LessonPlayer lesson={lesson} />
+  return (
+    <LessonPlayer lesson={lesson}>
+      <PlaybackControls />
+    </LessonPlayer>
+  )
 }
 ```
 
-That is the whole minimum. No provider, no configuration call, no registry to build.
+No provider, no configuration call, no registry to build.
+
+**Something has to start playback, and it is not the player.** `autoPlay` defaults to false on
+purpose — audible media needs a gesture, so a lesson that began on its own would be blocked by the
+browser or would talk over a page nobody was looking at. That leaves three ways in, and an example
+with none of them renders a correct first frame that never moves:
+
+- `<PlaybackControls />` inside the player, as above — a learner presses play;
+- `usePlayer()` from any child, and call `play()` on the transport yourself;
+- `autoPlay` on the player, for a silent lesson where you have decided the gesture is unnecessary.
+
+The examples below omit the controls to keep each one about the prop it is showing. They are
+fragments, not integrations.
 
 **The stylesheet is not optional.** Positioning, scaling, and theming all live in it, so a
 player without it renders every element in the top-left corner. It is imported once, wherever
