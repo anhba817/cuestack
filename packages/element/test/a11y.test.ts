@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import axe from 'axe-core'
 import { mount, type Mounted } from './harness/mount.js'
-import { covered, uncovered, stranding, withImage, twoSlides } from './harness/lessons.js'
+import { covered, uncovered, stranding, withImage, twoSlides, withButton } from './harness/lessons.js'
 
 let mounted: Mounted | null = null
 afterEach(() => {
@@ -37,6 +37,7 @@ describe('the web component meets the same bar as the player', () => {
     ['an unavailable element', uncovered()],
     ['a slide that cannot be left', stranding()],
     ['an image', withImage()],
+    ['a navigation button', withButton()],
   ] as const) {
     it(`has no violations: ${name}`, async () => {
       const m = (mounted = await mount(lesson))

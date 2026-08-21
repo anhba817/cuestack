@@ -12,11 +12,17 @@ import { ELEMENT_TYPES } from '@cuestack/schema/validate'
  * React adapter also requires — so it is covered *given* a resolver and reports itself unavailable
  * without one. `video` and `audio` need the media ports and playback synchronisation, which is the
  * React adapter's hardest code and the least likely to say anything about whether the kernel is
- * React-shaped. `question` needs interaction state and gating. `button` is out for a reason that is
- * not this adapter's: `on_click` advance is unreachable in **both** adapters today, so implementing
- * it here would put the two out of step in the opposite direction.
+ * React-shaped. `question` needs interaction state and gating.
+ *
+ * **`button` joined in feature 012, and its exclusion was the only one without a reason of its
+ * own.** It was out because `on_click` advance was unreachable in *both* adapters — a fact about
+ * the framework rather than about this package — and that expired when navigation started working.
+ * Leaving it would have defined the covered set partly by an expired excuse, and would have made
+ * every slide that waits for a learner a dead end here, since such a slide must carry a control
+ * this adapter would then decline to draw. A button renders a label and dispatches intent; it
+ * needs no port the others do not have.
  */
-export const COVERED = ['text', 'shape', 'image'] as const
+export const COVERED = ['text', 'shape', 'image', 'button'] as const
 
 export type CoveredType = (typeof COVERED)[number]
 

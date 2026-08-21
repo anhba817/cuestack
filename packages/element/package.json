@@ -1,7 +1,7 @@
 {
   "name": "@cuestack/element",
   "version": "0.0.0",
-  "description": "Cuestack web-component adapter: plays a lesson with no UI framework. A proof, not a second player — no video, audio, questions, or server rendering. See README.",
+  "description": "Cuestack web-component adapter: plays a lesson with no UI framework. A proof, not a second player \u2014 no video, audio, or questions, and no server rendering. See README.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

@@ -2,14 +2,16 @@ import type { LessonManifest, Slide } from '@cuestack/schema'
 import {
   createAdvanceController,
   createTransport,
+  learnerMayLeave,
   resolve,
   type AdvanceController,
   type Ports,
+  type ResolvedElement,
 } from '@cuestack/core'
 import { applyTo, canvasPropertiesFor, visibleOf } from './frame.js'
 import { covers } from './covered.js'
 import { browserPorts } from './ports.js'
-import { renderElement, type AssetResolver } from './renderers.js'
+import { renderElement, type AssetResolver, type NavigationAccess } from './renderers.js'
 import { STYLESHEET } from './styles.js'
 
 /**
@@ -59,6 +61,7 @@ export class LessonElement extends Base {
   #nodes = new Map<string, HTMLElement>()
   #slideIndex = -1
   #announcedStart = false
+  #learnerAdvanced = false
   #leaving: { node: HTMLElement; untilMs: number; toIndex: number } | null = null
   /** The problem code currently on screen, or null. Compared per frame; see `#reportProblems`. */
   #shownProblem: string | null = null
@@ -168,6 +171,9 @@ export class LessonElement extends Base {
       style.textContent = STYLESHEET
       this.#stage = document.createElement('div')
       this.#stage.className = 'cs-stage'
+      // A programmatic focus target, not a stop on the way through the page: focus is *sent*
+      // here when the content under it is replaced.
+      this.#stage.tabIndex = -1
       this.#root.append(style, this.#stage)
     }
     if (this.#manifest) this.#start()
@@ -277,7 +283,9 @@ export class LessonElement extends Base {
       // Structure is rebuilt only when the element arrives; per-frame work is style writing, which
       // is what keeps the loop inside the frame budget.
       if (!node.firstChild) {
-        const drawn = renderElement(element, document, this.#resolveAsset)
+        const drawn = renderElement(element, document, this.#resolveAsset, (el) =>
+          this.#navigationFor(el),
+        )
         // Asked of the node rather than compared against its class string: `className === '…'` was
         // exactly true only while the notice had precisely one class, and would have gone quietly
         // false the first time it gained a second one.
@@ -324,7 +332,16 @@ export class LessonElement extends Base {
         slideTimeMs: transport.slideTimeMs,
         instanceId: transport.instanceId,
       },
-      { learnerAdvanced: false, completedInteractions: new Set<string>() },
+      {
+        // Read and cleared in one step: one press is one movement, and a flag left raised would
+        // advance every subsequent slide the moment it was evaluated.
+        learnerAdvanced: ((): boolean => {
+          const asked = this.#learnerAdvanced
+          this.#learnerAdvanced = false
+          return asked
+        })(),
+        completedInteractions: new Set<string>(),
+      },
     )
     if (!decision) return
 
@@ -373,6 +390,7 @@ export class LessonElement extends Base {
     this.#slideIndex = index
     this.#emit('cuestack:slide', { slideId: slide.id, index })
 
+
     // Every element belongs to its slide. Clearing the map is what makes the incoming slide build
     // its own nodes rather than inherit ids that happen to match.
     for (const node of this.#nodes.values()) node.remove()
@@ -384,8 +402,27 @@ export class LessonElement extends Base {
     this.#clearTransition()
     if (previous < 0 || !this.#stage || !this.#root) return
 
+    /**
+     * Put a keyboard user on the slide they arrived at.
+     *
+     * **After the transition is arranged, not before.** `#enterSlide` moves the live stage into a
+     * wrapper when a transition runs, and focusing a node before moving it loses the focus — which
+     * is how the first version of this failed, silently and in exactly the case a transition makes
+     * most likely.
+     *
+     * **Not on the first slide** — `previous < 0` above already returned, and focusing on mount
+     * would take focus from the host's page, which no learner asked for.
+     *
+     * A test asserting this must read the **shadow root's** `activeElement`;
+     * `document.activeElement` reports the host and would pass while proving nothing.
+     */
+    const focusStage = (): void => this.#stage?.focus()
+
     const authored = slide.transition as { type?: string; durationMs?: number } | undefined
-    if (!authored || authored.type === 'none' || !authored.durationMs) return
+    if (!authored || authored.type === 'none' || !authored.durationMs) {
+      focusStage()
+      return
+    }
 
     const wrapper = document.createElement('div')
     wrapper.className = 'cs-transition'
@@ -410,6 +447,7 @@ export class LessonElement extends Base {
      * the comparison permanently unsatisfied and two slides on screen forever.
      */
     this.#leaving = { node: wrapper, untilMs: authored.durationMs, toIndex: index }
+    focusStage()
   }
 
   /**
@@ -439,18 +477,43 @@ export class LessonElement extends Base {
   }
 
   /**
-   * A slide that can only be left by answering something this adapter will not draw.
+   * A slide this player can never leave, because leaving needs something it will not draw.
    *
    * Returns a problem in the same shape the kernel uses, so the reporting path does not branch on
    * where the answer came from.
+   *
+   * **Two cases, and the second was missing until feature 012.** The first was the only one
+   * checked: a slide whose advance rule names an interaction this adapter declines. The second is
+   * **BR-005**, which outranks every advance mode — *"a required interaction shall override
+   * automatic slide advancement until completion"* — and this adapter's `completedInteractions`
+   * is permanently empty, because it renders no interactions. So a slide carrying a required
+   * question never advances here **whatever its mode**, including a timed one, and nothing
+   * reported it: a learner sat on a slide that silently never ended. Shipped in feature 011 and
+   * surfaced only when this feature forced a reading of BR-005's scope.
    */
   #uncoveredGate(slide: Slide): { code: string; message: string } | null {
+    const elements = slide.elements as readonly { id: string; type: string; payload?: unknown }[]
+
+    const blocking = elements.find(
+      (element) =>
+        element.type === 'question' &&
+        (element.payload as { required?: unknown } | undefined)?.required === true &&
+        !covers(element.type),
+    )
+    if (blocking) {
+      return {
+        code: 'ADVANCE_UNSATISFIABLE',
+        message:
+          'This slide cannot be left until its question is answered, and this player cannot show ' +
+          'a question. The lesson cannot go further here — open it in a player that supports ' +
+          'questions.',
+      }
+    }
+
     const advance = slide.advance as { mode?: string; interactionElementId?: string }
     if (advance.mode !== 'after_interaction') return null
 
-    const gate = (slide.elements as readonly { id: string; type: string }[]).find(
-      (element) => element.id === advance.interactionElementId,
-    )
+    const gate = elements.find((element) => element.id === advance.interactionElementId)
     if (!gate || covers(gate.type)) return null
 
     return {
@@ -459,6 +522,67 @@ export class LessonElement extends Base {
         `This slide continues once the ${gate.type} on it is answered, and this player cannot show ` +
         `a ${gate.type}. The lesson cannot go further here — open it in a player that supports ` +
         'questions.',
+    }
+  }
+
+  /**
+   * A button's capability, built here because this adapter has no props to thread and already
+   * holds the transport in the method that would raise the signal.
+   *
+   * Its own implementation rather than the player's: sharing would mean depending on
+   * `@cuestack/react`, which fails FR-013 structurally. What it must not do is answer the
+   * "may they leave" question itself — that rule is the kernel's, and `learnerMayLeave` is the
+   * form of it that can be asked without recording a decision.
+   */
+  #navigationFor(element: ResolvedElement): NavigationAccess | undefined {
+    if (element.type !== 'button') return undefined
+    const action = (element.payload as { action?: string } | undefined)?.action
+    if (!action || action === 'open_url') return undefined
+
+    const manifest = this.#manifest
+    const transport = this.#transport
+    if (!manifest || !transport) return { act: () => undefined, available: false }
+
+    const index = transport.slideIndex
+    const active = manifest.slides[index] as Slide | undefined
+    const mayLeave =
+      active !== undefined &&
+      learnerMayLeave(active, {
+        // A query about whether anything would refuse, not the asking itself.
+        learnerAdvanced: false,
+        // Permanently empty: this adapter renders no interactions, so a learner cannot have
+        // completed one. That is the true answer, and it is what makes a required question a
+        // wall here rather than something a button could step over.
+        completedInteractions: new Set<string>(),
+      })
+
+    const available =
+      action === 'next_slide'
+        ? mayLeave && index < manifest.slides.length - 1
+        : action === 'previous_slide'
+          ? index > 0
+          : true
+
+    return {
+      available,
+      act: () => {
+        if (!available) return
+        if (action === 'previous_slide') {
+          transport.goToSlide(index - 1)
+          return
+        }
+        if (action === 'replay_slide') {
+          // Never `restart()`: it resets the clock without bumping the visit, so the controller
+          // still holds the slide as decided and it never advances again.
+          transport.goToSlide(index)
+          return
+        }
+        if (active?.advance.mode === 'on_click') {
+          this.#learnerAdvanced = true
+          return
+        }
+        transport.goToSlide(index + 1)
+      },
     }
   }
 

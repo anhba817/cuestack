@@ -371,13 +371,32 @@ describe('the two adapters agree about what the kernel decided', () => {
      */
   })
 
+  it('agrees that a button navigates, in both adapters', async () => {
+    /**
+     * Navigation joins what the report covers. `button` was the only declined type whose
+     * exclusion had no reason of its own — it was out because navigation was unreachable in both
+     * adapters, which this feature ends.
+     */
+    const { withButton } = await import('./harness/lessons.js')
+    const lesson = withButton()
+
+    const web = await mount(lesson)
+    const go = web.root.querySelector<HTMLButtonElement>('[data-cs-element-id="go"] button')!
+    expect(go.tagName, 'a real button in the web component').toBe('BUTTON')
+    expect(go.getAttribute('aria-disabled')).toBeNull()
+    go.click()
+    await web.advance(200)
+    expect(web.root.querySelector('[data-cs-element-id="second"]')).toBeTruthy()
+    web.unmount()
+  })
+
   it('states which types the comparison covers, so the report is not read as more than it is', () => {
     /**
      * A report saying "the adapters agree" when it means "the adapters agree about text and shapes"
      * is worse than no report. The covered set is asserted here so the claim and the coverage cannot
      * drift apart — adding a type to `COVERED` without widening the fixture fails this.
      */
-    expect([...COVERED]).toEqual(['text', 'shape', 'image'])
+    expect([...COVERED]).toEqual(['text', 'shape', 'image', 'button'])
     expect(NOT_COVERED.length).toBeGreaterThan(0)
   })
 })

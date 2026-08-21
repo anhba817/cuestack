@@ -30,6 +30,7 @@ course needs.
 | Text, shapes, images | yes | yes |
 | Slide playback, timing, effects | yes | yes |
 | Transitions between slides | yes | yes |
+| Navigation buttons | yes | yes |
 | Video, audio | **no** | yes |
 | Questions and interactions | **no** | yes |
 | Gestures | **no** | yes |
@@ -44,6 +45,10 @@ there is no `customElements` on a server and no markup to produce without one. T
 *import* in a server process — the base class resolves to an inert stand-in rather than throwing, so
 a shared module graph builds — but it renders nothing until it reaches a browser. `@cuestack/react`
 server-renders; this is one of the things you give up by choosing this.
+
+Authored buttons work here: Continue, Back, and Replay all navigate, and a link opens. A button
+that cannot move — Back on the first slide, Continue on the last, or Continue on a slide waiting
+for a question this player will not draw — reports itself disabled rather than doing nothing.
 
 **If a lesson uses anything in the "no" column, host it with `@cuestack/react`.** Use this one for a
 lesson you know is text-and-shapes — an embedded explainer in a docs site, a slide on a landing

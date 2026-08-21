@@ -74,7 +74,9 @@ try {
       "if (typeof element.LessonElement !== 'function') {",
       "  console.error('LessonElement did not load'); process.exit(1)",
       '}',
-      'if (element.COVERED.length !== 3) {',
+      // Four since feature 012: `button` joined, being the only declined type whose exclusion had
+      // no reason of its own — it was out because navigation was unreachable in *both* adapters.
+      'if (element.COVERED.length !== 4) {',
       "  console.error('unexpected covered set: ' + element.COVERED); process.exit(1)",
       '}',
       "console.log('imported @cuestack/element with no UI framework and no DOM present')",

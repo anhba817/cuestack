@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { mount } from './harness/mount.js'
-import { stranding, strandThenPlain } from './harness/lessons.js'
+import { stranding, strandThenPlain, timedWithRequiredQuestion } from './harness/lessons.js'
 
 let mounted: { unmount(): void } | null = null
 afterEach(() => {
@@ -104,5 +104,24 @@ describe('a problem does not outlive the slide that has it', () => {
     await m.advance(8000)
     expect(seen, 'one report for one visit').toHaveLength(1)
     expect(m.root.querySelectorAll('[data-cs-problem]'), 'one notice, not one per frame').toHaveLength(1)
+  })
+})
+
+/**
+ * BR-005 reaches every advance mode, and this adapter's stranding check did not.
+ *
+ * `completedInteractions` here is permanently empty — the adapter renders no interactions — so a
+ * required question blocks leaving *any* slide carrying it, including a timed one. The check
+ * covered `after_interaction` only, so such a slide never advanced and nothing said why: a learner
+ * sat on a timed slide that silently never ended. Shipped in feature 011.
+ */
+describe('a required question this player cannot show', () => {
+  it('is reported on a timed slide, not only on a gated one', async () => {
+    const m = (mounted = await mount(timedWithRequiredQuestion()))
+    await m.advance(6000)
+
+    const problem = m.root.querySelector('[data-cs-problem]')
+    expect(problem, 'a slide that never ends must say so, whatever its advance mode').toBeTruthy()
+    expect(problem?.textContent ?? '').toMatch(/cannot show/)
   })
 })

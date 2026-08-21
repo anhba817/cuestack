@@ -56,10 +56,66 @@ const image = (
   return node
 }
 
+/**
+ * What a button can do, bound to the one element that owns it.
+ *
+ * The same shape `resolveAsset` already has: a function the adapter supplies per element, so a
+ * renderer is handed a verb and no nouns. `act` takes no argument — which action it performs was
+ * decided when it was built — so a renderer cannot perform any action but its own.
+ */
+export interface NavigationAccess {
+  readonly act: () => void
+  readonly available: boolean
+}
+
+/**
+ * A real `<button>`, for the reason `ButtonElement.tsx` gives: the native element brings keyboard
+ * operability, focus behaviour and the right role for free, and every hand-rolled substitute has
+ * to earn all three back.
+ *
+ * `aria-disabled` rather than `disabled` when it cannot move — a disabled button leaves the tab
+ * order, so a learner using a screen reader would never reach it to hear why it is inert.
+ */
+function button(
+  element: ResolvedElement,
+  doc: Document,
+  navigation: NavigationAccess | undefined,
+): HTMLElement | null {
+  const payload = element.payload as { label?: unknown; action?: unknown; url?: unknown } | undefined
+  const label = typeof payload?.label === 'string' ? payload.label : 'Button'
+  const action = typeof payload?.action === 'string' ? payload.action : 'next_slide'
+
+  if (action === 'open_url') {
+    if (typeof payload?.url !== 'string') return null
+    const link = doc.createElement('a')
+    link.className = 'cs-element-button'
+    link.setAttribute('href', payload.url)
+    // A lesson may be embedded in a host's page; taking the learner away mid-lesson loses their
+    // place. `noreferrer` because the lesson's URL is not the link target's business.
+    link.setAttribute('target', '_blank')
+    link.setAttribute('rel', 'noreferrer')
+    link.textContent = label
+    return link
+  }
+
+  const node = doc.createElement('button')
+  node.className = 'cs-element-button'
+  node.setAttribute('type', 'button')
+  node.dataset['csAction'] = action
+  if (navigation?.available === true) {
+    node.addEventListener('click', () => navigation.act())
+  } else {
+    node.setAttribute('aria-disabled', 'true')
+  }
+  node.textContent = label
+  return node
+}
+
 export function renderElement(
   element: ResolvedElement,
   doc: Document,
   resolveAsset?: AssetResolver,
+  navigationFor?: (element: ResolvedElement) => NavigationAccess | undefined,
 ): HTMLElement {
   /**
    * `available` is the kernel's answer for a type no registry knows. Honoured first, so an
@@ -73,7 +129,9 @@ export function renderElement(
       ? text(element, doc)
       : element.type === 'shape'
         ? shape(element, doc)
-        : image(element, doc, resolveAsset)
+        : element.type === 'button'
+          ? button(element, doc, navigationFor?.(element))
+          : image(element, doc, resolveAsset)
 
   // An image with no resolver is something this adapter cannot show, and it says so in the same
   // words as everything else rather than rendering a broken picture.

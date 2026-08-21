@@ -11,7 +11,7 @@ import { COVERED, NOT_COVERED, covers } from '../src/covered.js'
  */
 describe('the covered set', () => {
   it('is exactly text, shape, and image', () => {
-    expect([...COVERED].sort()).toEqual(['image', 'shape', 'text'])
+    expect([...COVERED].sort()).toEqual(['button', 'image', 'shape', 'text'])
   })
 
   it('accounts for every type the format declares', () => {
@@ -22,7 +22,7 @@ describe('the covered set', () => {
   })
 
   it('leaves media, buttons, and questions out', () => {
-    expect([...NOT_COVERED].sort()).toEqual(['audio', 'button', 'question', 'video'])
+    expect([...NOT_COVERED].sort()).toEqual(['audio', 'question', 'video'])
   })
 
   it('answers for a type the format has never heard of', () => {

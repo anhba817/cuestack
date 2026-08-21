@@ -275,3 +275,74 @@ export const strandThenPlain = (): LessonManifest =>
       durationMs: 4000,
     }),
   ])
+
+/** A slide that advances on its duration and carries a required question — BR-005's scope. */
+export const timedWithRequiredQuestion = (): LessonManifest =>
+  lesson([
+    slide(
+      [
+        element({ id: 'prompt', payload: { text: 'Reading' } }),
+        element({
+          id: 'quiz',
+          type: 'question',
+          y: 200,
+          payload: {
+            interactionType: 'multiple_choice',
+            prompt: 'Which one?',
+            options: [
+              { id: 'a', label: 'First' },
+              { id: 'b', label: 'Second' },
+            ],
+            correctResponse: 'a',
+            required: true,
+          },
+        }),
+      ],
+      { id: 'slide_0', durationMs: 2000 },
+    ),
+    slide([element({ id: 'after', payload: { text: 'Next' } })], { id: 'slide_1', durationMs: 4000 }),
+  ])
+
+const control = (action: string, id: string, over: Record<string, unknown> = {}) =>
+  element({ id, type: 'button', payload: { label: action, action }, ...over })
+
+/** Two slides, the first carrying a Continue button. */
+export const withButton = (advance: Record<string, unknown> = { mode: 'after_duration' }): LessonManifest =>
+  lesson([
+    slide([element({ id: 'first', payload: { text: 'One' } }), control('next_slide', 'go', { y: 200 })], {
+      id: 'slide_0',
+      durationMs: 4000,
+      advance,
+    }),
+    slide([element({ id: 'second', payload: { text: 'Two' } })], { id: 'slide_1', durationMs: 4000 }),
+  ])
+
+/** A slide gated on a question, carrying every navigation action — FR-003a and FR-003c together. */
+export const gatedWithControls = (): LessonManifest =>
+  lesson([
+    slide([element({ id: 'x' })], { id: 'slide_0', durationMs: 1000 }),
+    slide(
+      [
+        element({ id: 'prompt', payload: { text: 'Answer' } }),
+        control('next_slide', 'go', { y: 200 }),
+        control('previous_slide', 'back', { y: 280 }),
+        control('replay_slide', 'again', { y: 360 }),
+        element({
+          id: 'quiz',
+          type: 'question',
+          y: 440,
+          payload: {
+            interactionType: 'multiple_choice',
+            prompt: 'Which?',
+            options: [
+              { id: 'a', label: 'A' },
+              { id: 'b', label: 'B' },
+            ],
+            correctResponse: 'a',
+            required: true,
+          },
+        }),
+      ],
+      { id: 'slide_1', durationMs: 8000, advance: { mode: 'after_interaction', interactionElementId: 'quiz' } },
+    ),
+  ])
