@@ -1,11 +1,14 @@
 {
   "name": "@cuestack/element",
   "version": "0.0.0",
-  "description": "Cuestack element package (stub — arrives in a later wave)",
+  "description": "Cuestack web-component adapter: plays a lesson with no UI framework. A proof, not a second player — no video, audio, questions, or server rendering. See README.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,5 +21,17 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
-  "publishConfig": { "access": "public" }
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@cuestack/core": "workspace:*",
+    "@cuestack/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@cuestack/react": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "axe-core": "4.13.0"
+  }
 }

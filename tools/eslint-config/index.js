@@ -21,6 +21,53 @@ import tseslint from 'typescript-eslint'
  * times. Every block that sets `no-restricted-syntax` on files under `packages/` must
  * spread this in.
  */
+/**
+ * Colour, typography, and spacing must resolve from theme tokens (Constitution III).
+ *
+ * Shared for the same reason `NO_INNER_HTML` is: `no-restricted-syntax` is **replaced, not merged**,
+ * when a narrower block sets it, so every block covering files under `packages/` has to spread these
+ * back in. Feature 011 found that `packages/studio/src` had never had them — `gate:theme-values` ran
+ * ESLint over that directory and reported it clean while enforcing nothing there, because the
+ * `no-clock-in-studio` block replaced the rule. Nine features of editor code went unchecked; spreading
+ * them in produced zero violations, so the code was clean and only the enforcement was absent.
+ *
+ * The `TemplateElement` selector is not decoration: a stylesheet written as a template literal is a
+ * `TemplateElement`, and the `Literal` selector alone reaches nothing inside one.
+ */
+const NO_THEME_LITERALS = [
+  {
+    selector: "Literal[value=/^(#[0-9a-fA-F]{3,8}|rgb|rgba|hsl|hsla)/]",
+    message:
+      'no-theme-literals: colour values must resolve from var(--cs-theme-*), never be written into a renderer (Constitution III, FR-014).',
+  },
+  {
+    selector: "TemplateElement[value.raw=/#[0-9a-fA-F]{3}|rgba?\\(|hsla?\\(/]",
+    message:
+      'no-theme-literals: a colour inside a template literal is still a colour — resolve it from var(--cs-theme-*) (Constitution III).',
+  },
+  {
+    selector:
+      "Property[key.name=/^(color|backgroundColor|borderColor|fill|stroke|fontFamily|fontSize|padding|margin|gap)$/] > Literal[value!=/^var\\(/]",
+    message:
+      'no-theme-literals: this style property must resolve from var(--cs-theme-*) with a readable fallback (Constitution III, FR-014).',
+  },
+]
+
+/**
+ * The web-component adapter writes a DOM by hand, so the protection React gave for free is gone.
+ *
+ * `NO_INNER_HTML` below bans `dangerouslySetInnerHTML`, whose selectors are JSX-only — and its own
+ * message says why the ban mattered: "author-supplied text reaches the page as a React child, which
+ * escapes it". A custom element has no such child. Lesson text is author-supplied and a package may
+ * have been written by anybody (NFR-SEC-007, FR-015a).
+ */
+const NO_RAW_HTML = ['innerHTML', 'outerHTML', 'insertAdjacentHTML'].map((property) => ({
+  selector: `MemberExpression[property.name='${property}']`,
+  message:
+    `no-raw-html: ${property} may not be used. Author-supplied content reaches the page through ` +
+    'textContent and attribute assignment, never as markup (NFR-SEC-007, FR-015a).',
+}))
+
 const NO_INNER_HTML = [
   {
     selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
@@ -153,6 +200,24 @@ export default tseslint.config(
   },
   {
     /**
+     * Feature 011: the web-component adapter.
+     *
+     * Two protections that reached it through no existing block. **Theme tokens** — its stylesheet is
+     * the only place in the package colours appear, and `gate:theme-values` runs ESLint over the
+     * directories in its `targets` list, so the rule has to apply here for the gate to mean anything.
+     * **Raw HTML** — `NO_INNER_HTML`'s selectors are JSX-only, and this is the one package that writes
+     * a DOM by hand.
+     *
+     * Narrower than the workspace-wide block, so it replaces `no-restricted-syntax` and everything it
+     * needs is spread back in.
+     */
+    files: ['packages/element/src/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', ...NO_INNER_HTML, ...NO_THEME_LITERALS, ...NO_RAW_HTML],
+    },
+  },
+  {
+    /**
      * Constitution I: @cuestack/core must not import a UI framework.
      *
      * This lives in ESLint, not dependency-cruiser, for a reason worth writing
@@ -216,18 +281,7 @@ export default tseslint.config(
         // Spread in, not inherited: a later block setting this rule would otherwise
         // replace these selectors wholesale. See NO_INNER_HTML above.
         ...NO_INNER_HTML,
-        {
-          selector:
-            "Literal[value=/^(#[0-9a-fA-F]{3,8}|rgb|rgba|hsl|hsla)/]",
-          message:
-            'no-theme-literals: colour values must resolve from var(--cs-theme-*), never be written into a renderer (Constitution III, FR-014).',
-        },
-        {
-          selector:
-            "Property[key.name=/^(color|backgroundColor|borderColor|fill|stroke|fontFamily|fontSize|padding|margin|gap)$/] > Literal[value!=/^var\\(/]",
-          message:
-            'no-theme-literals: this style property must resolve from var(--cs-theme-*) with a readable fallback (Constitution III, FR-014).',
-        },
+        ...NO_THEME_LITERALS,
       ],
     },
   },
@@ -300,6 +354,8 @@ export default tseslint.config(
         'error',
         // Narrower block than the workspace-wide one, so it replaces it: spread it back in.
         ...NO_INNER_HTML,
+        // Feature 011 T003a1: these had never reached studio, for exactly the reason above.
+        ...NO_THEME_LITERALS,
         ...[
           ['Date', 'now'],
           ['performance', 'now'],

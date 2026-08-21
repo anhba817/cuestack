@@ -17,9 +17,23 @@ export default defineConfig({
   test: {
     projects: [
       // Node-environment packages. react is registered separately below with a DOM.
-      'packages/{schema,core,element,adapter-http}',
+      'packages/{schema,core,adapter-http}',
       // The React adapter needs a DOM. happy-dom over jsdom for speed, since the
       // suite has to stay fast enough that nobody is tempted to skip it.
+      {
+        /**
+         * A custom element needs a DOM. `@cuestack/element` was in the node glob above while it was
+         * a stub with no tests; feature 011 moves it here rather than adding a second registration,
+         * which would have put one package in two projects and run its DOM suites where
+         * `customElements` does not exist.
+         */
+        test: {
+          name: '@cuestack/element',
+          root: './packages/element',
+          environment: 'happy-dom',
+          include: ['test/**/*.test.ts'],
+        },
+      },
       {
         test: {
           name: '@cuestack/react',

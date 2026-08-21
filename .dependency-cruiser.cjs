@@ -48,6 +48,28 @@ module.exports = {
       },
     },
     {
+      name: 'no-element-adapter-dependents',
+      severity: 'error',
+      comment:
+        'no-element-adapter-dependents: nothing ships depending on @cuestack/element (FR-012). It ' +
+        'is a proof that the kernel is framework-agnostic, not a dependency of anything — and a ' +
+        'host wanting only the React player must receive none of it.',
+      from: { path: '^packages/(schema|core|react|studio|adapter-http)/src' },
+      to: { path: '^(packages/element/|@cuestack/element($|/))' },
+    },
+    {
+      name: 'no-react-in-element-adapter',
+      severity: 'error',
+      comment:
+        'no-react-in-element-adapter: @cuestack/element must not depend on @cuestack/react (FR-013). ' +
+        'Eight modules it wants live in that package and React is only a *peer* dependency there, so ' +
+        'importing them would install nothing and break nothing visible — which is exactly what ' +
+        'makes the mistake worth a rule. Scoped to `src` deliberately: the agreement suite imports ' +
+        'both adapters from `test/`, and that is the one place it must be allowed.',
+      from: { path: '^packages/element/src' },
+      to: { path: '^(packages/react/|@cuestack/react($|/)|react($|/)|react-dom($|/))' },
+    },
+    {
       name: 'no-http-adapter-dependents',
       severity: 'error',
       comment:

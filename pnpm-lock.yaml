@@ -118,7 +118,27 @@ importers:
         specifier: workspace:*
         version: link:../schema
 
-  packages/element: {}
+  packages/element:
+    dependencies:
+      '@cuestack/core':
+        specifier: workspace:*
+        version: link:../core
+      '@cuestack/schema':
+        specifier: workspace:*
+        version: link:../schema
+    devDependencies:
+      '@cuestack/react':
+        specifier: workspace:*
+        version: link:../react
+      axe-core:
+        specifier: 4.13.0
+        version: 4.13.0
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
 
   packages/react:
     dependencies:

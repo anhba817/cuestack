@@ -36,7 +36,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
  * done here, because it would retrofit a check onto the player inside a feature about the
  * editor.
  */
-const targets = ['packages/react/src/elements', 'packages/studio/src']
+const targets = ['packages/react/src/elements', 'packages/studio/src', 'packages/element/src']
 
 const present = targets.filter(
   (t) =>
