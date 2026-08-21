@@ -442,6 +442,99 @@ outcome rather than the good one.
   `one-kernel.test.ts` already had to. Four instances now, every one found by running the control
   rather than by reading the test.
 
+## Feature 012 — a learner can move through a lesson
+
+**The button worked.** Three of the four authored actions had been inert since Wave 2, under a
+comment in `ButtonElement.tsx` promising *"the seam Wave 3 wires up"* — Wave 3 shipped, then 4,
+then 5. Studio's default new button is `next_slide` labelled "Continue", so the most likely thing a
+teacher built rendered correctly, announced itself properly, was keyboard-operable, and did
+nothing.
+
+**The wider half was worse.** A slide could declare `advance: { mode: 'on_click' }`; the kernel
+implemented and tested that rule; nothing ever raised `learnerAdvanced`, and the player's controls
+offer play, pause and seek but no next. And `checkReachability` returned null for `on_click` under
+a test named *"reports nothing for the two rules that cannot be unsatisfiable"* — so a teacher
+authored such a slide, validation passed it, publishing accepted it, and every learner stopped
+there permanently **because the checker was certain the mode could not strand anyone**.
+
+### Six analysis passes, before a line of code
+
+The design was wrong in five distinct ways and none was a coding error. Each was found by asking
+what the *previous fix* created:
+
+1. The format permits a `next_slide` button on a slide gated on a required question — so "the
+   button performs its action" mandated skipping the question. A working button that skips a
+   required question is worse than an inert one.
+2. "Unavailable until the gate is satisfied" describes a state lasting one frame: the slide leaves
+   on the first evaluation after the interaction completes. A control called available in that
+   frame is an available control that does nothing.
+3. "A navigation control" over-reached to Back and Replay — which would trap a learner in front of
+   a question with no way to review it, a worse failure than the one being prevented.
+4. **BR-005 applies to every advance mode**, not just the gated ones, so the `after_duration` path
+   would have let a Continue button skip a required question on a timed slide. `check:rules` would
+   still have read 18 of 18: BR-005's own test exercises the kernel, and the bypass was in the
+   adapter.
+5. The fix for (4) said "derived from what the kernel permits" — and **the kernel could not be
+   asked**. The rule lives inside `evaluate`, which records that a slide decided, so computing a
+   control's availability with it consumes the decision and the slide never advances. The
+   conditions live in a module no adapter can import.
+
+The through-line: a rule enumerated case by case is wrong by omission, and each fix patched an
+edge instead of deriving the rule. `learnerMayLeave` is the derivation — *would anything refuse a
+learner who asked to leave right now* — and it is deliberately **not** *would the slide advance
+now*, because a Continue button on a timed slide is a skip-ahead that must work before the clock
+runs out.
+
+**And: a requirement that says "ask X" is not finished until somebody has checked that X can be
+asked.**
+
+### What implementing it found
+
+- **A learner who reviewed a lesson could never complete it again.** `LessonPlayerClient` guarded
+  completion with a mount-scoped `completed` flag that was never reset, so pressing Review, playing
+  to the end, and arriving produced **nothing**: no completion screen, and no second
+  `lesson_completed` for a host counting them. This is the identical `#announcedComplete` defect
+  removed from `@cuestack/element` in feature 011 — living in the primary adapter, predating it,
+  and surviving because no test had ever replayed a lesson to its end. A defensive flag over a
+  kernel guarantee costs nothing while it agrees, and the day it diverges nothing fails, because
+  the case it gets wrong is the untested one.
+- **The web component never reported a timed slide carrying a required question.** BR-005 blocks
+  leaving *any* such slide, and this adapter's `completedInteractions` is permanently empty — so
+  the slide never advanced and `#uncoveredGate` said nothing, because it checked
+  `after_interaction` only. A learner sat on a timed slide that silently never ended. Shipped in
+  feature 011.
+- **One edit matched the same string in two places.** The read-and-clear for `learnerAdvanced`
+  landed both in the advance evaluation and inside the availability computation — so computing a
+  button's availability, which happens every render, quietly consumed the press the frame loop was
+  about to act on.
+- **Two existing accessibility tests scanned whole markup for `tabindex="-1"`.** The stage's new
+  focus target tripped both. Their intent — no *control* removed from the tab order — is right; the
+  assertions were broader than the rule, and `tabindex="-1"` on a container is the opposite of the
+  defect they guard: focus can be *sent* there, and a learner cannot tab to it.
+- **Focus must be placed after the transition is arranged, not before.** `#enterSlide` moves the
+  live stage into a wrapper, and focusing a node before moving it loses the focus — silently, and
+  in exactly the case a transition makes most likely.
+- **`restart()` versus `goToSlide(current)` is currently unobservable for the Replay button**, and
+  a control proved it rather than an argument: on any non-final slide a decision advances
+  immediately, and on the final slide the completion view replaces the slide. The trap reaches the
+  framework through the *review* path instead, which is where the `completed` flag was found.
+  `goToSlide` stays, because a replay is a new visit and the day completion becomes an overlay the
+  difference bites.
+
+- **The public-surface check ran one way for five waves.** `public-surface.test.ts` exists because
+  feature 002 shipped `createTransport` and `createAdvanceController` built, tested and
+  unexported — *"a capability that is built, tested, and unexported is one a later wave finds by
+  needing it"*, as its header says. It guarded **listed-but-missing** and never
+  **exported-but-unlisted**, and nine names had accumulated on the unguarded side:
+  `builtinEffects`, `applyEasing`, `composeContributions`, `RENDER_STATE_VERSION`,
+  `CLAMP_CEILING_MS`, `EASINGS`, and the three memory-adapter factories. Same failure, opposite
+  direction, in the file written to prevent it.
+  Now bidirectional, with **constants allowed for explicitly** rather than by omission — a rule
+  reading "every export must be listed" would demand an entry for every threshold and is the
+  noisy version somebody turns off. That distinction is the same one that made a
+  README-lists-every-export rule wrong in feature 011 and makes this one right: a README is not a
+  reference, and `EXPECTED_VALUES` is.
+
 - **Two of the guide's four pieces were never exercised.** SC-013 asks that the example "compiles,
   registers, and is exercised by the suite". The core plugin had four suites — registration,
   completeness, inertness, saving — and the renderer and the editor registration had none; nothing
