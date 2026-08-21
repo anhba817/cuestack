@@ -50,6 +50,17 @@ try {
 }
 
 try {
+  run('@cuestack/element', 'test/perf')
+} catch (error) {
+  console.error(
+    'gate:perf — FAILED. The web-component adapter exceeded its frame budget, or stopped ' +
+      'building element structure once per element.',
+  )
+  console.error(`${error.stdout ?? ''}${error.stderr ?? ''}`)
+  process.exit(1)
+}
+
+try {
   run('@cuestack/studio', 'test/perf')
 } catch (error) {
   console.error('gate:perf — FAILED. The editor exceeded an interaction, seek, or startup budget.')
@@ -60,6 +71,13 @@ try {
 const shape = heavyLessonShape()
 
 console.log('gate:perf — resolution budget met (300 elements < 10ms, growth linear).')
+console.log(
+  'gate:perf — the web-component adapter holds a frame on a 55-element slide, and a slide change\n' +
+    '  including its stage clone inside two. **The measured margin is about ninefold**, so the\n' +
+    '  wall-clock half of that catches only a gross regression; the invariant beside it — structure\n' +
+    '  built once per element, never per frame — is what a rebuild trips, and a stopwatch in a DOM\n' +
+    '  with no layout would not.',
+)
 console.log(
   `gate:perf — playback budgets met on the ${shape.slides}-slide/${shape.elements}-element ` +
     `fixture (${shape.media} media, ${shape.questions} required questions):`,

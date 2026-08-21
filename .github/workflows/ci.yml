@@ -109,6 +109,11 @@ jobs:
       # dependency rule proves nothing imports studio; this proves the player does not
       # need it, which is the claim a learner's payload actually rests on (FR-049).
       - run: pnpm check:studio-isolation
+      # Feature 011: the web-component adapter must install and import with no UI framework
+      # anywhere in the tree, and in a process with no DOM. The second half is not incidental —
+      # `class extends HTMLElement` is evaluated at module load, so an unguarded base class
+      # crashes every server that imports the package, and no happy-dom suite can see it.
+      - run: pnpm check:element-isolation
       - run: pnpm check:data-model
 
   # Gate 10 — a format change must ship its migration in the same revision.
@@ -162,6 +167,14 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:rules
+      - run: pnpm check:docs
+      # The build is for `check:agreement` below, not for the two checks above — it spawns a
+      # vitest suite that imports `@cuestack/core` and `@cuestack/react`, both of which resolve
+      # to `dist`. Without it the suite fails to import and the report is empty.
+      - run: pnpm build
+      # Reports what the two adapters disagree about; exits zero whatever it finds (FR-011).
+      # Here so the report is in every build's log, not to gate on it — see the script's header.
+      - run: pnpm check:agreement
 
   # The published example, built the way a consumer's app is. The only real RSC boundary in
   # the repository, and therefore the only place a wrongly ordered exports map or a hook on
