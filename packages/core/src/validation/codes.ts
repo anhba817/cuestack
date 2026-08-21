@@ -20,6 +20,7 @@ export const SEMANTIC_CODES = [
   'ADVANCE_UNSATISFIABLE',
   'ADVANCE_MEDIA_FAILED',
   'UNKNOWN_REQUIRED_INTERACTION',
+  'NAVIGATION_INOPERABLE',
   // From collectProblems.
   'ELEMENT_BEYOND_SLIDE',
   'EFFECT_BEYOND_SLIDE',
@@ -54,6 +55,9 @@ export const INHERENT: Readonly<Record<SemanticCode, Severity>> = {
   ADVANCE_MEDIA_FAILED: 'error',
   UNKNOWN_REQUIRED_INTERACTION: 'error',
   ELEMENT_BEYOND_SLIDE: 'warning',
+  // A control that can never be operated is an authoring mistake, not a dead end: the slide is
+  // satisfiable through its own gate, so refusing to publish would refuse a working lesson.
+  NAVIGATION_INOPERABLE: 'warning',
   EFFECT_BEYOND_SLIDE: 'warning',
   UNKNOWN_ELEMENT_TYPE: 'error',
   UNKNOWN_EFFECT_TYPE: 'error',

@@ -88,6 +88,7 @@ export interface RenderProblem {
   readonly code:
     | 'EFFECT_BEYOND_SLIDE'
     | 'ELEMENT_BEYOND_SLIDE'
+    | 'NAVIGATION_INOPERABLE'
     | 'UNKNOWN_ELEMENT_TYPE'
     | 'UNKNOWN_EFFECT_TYPE'
   readonly elementId?: string

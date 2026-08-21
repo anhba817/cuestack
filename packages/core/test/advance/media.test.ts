@@ -32,7 +32,29 @@ describe('media-gated advancement', () => {
   })
 
   it('a learner staring at a stalled slide is distinguishable from a manual slide', () => {
-    const manual = slide([textElement({ effects: [] })], { durationMs: 1000, advance: { mode: 'on_click' } })
+    /**
+     * **The manual slide now carries a Continue button, and that is the point of the change.**
+     *
+     * This test read `advance: { mode: 'on_click' }` with no control on the slide and expected
+     * nothing reported — under the old premise that a learner can always click. Nothing raised the
+     * signal and the player offered no next control, so such a slide stranded every learner while
+     * this check called it fine. A manual slide is now one a learner can actually leave.
+     *
+     * What the test is *for* is unchanged: a stalled slide and a deliberately-manual one must not
+     * look alike.
+     */
+    const manual = slide(
+      [
+        textElement({ effects: [] }),
+        textElement({
+          id: 'go',
+          type: 'button',
+          effects: [],
+          payload: { label: 'Continue', action: 'next_slide' },
+        }),
+      ],
+      { durationMs: 1000, advance: { mode: 'on_click' } },
+    )
     const h = createAdvanceHarness()
     expect(h.controller.reachability(manual)).toBeNull()
     h.ports.setMedia('video', { failed: true })
