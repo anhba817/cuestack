@@ -56,6 +56,11 @@ export {
   type AdvanceSignals,
   type AdvanceCause,
 } from './advance/controller.js'
+/**
+ * The question a navigation control has to ask, in a form that can be asked without changing
+ * anything. See its own header: `evaluate` records a decision, so it cannot answer this.
+ */
+export { learnerMayLeave } from './advance/conditions.js'
 
 /**
  * The seven MVP element types as complete plugins (feature 009).

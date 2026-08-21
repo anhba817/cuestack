@@ -19,6 +19,8 @@ const EXPECTED_VALUES = [
   'createClock',
   // Advancement
   'createAdvanceController',
+  // Feature 012: the question a navigation control asks, in a form that changes nothing.
+  'learnerMayLeave',
   // Registries
   'createEffectRegistry',
   'createElementRegistry',
@@ -28,6 +30,14 @@ const EXPECTED_VALUES = [
   // tested, and unexported is one a later wave finds by needing it.
   'createMemoryPublishing',
   'builtinElements',
+  // Added when the surface check became bidirectional. Each of these was exported and recorded
+  // nowhere — the defect this file exists to prevent, pointing the other way.
+  'builtinEffects',
+  'applyEasing',
+  'composeContributions',
+  'createMemoryStorage',
+  'createMemoryAssets',
+  'createMemoryAnalytics',
   'checkLesson',
   'withAssetIssues',
   'severityFor',
@@ -64,6 +74,18 @@ const EXPECTED_VALUES = [
   'MEDIA_REPORT_INTERVAL_MS',
 ]
 
+/** Names checked by the grouped assertions below rather than by the list above. */
+const OTHER_CHECKED = [
+  'isComplete',
+  'evaluate',
+  'emptyInteractionState',
+  'submit',
+  'createMediaLink',
+  'reconcile',
+  'commanded',
+  'emptyLink',
+]
+
 describe('the public surface of @cuestack/core', () => {
   it.each(EXPECTED_VALUES)('exports %s', (name) => {
     expect(core).toHaveProperty(name)
@@ -82,5 +104,32 @@ describe('the public surface of @cuestack/core', () => {
       expect(typeof (core as Record<string, unknown>)[name]).toBe('function')
     }
     expect(typeof core.MEDIA_SYNC_TOLERANCE_MS).toBe('number')
+  })
+
+  it('records every capability it exports, not merely resolves the ones it records', () => {
+    /**
+     * **The other direction, which this file did not check for five waves.**
+     *
+     * `EXPECTED_VALUES` guards *listed-but-missing* — a name this package claims and does not
+     * deliver, which is feature 002's defect and the reason the file exists. It said nothing
+     * about *exported-but-unlisted*, and nine names had accumulated there: `builtinEffects`,
+     * `applyEasing`, `composeContributions` and the three memory-adapter factories among them.
+     * A capability nobody records is one a later wave finds by needing it — the same failure,
+     * arrived at from the opposite side.
+     *
+     * **Constants are allowed for explicitly rather than by omission.** A rule reading "every
+     * export must be listed" would demand an entry for every threshold and version number, which
+     * is the noisy version of this check and the version somebody turns off. Naming them here
+     * costs one line each and keeps the list a record of *capabilities*.
+     */
+    const CONSTANTS = ['CLAMP_CEILING_MS', 'EASINGS', 'RENDER_STATE_VERSION', 'MEDIA_SYNC_TOLERANCE_MS']
+    const recorded = new Set([...EXPECTED_VALUES, ...CONSTANTS, ...OTHER_CHECKED])
+
+    const unrecorded = Object.keys(core).filter((name) => !recorded.has(name))
+    expect(
+      unrecorded,
+      'exported by @cuestack/core and recorded nowhere in this file. Add it to EXPECTED_VALUES ' +
+        'if it is a capability, or to CONSTANTS if it is a number or a table.',
+    ).toEqual([])
   })
 })
