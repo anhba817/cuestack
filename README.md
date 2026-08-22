@@ -28,9 +28,10 @@ That is the whole setup. No global TypeScript, no editor plugin, no environment
 variables. If a step beyond these is ever needed, that is a defect against SC-001.
 
 ```bash
-pnpm test          # behaviour: 379 test files, ~10 s
+pnpm test          # behaviour: 380 test files, ~10 s
 pnpm gates         # performance budgets, accessibility, parity, theme values
 pnpm test:gates    # proof each gate goes red when it should
+pnpm check:browser # frames in a real engine; --behaviour for three engines
 pnpm typecheck     # strict, zero errors expected
 pnpm lint          # per-file rules + architectural boundaries
 ```
@@ -40,6 +41,13 @@ compete for the same cores measures the competition: the same commit used to pas
 random, six times in ten under load. Every budget is owned by `pnpm gates`, which runs each
 package's performance suite on its own and prints what it measured against what it was allowed.
 Budgets are stated against the reference CI runner; a local timing is indicative.
+
+**`pnpm gates` does not measure paint either**, and says so on every run — happy-dom has no
+compositor. `pnpm check:browser` is the layer beneath: real frames from a real engine, plus the
+paths only a browser has (the media adapter, container-query layout, reduced motion). It reports two
+figures that must never be confused — one unthrottled on the CI runner for detecting regressions,
+one throttled to approximate a school laptop for any claim about a teacher. Neither is a measurement
+of hardware a teacher owns.
 
 ### Build timing
 
@@ -51,8 +59,8 @@ control. A local timing is indicative, not authoritative.
 | Measurement | Budget | Recorded |
 |---|---|---|
 | `pnpm install` (excluded from budget) | — | ~8 s warm store |
-| `pnpm build`, cold cache, 5 workspace projects | < 10 min | **5.5 s** |
-| `pnpm test` (379 test files) | — | **~10 s** |
+| `pnpm build`, cold cache, 7 workspace projects | < 10 min | **5.5 s** |
+| `pnpm test` (380 test files) | — | **~10 s** |
 | `pnpm gates` (24 measured budgets, 5 packages) | — | ~10 s |
 
 Measured on a developer machine, not the reference runner — CI records the authoritative
