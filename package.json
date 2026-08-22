@@ -29,7 +29,8 @@
     "test:gates": "vitest run -c vitest.gates.config.ts",
     "check:browser": "node tools/browser/check.mjs",
     "release:version": "changeset version",
-    "release:publish": "pnpm build && pnpm publish -r --access public"
+    "release:publish": "pnpm build && pnpm publish -r --access public",
+    "docs:build": "node tools/docs/build.mjs"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
@@ -46,6 +47,7 @@
     "eslint": "10.8.1",
     "globals": "^16.0.0",
     "happy-dom": "20.11.2",
+    "marked": "^18.0.10",
     "playwright": "^1.62.1",
     "publint": "0.3.23",
     "react": "19.2.8",

@@ -1,0 +1,61 @@
+name: Docs
+
+# The developer documentation site, at https://anhba817.github.io/cuestack/.
+#
+# Separate from ci.yml deliberately. That file's jobs are quality gates and every one of them
+# blocks; this one publishes a website, and a failed deploy should not read as a failed build.
+# The gate that matters for the docs already lives in ci.yml — `check:docs` proves the quoted
+# snippets match their source, and `doc-links.test.ts` proves every relative link resolves.
+#
+# `pnpm docs:build` needs no `pnpm build`: it renders markdown and touches no package output.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel one in flight — a half-published site is worse
+# than an old one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  build:
+    name: 'Build the docs site'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Fails if any internal link would 404 once published. That is a different claim from
+      # `doc-links.test.ts`, which proves links resolve on disk — the site's URLs are not the
+      # repository's paths.
+      - run: pnpm docs:build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: 'Publish'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,85 @@
+/* Hand-written, because a theme is a dependency that ages. Light and dark, no toggle: the
+   reader's system already knows which they want. */
+:root {
+  --bg: #fdfdfc;
+  --fg: #1b1b18;
+  --muted: #5f5f57;
+  --rule: #e3e2dd;
+  --accent: #7a4b1e;
+  --code-bg: #f4f3f0;
+  --measure: 42rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16161a;
+    --fg: #e7e6e1;
+    --muted: #a3a29b;
+    --rule: #2c2c33;
+    --accent: #e0a35c;
+    --code-bg: #1e1e24;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.65 ui-sans-serif, -apple-system, "Segoe UI", Inter, system-ui, sans-serif;
+}
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 1rem; top: 1rem; background: var(--bg); padding: 0.5rem 0.75rem; z-index: 10; }
+
+.masthead {
+  display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap;
+  padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--rule);
+}
+.wordmark { font-weight: 650; font-size: 1.05rem; letter-spacing: -0.01em; color: var(--fg); text-decoration: none; }
+.tagline { margin: 0; color: var(--muted); font-size: 0.9rem; flex: 1; }
+.repo { font-size: 0.9rem; }
+
+.layout { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 2.5rem; padding: 2rem 1.5rem; }
+@media (max-width: 55rem) { .layout { grid-template-columns: 1fr; gap: 1rem; } }
+
+.sidebar { font-size: 0.925rem; }
+.sidebar ul { list-style: none; margin: 0 0 1.25rem; padding: 0; }
+.sidebar li { margin: 0.15rem 0; }
+.sidebar a { color: var(--fg); text-decoration: none; display: block; padding: 0.2rem 0; }
+.sidebar a:hover { color: var(--accent); }
+.sidebar a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+.nav-group {
+  margin: 0 0 0.35rem; font-size: 0.75rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+
+.prose { max-width: var(--measure); min-width: 0; }
+.prose h1 { font-size: 1.9rem; line-height: 1.2; letter-spacing: -0.02em; margin: 0 0 1rem; }
+.prose h2 { font-size: 1.35rem; margin: 2.5rem 0 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--rule); }
+.prose h3 { font-size: 1.1rem; margin: 1.75rem 0 0.5rem; }
+.prose p, .prose li { overflow-wrap: break-word; }
+.prose blockquote {
+  margin: 1.25rem 0; padding: 0.1rem 1rem; border-left: 3px solid var(--rule); color: var(--muted);
+}
+.prose code {
+  background: var(--code-bg); padding: 0.12em 0.35em; border-radius: 4px;
+  font: 0.875em/1.5 ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+.prose pre {
+  background: var(--code-bg); border: 1px solid var(--rule); border-radius: 8px;
+  padding: 0.9rem 1rem; overflow-x: auto;
+}
+.prose pre code { background: none; padding: 0; font-size: 0.85rem; }
+.prose table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; font-size: 0.925rem; }
+.prose th, .prose td { border: 1px solid var(--rule); padding: 0.45rem 0.6rem; text-align: left; vertical-align: top; }
+.prose th { background: var(--code-bg); }
+.prose img { max-width: 100%; }
+.prose hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+
+.foot {
+  border-top: 1px solid var(--rule); padding: 1.25rem 1.5rem;
+  color: var(--muted); font-size: 0.875rem;
+}

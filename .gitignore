@@ -37,3 +37,6 @@ Thumbs.db
 # playwright
 test-results/
 playwright-report/
+
+# docs site build output
+site/
