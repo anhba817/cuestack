@@ -1216,7 +1216,66 @@ anything being broken. It announces its own cause — *"run `pnpm build`"* — a
 twice during this work. Pre-existing, out of scope, and named in the spec so a run that trips it is
 diagnosed rather than counted as the flake returning.
 
+## What feature 014 found by putting a real browser under playback
+
+The performance gate had said the same thing on every run since Wave 3: it measures the player's own
+work and **not paint**, and *"a pass here is not that claim."* Nobody had taken it up, and there was
+no browser anywhere in the repository. Constitution IV's row — *"Playback: 60 fps target, 30 fps
+floor"* — had never been accepted or rejected by anything.
+
+**A real engine reports layout where happy-dom reports zero.** The element harness renders a stage
+with a bounding rectangle of 1280px; happy-dom returns 0 for the same markup. That single number is
+why 9 uses of container-query units, 13 CSS transitions and both `prefers-reduced-motion` blocks had
+never been evaluated by any test in this repository.
+
+**The first measurement was confidently wrong, and the second was subtler.** A five-second window
+reported a flawless 60 fps with zero dropped frames, at 1x and at 4x CPU throttling alike. CPU
+throttling was verified working (4.07x fewer loop iterations), so the numbers were real — the page
+was not. `requestAnimationFrame` ticks at the display refresh rate whether or not there is work to
+do, so **an idle page reports a perfect frame rate**. The measurement now counts DOM mutations
+alongside frames and refuses to report anything from a page that changed nothing.
+
+**Then the frame loop started too late to see anything.** It was installed after waiting for the
+harness to signal readiness, by which time the opening fades — the work a slide does at mount — were
+over. Collection now starts before any page script runs. (An earlier account of this blamed the
+fixture's required questions for stalling playback; that was wrong. The heavy fixture has no
+`after_interaction` slides at all — its five questions are elements, not gating advance modes.)
+
+**And the statistic chosen for the target cannot discriminate.** Across ten runs each: the median
+frame time is 16.70 ms unthrottled and 16.70 ms at 4x, with **zero spread** — it is pinned to the
+vsync interval whenever nothing drops. The floor-breach count is the number that carries
+information: 0 for the CI reference, 2–3 for the throttled baseline, stable enough that a bound
+could be argued for. **The browser check answers the floor; the existing proxy answers the target.**
+Neither replaces the other, and the spec had mapped both to the browser.
+
+**Two engines of three.** Chromium and Firefox run the behaviour suite; WebKit needs system
+libraries that require root, so it fails — loudly, by design, rather than reducing the run to the
+engines present. A check that reports two greens and omits the third is the shape of the four gates
+this repository has shipped with lists that reached nothing.
+
 ## Deferred & future
+
+⏸️ **Reduced motion, verified in a real engine** — Constitution III requires it and BR-015 says a
+`slide` or `zoom` transition is *replaced* by a fade rather than shortened. Feature 014 wrote four
+assertions for it and disproved each by deliberate breakage; the only one that could discriminate
+reads `animation-name` on a `[data-cs-transition]` element, and **no such node appeared across 20
+seconds** on a two-slide lesson authored to transition at 8s. Either the element adapter does not
+mark transitions the way its own stylesheet expects, or it did not advance — and that question is
+the actual work here, not the assertion. Neither existing subject can reach a qualifying transition
+unattended: the heavy fixture's 49 transitions are all `fade`, which the block deliberately leaves
+alone, and the tour's one `slide` transition sits behind an `after_interaction` slide.
+*Re-open:* when someone can say why that node is absent — the answer is either a harness gap or an
+adapter defect, and it is worth knowing which.
+
+⏸️ **The media adapter's coverage exemption** — `packages/react/src/media/domMediaPort.ts` reports
+21.27% of statements and 0% of branches, and no test references it directly. Feature 014's FR-009
+would have exempted it from coverage on the evidence of a browser exercising it, and the evidence
+could not be obtained: the heavy fixture's one media element points at `https://example.test/clip-0.mp4`,
+which does not resolve, so `readyState` stays 0 and the port's `play`, `pause` and event-subscription
+branches produce nothing observable. **It stays in the report at 0% deliberately** — a visible zero
+tells the truth, and an exemption naming evidence that does not exist does not.
+*Re-open:* when the browser harness serves real media. That is the whole prerequisite, and it is a
+piece of work rather than a tweak.
 
 ⏸️ **Vue and Svelte adapters** — the kernel is framework-agnostic by construction, but a
 third adapter proves nothing DX-2 doesn't. *Re-open:* first real request, or when a second
