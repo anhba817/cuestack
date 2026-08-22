@@ -1,6 +1,6 @@
 {
   "name": "@cuestack/schema",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The Cuestack lesson format: types, validators, and migrations",
   "license": "MIT",
   "type": "module",

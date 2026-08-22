@@ -1,6 +1,6 @@
 {
   "name": "@cuestack/adapter-http",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Cuestack reference adapter: the four persistence contracts over a host's own HTTP API",
   "license": "MIT",
   "type": "module",
