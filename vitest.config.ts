@@ -185,14 +185,32 @@ export default defineConfig({
         // itself covered: every playback test supplies its own ports.
         'packages/react/src/player/browserPorts.ts',
       ],
-      // T041: Constitution II's floor for @cuestack/schema. Set here rather
-      // than in a later phase because the principle ties the floor to schema's
-      // own tests, so it belongs with the story that writes them.
+      /**
+       * Constitution II's floor, asserted the way the constitution states it.
+       *
+       * *"Coverage floors: 90% **line and branch** coverage for `@cuestack/core` and
+       * `@cuestack/schema`. UI packages carry no numeric floor — behavioral tests are required
+       * instead of coverage theater."*
+       *
+       * **This was one global block of four metrics until feature 013**, and a global block applies
+       * to the aggregate of everything in `include` — which has grown to four packages. So the
+       * floor was asserted over `react` and `studio`, which the principle exempts by name, and in
+       * `functions` and `statements`, which it never mentions. Both additions failed on something
+       * nobody had agreed to: the aggregate at 89.03%, and `core` at 88.69% functions while
+       * clearing line and branch at 96.96% and 94.52%.
+       *
+       * The comments here already claimed this scoping. They were describing an intention that
+       * Vitest's semantics did not implement.
+       *
+       * **Replaced, not supplemented.** A glob entry added beside global numbers leaves those
+       * numbers binding the aggregate and changes nothing at all.
+       *
+       * `react` and `studio` stay *reported* — a regression in them is visible without failing the
+       * build over a number the constitution declines to set.
+       */
       thresholds: {
-        lines: 90,
-        branches: 90,
-        functions: 90,
-        statements: 90,
+        'packages/core/src/**': { lines: 90, branches: 90 },
+        'packages/schema/src/**': { lines: 90, branches: 90 },
       },
     },
   },
