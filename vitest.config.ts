@@ -16,8 +16,46 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     projects: [
-      // Node-environment packages. react is registered separately below with a DOM.
-      'packages/{schema,core,adapter-http}',
+      /**
+       * Node-environment packages. react is registered separately below with a DOM.
+       *
+       * **These were one string glob until feature 013**, which resolves with Vitest's default
+       * include and no config object of its own — so there was nowhere to put an `exclude`, and
+       * the two packages that most needed one were the two behind it. Writing them out changes
+       * nothing about what is collected: none of the three has a test file outside `test/`, and
+       * there are no `.spec.ts` files in any of them.
+       */
+      {
+        test: {
+          name: '@cuestack/schema',
+          root: './packages/schema',
+          environment: 'node',
+          include: ['test/**/*.test.ts'],
+          // A file, not a directory — which is why no `test/perf/**` pattern reached it, and why
+          // this package's scaling budget was one tidy-up away from never running again.
+          exclude: ['test/perf.test.ts'],
+        },
+      },
+      {
+        test: {
+          name: '@cuestack/core',
+          root: './packages/core',
+          environment: 'node',
+          include: ['test/**/*.test.ts'],
+          // Three files, and the third is the one every directory pattern misses:
+          // test/resolve/perf.test.ts carries a 10ms budget, a growth ratio and a 50ms median
+          // from outside any `perf` directory.
+          exclude: ['test/perf/**', 'test/resolve/perf.test.ts'],
+        },
+      },
+      {
+        test: {
+          name: '@cuestack/adapter-http',
+          root: './packages/adapter-http',
+          environment: 'node',
+          include: ['test/**/*.test.ts'],
+        },
+      },
       // The React adapter needs a DOM. happy-dom over jsdom for speed, since the
       // suite has to stay fast enough that nobody is tempted to skip it.
       {
@@ -32,6 +70,9 @@ export default defineConfig({
           root: './packages/element',
           environment: 'happy-dom',
           include: ['test/**/*.test.ts'],
+          // Measured by gates/perf.mjs through vitest.perf.config.ts. See that file for why the
+          // ownership is expressed as two configs rather than one exclusion.
+          exclude: ['test/perf/**'],
         },
       },
       {
@@ -40,6 +81,7 @@ export default defineConfig({
           root: './packages/react',
           environment: 'happy-dom',
           include: ['test/**/*.test.{ts,tsx}'],
+          exclude: ['test/perf/**'],
         },
       },
       // The editor's DOM-bound suites. Everything under test/ except the two
@@ -50,7 +92,7 @@ export default defineConfig({
           root: './packages/studio',
           environment: 'happy-dom',
           include: ['test/**/*.test.{ts,tsx}'],
-          exclude: ['test/geometry/**', 'test/draft/**', '**/*.pure.test.{ts,tsx}'],
+          exclude: ['test/geometry/**', 'test/draft/**', '**/*.pure.test.{ts,tsx}', 'test/perf/**'],
         },
       },
       /**
@@ -76,11 +118,21 @@ export default defineConfig({
           include: ['test/{geometry,draft}/**/*.test.ts', 'test/**/*.pure.test.ts'],
         },
       },
-      // The gate negative-controls live with the scripts they exercise.
+      /**
+       * Checks *about* the repository — documentation links, quoted snippets, plan coverage,
+       * README claims, and which mechanism owns which performance budget. They read files.
+       *
+       * **The gate negative controls are deliberately not here.** `tools/scripts/check-gates.test.ts`
+       * proves each gate fails when it should by running the real gate scripts, which means it
+       * invoked `gates/perf.mjs` four times and `run-all.mjs` once on every `pnpm test` — three of
+       * them expecting success, so every performance budget was measured again under exactly the
+       * contention feature 013 exists to remove. It also cost 69.8s of a 77s suite. It lives in
+       * `vitest.gates.config.ts` and runs under `pnpm test:gates`.
+       */
       {
         test: {
           name: 'gates',
-          include: ['tools/scripts/**/*.test.ts'],
+          include: ['tools/scripts/__tests__/**/*.test.ts'],
           testTimeout: 120_000,
         },
       },

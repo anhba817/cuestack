@@ -25,7 +25,8 @@
     "test:watch": "vitest",
     "typecheck": "turbo run typecheck",
     "check:agreement": "node tools/scripts/check-agreement.mjs",
-    "check:element-isolation": "node tools/scripts/check-element-isolation.mjs"
+    "check:element-isolation": "node tools/scripts/check-element-isolation.mjs",
+    "test:gates": "vitest run -c vitest.gates.config.ts"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
