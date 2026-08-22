@@ -10,6 +10,17 @@ import { reference } from './helpers.js'
  * Hostile input reaches a validator before anything else in the system does. A
  * host that accepts an uploaded lesson package hands it straight here, so
  * "completes or fails" has to hold for input nobody would author by hand.
+ *
+ * **`withinBudget` is a termination guard, not a performance budget.** It catches a
+ * validator that hangs, and 2000 ms is three orders of magnitude clear of anything
+ * scheduler contention can add — this package's actual validation of 300 elements
+ * runs in about 0.5 ms. Feature 013 moved every real budget out of this suite and
+ * left this one here on measured grounds: ten full-suite runs under deliberate CPU
+ * contention, ten passes, while genuinely tight budgets in three other packages
+ * failed six times between them.
+ *
+ * The distinction is what the number is for, not where the file lives.
+ * `tools/scripts/__tests__/perf-ownership.test.ts` records the exemption.
  */
 describe('pathological input', () => {
   const withinBudget = (fn: () => unknown, ms = 2000) => {

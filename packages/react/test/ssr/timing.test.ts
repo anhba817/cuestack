@@ -22,6 +22,19 @@ import { LessonPlayer } from '../../src/server.js'
  * A generous headroom factor is used deliberately. A tight assertion on a shared CI runner
  * fails for reasons that have nothing to do with the code, and a flaky performance gate is
  * one that gets ignored and then removed.
+ *
+ * **These are guards, not budgets, and feature 013 checked rather than assumed it.** That
+ * feature moved every performance budget out of this suite because a timing taken against a
+ * dozen competing suites measures the competition. These assertions stayed, on measured
+ * grounds: across ten full-suite runs under deliberate CPU contention — the same runs in which
+ * the studio timeline failed three times, schema's scaling check twice and the element frame
+ * budget once — this file passed ten times out of ten, and six more times out of six when run
+ * on its own under the same load. `fastest()` taking the best of five is most of why.
+ *
+ * The one to watch is `BUDGET_MS / 100`. It is a regression detector rather than a ceiling,
+ * and if it ever starts failing intermittently it has become a budget and belongs in
+ * `vitest.perf.config.ts` with the others. `tools/scripts/__tests__/perf-ownership.test.ts`
+ * carries this file in an explicit exemption list; that list is where the decision lives.
  */
 
 const BUDGET_MS = 2000

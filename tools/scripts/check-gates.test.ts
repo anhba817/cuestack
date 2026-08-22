@@ -396,6 +396,37 @@ describe('gate: playback performance', () => {
     }
   })
 
+  it('reports what it measured, not only that a budget was met', () => {
+    /**
+     * **FR-007.** The gate used to print "playback budgets met" and "per-frame player work
+     * < 16.7ms" — the limit and the verdict, never the measurement. So a pass at 89ms against 90
+     * and a pass at 12ms against 90 were the same line of output, and nobody knew three budgets
+     * were passing within 3% of their thresholds until they started failing.
+     *
+     * The numbers existed at every run and were discarded at every run.
+     */
+    const out = execFileSync('node', ['tools/scripts/gates/perf.mjs'], { cwd: root, encoding: 'utf8' })
+    expect(out).toMatch(/gate:perf — \d+ measurements, closest to its limit first:/)
+
+    const rows = out.split('\n').filter((line) => / of budget {2}/.test(line))
+    // Every budget in the contract, and then some: five packages' worth.
+    expect(rows.length).toBeGreaterThanOrEqual(20)
+    for (const row of rows) {
+      // "  30% of budget  timeline playhead to rendered state  27.06 / 90.00"
+      expect(row).toMatch(/^ +\d+% of budget {2}\S.*\s{2}[\d.e-]+ \/ [\d.e-]+$/)
+    }
+    // A named budget, with a real number against a real limit rather than a verdict.
+    expect(out).toMatch(/timeline playhead to rendered state\s+[\d.]+ \/ 90/)
+  })
+
+  it('fails loudly if the suites stop reporting measurements at all', () => {
+    // A gate that printed its prose while measuring nothing is the failure this whole feature is
+    // about. `reportMeasurements()` exits non-zero on an empty list rather than carrying on.
+    const source = readFileSync(join(root, 'tools/scripts/gates/perf.mjs'), 'utf8')
+    expect(source).toMatch(/measured\.length === 0/)
+    expect(source).toMatch(/process\.exit\(1\)/)
+  })
+
   it('says what it does not measure, so a pass is not read as a full answer', () => {
     // The gate covers the player's own work and cannot cover paint — happy-dom has no
     // compositor. A green line that did not say so would be read as a frame-rate claim.
