@@ -1164,6 +1164,58 @@ with JS disabled. Runs against NX-3 in CI.
 **Files:** `packages/react/test/ssr/*.test.tsx`
 **Safety:** none.
 
+## What feature 013 found while making the board readable
+
+`pnpm test` failed at random: the same commit passed or failed and the failing test moved. The
+diagnosis was contention, measured rather than assumed — nineteen isolated runs across five packages
+gave nineteen passes, while the full suite under deliberate CPU load failed **six times in ten**.
+Every performance budget was being measured while a dozen suites competed for the same cores.
+
+**The fix that suggested itself does not work.** Excluding `test/perf/**` from the workspace projects
+also removes those files from the gate, because `gates/perf.mjs` reaches them through `--project`
+and a project's own exclude decides its file set. The one-line diff would have produced a red gate
+blaming a budget for a file it never opened. Ownership is now two configs: `vitest.perf.config.ts`
+collects the budgets for the gate, `vitest.config.ts` excludes them for everyone else.
+
+**Four things were found by looking at the tree rather than at the plan.**
+
+- **`@cuestack/schema` was not in the gate**, and its scaling check was one of the two tests that had
+  been failing. Excluding it from the ordinary suite without adding it would have deleted a budget,
+  left `pnpm gates` green, and looked like a tidy-up.
+- **The inventory was short by a file.** Ten files carry these budgets, not nine.
+  `packages/core/test/resolve/perf.test.ts` holds a 10 ms budget and a growth ratio from outside any
+  `perf` directory. The count of nine was exactly what the candidate patterns catch — an inventory
+  derived from the pattern meant to move something cannot report what that pattern misses.
+- **The coverage floor was asserted over four packages and two metrics the constitution never set.**
+  Constitution II sets 90% *line and branch* for `core` and `schema`; the config asserted four
+  metrics over an aggregate including `react` and `studio`, which it exempts by name. Both packages
+  that carry a floor clear it — 94.52% and 91.41% branches. The aggregate failed because of the two
+  that do not, and `core` failed on `functions` at 88.69%. CI had therefore never reported this
+  project's coverage at all: the run aborted at the test stage on the flake. It reports it now.
+- **`pnpm test` was spawning the gates.** `tools/scripts/check-gates.test.ts` proves each gate goes
+  red when it should, by running the real gate scripts — four invocations of `gates/perf.mjs` plus
+  one of `run-all.mjs`, three of them expecting success. So the ordinary suite re-measured every
+  budget under exactly the contention being removed, by a path no exclusion of test files reaches,
+  and it cost **69.8 s of a 77 s suite**. Six analysis passes missed it because they searched
+  `tools/scripts/__tests__/` and the file sits one directory up. The gate controls now live in
+  `vitest.gates.config.ts` under `pnpm test:gates`.
+
+**The gate was discarding what it measured on every run.** It printed *"playback budgets met"* and
+*"per-frame player work < 16.7ms"* — the limit and the verdict, never the measurement — so a pass at
+89 ms against 90 and a pass at 12 ms against 90 were the same line of output. It now prints 24
+measurements sorted by how much room is left. The tightest is schema's validation scaling at 52% of
+its limit; the loosest, core's referential validation, has 277× headroom, which a deliberate 120 ms
+slowdown was not enough to trip. Both facts were invisible before.
+
+**Result:** six failures in ten runs under load, to zero in ten under identical load, and `pnpm test`
+from ~77 s to ~10 s. `check:rules` still reads 18 of 18.
+
+**One thing was left alone deliberately.** `core-freshness.test.ts` fails when a turbo cache restore
+leaves `dist` older than an unchanged `src`, which is a second way this board goes red without
+anything being broken. It announces its own cause — *"run `pnpm build`"* — and it did exactly that
+twice during this work. Pre-existing, out of scope, and named in the spec so a run that trips it is
+diagnosed rather than counted as the flake returning.
+
 ## Deferred & future
 
 ⏸️ **Vue and Svelte adapters** — the kernel is framework-agnostic by construction, but a

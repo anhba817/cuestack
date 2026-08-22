@@ -28,10 +28,18 @@ That is the whole setup. No global TypeScript, no editor plugin, no environment
 variables. If a step beyond these is ever needed, that is a defect against SC-001.
 
 ```bash
-pnpm test          # run the suite
+pnpm test          # behaviour: 379 test files, ~10 s
+pnpm gates         # performance budgets, accessibility, parity, theme values
+pnpm test:gates    # proof each gate goes red when it should
 pnpm typecheck     # strict, zero errors expected
 pnpm lint          # per-file rules + architectural boundaries
 ```
+
+**`pnpm test` does not measure performance, deliberately.** A timing taken while a dozen suites
+compete for the same cores measures the competition: the same commit used to pass or fail at
+random, six times in ten under load. Every budget is owned by `pnpm gates`, which runs each
+package's performance suite on its own and prints what it measured against what it was allowed.
+Budgets are stated against the reference CI runner; a local timing is indicative.
 
 ### Build timing
 
@@ -44,7 +52,8 @@ control. A local timing is indicative, not authoritative.
 |---|---|---|
 | `pnpm install` (excluded from budget) | — | ~8 s warm store |
 | `pnpm build`, cold cache, 5 workspace projects | < 10 min | **5.5 s** |
-| `pnpm test` (189 tests) | — | < 1 s |
+| `pnpm test` (379 test files) | — | **~10 s** |
+| `pnpm gates` (24 measured budgets, 5 packages) | — | ~10 s |
 
 Measured on a developer machine, not the reference runner — CI records the authoritative
 number. The budget has three orders of magnitude of headroom, so the interesting question is
