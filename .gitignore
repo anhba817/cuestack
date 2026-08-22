@@ -33,3 +33,7 @@ pnpm-debug.log*
 Thumbs.db
 *.swp
 *.tmp
+
+# playwright
+test-results/
+playwright-report/

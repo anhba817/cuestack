@@ -197,6 +197,13 @@ console.log(
   '  This measures the player’s own work — resolve, compose, frame writes, React commit —',
 )
 console.log(
-  '  and NOT paint. happy-dom has no compositor, so a browser-based check is still required',
+  '  and NOT paint. happy-dom has no compositor, so a pass here is still not a frame-rate claim.',
 )
-console.log('  before claiming a frame rate. A pass here is not that claim.')
+console.log(
+  '  **What changed in feature 014**: `pnpm check:browser` now measures frames in a real engine\n' +
+    '  and exercises the paths only a browser has — the media adapter, container-query layout and\n' +
+    '  reduced motion. So "a browser-based check is still required" is no longer true of paint.\n' +
+    '  What is still uncovered: real hardware. Both browser figures come from the CI runner, one\n' +
+    '  of them throttled to approximate a school laptop, which estimates that class rather than\n' +
+    '  measuring a device a teacher owns.',
+)

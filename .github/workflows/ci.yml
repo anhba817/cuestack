@@ -2,8 +2,14 @@ name: CI
 
 # The gates from specs/001-framework-foundation/contracts/quality-gates.md.
 #
-# Every job here is blocking. No `continue-on-error` appears in this file and
-# none should: a gate that tolerates failure is documentation, not a gate.
+# Every job here is blocking, with exactly one written exception. No other `continue-on-error`
+# appears in this file and none should: a gate that tolerates failure is documentation, not a gate.
+#
+# The exception is `browser-playback`, added in feature 014. It measures frames in a real engine,
+# and a threshold armed before its run-to-run variance is known is the flake feature 013 spent
+# itself removing — at a larger scale, because frame timing is noisier than anything it removed.
+# It reports and does not block until that variance is recorded and a bound is argued from it
+# (FR-007). **When that happens, this exception is retired and the job blocks like every other.**
 #
 # The four gates that began as placeholders (theme-values, parity, a11y, perf)
 # existed from Wave 1 so that arming them later was a one-line change to one
@@ -215,6 +221,38 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm exec vitest run --project @cuestack/react test/acceptance
+
+  # Frames from a real engine, and the paths only a browser has. Reports; does not block — see
+  # the exception noted at the top of this file.
+  #
+  # **WebKit is verified only here.** It needs libevent, libavif and libmanette, which
+  # `--with-deps` installs and a developer machine generally does not have — so a WebKit-only
+  # regression is invisible locally *and* non-blocking here. That is a known, accepted gap, not an
+  # oversight: read this job's log when a media or layout change lands, because nothing else will
+  # tell you.
+  browser-playback:
+    name: 'Browser · playback frames and browser-only paths (reports)'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      # The slowest step in the workflow. Keyed by the lockfile so an unchanged Playwright version
+      # does not re-download three engines on every run.
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps
+      - run: pnpm check:browser
+      - run: pnpm check:browser --behaviour
 
   # The gates' own negative controls: proof each gate would go red.
   gate-self-test:
