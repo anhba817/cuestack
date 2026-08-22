@@ -52,6 +52,7 @@ describe('opening a preview on the dense slide', () => {
       handle.playback.pause()
       handle.openPreview('position')
     })
+    console.log(`perf: preview mount | ${cost} | ${MOUNT_MS}`)
     expect(cost).toBeLessThan(MOUNT_MS)
   })
 

@@ -48,6 +48,7 @@ describe('the timeline on the dense slide', () => {
     const ms = elapsed(() => act(() => void fireEvent.change(playhead, { target: { value: '4000' } })))
 
     expect(handle.session.authoringTime).toBe(4000)
+    console.log(`perf: timeline playhead to rendered state | ${ms} | ${SEEK_MS}`)
     expect(ms).toBeLessThan(SEEK_MS)
   })
 
@@ -65,6 +66,7 @@ describe('the timeline on the dense slide', () => {
     )
 
     expect(handle.session.draft.slides[0]!.elements[0]!.startMs).not.toBe(first.startMs)
+    console.log(`perf: timeline drag feedback | ${ms} | ${INTERACTION_MS}`)
     expect(ms).toBeLessThan(INTERACTION_MS)
   })
 
@@ -91,6 +93,7 @@ describe('the timeline on the dense slide', () => {
       }
     })
 
+    console.log(`perf: timeline track scaling | ${ten} | ${Math.max(one, 1) * 40}`)
     expect(ten).toBeLessThan(Math.max(one, 1) * 40)
   })
 

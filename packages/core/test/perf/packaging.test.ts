@@ -20,6 +20,7 @@ describe('packaging the 50-slide fixture', () => {
     const elapsed = performance.now() - started
 
     expect(pkg.lesson.slides.length).toBeGreaterThan(40)
+    console.log(`perf: package export, reference mode | ${elapsed} | ${3000}`)
     expect(elapsed).toBeLessThan(3000)
   })
 
@@ -34,6 +35,7 @@ describe('packaging the 50-slide fixture', () => {
     const elapsed = performance.now() - started
 
     expect(imported.ok).toBe(true)
+    console.log(`perf: package round-trip | ${elapsed} | ${3000}`)
     expect(elapsed).toBeLessThan(3000)
   })
 })

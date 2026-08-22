@@ -90,7 +90,9 @@ describe('playback performance on the 50-slide fixture', () => {
     // being timed. A repeated time would measure a cache hit and report near zero.
     const samples = Array.from({ length: 60 }, (_, i) => tick(1000 + i * 41))
 
-    expect(median(samples)).toBeLessThan(FRAME_BUDGET_MS / REGRESSION_MARGIN)
+    const frameMs = median(samples)
+    console.log(`perf: player per-frame work | ${frameMs} | ${FRAME_BUDGET_MS / REGRESSION_MARGIN}`)
+    expect(frameMs).toBeLessThan(FRAME_BUDGET_MS / REGRESSION_MARGIN)
   })
 
   it('seeks to a rendered state within the budget', async () => {
@@ -125,7 +127,9 @@ describe('playback performance on the 50-slide fixture', () => {
       samples.push(performance.now() - start)
     }
 
-    expect(median(samples)).toBeLessThan(SEEK_BUDGET_MS / REGRESSION_MARGIN)
+    const seekMs = median(samples)
+    console.log(`perf: player seek to rendered state | ${seekMs} | ${SEEK_BUDGET_MS / REGRESSION_MARGIN}`)
+    expect(seekMs).toBeLessThan(SEEK_BUDGET_MS / REGRESSION_MARGIN)
     // The worst single seek matters too: a learner scrubs to one slide, not to the median of
     // eight. Given the headroom the median leaves, twice the budget on the slowest is a
     // generous allowance that still catches one pathological slide.

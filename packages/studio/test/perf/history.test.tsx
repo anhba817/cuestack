@@ -31,6 +31,7 @@ describe('on the 50-slide, 300-element lesson', () => {
     act(() => void handle.session.apply({ kind: 'set-field', id, path: ['width'], value: 321 }))
     const elapsed = performance.now() - started
 
+    console.log(`perf: history apply a change | ${elapsed} | ${BUDGET_MS}`)
     expect(elapsed).toBeLessThan(BUDGET_MS)
   })
 
@@ -48,6 +49,7 @@ describe('on the 50-slide, 300-element lesson', () => {
     act(() => handle.session.undo())
     const elapsed = performance.now() - started
 
+    console.log(`perf: history reverse with full history | ${elapsed} | ${BUDGET_MS}`)
     expect(elapsed).toBeLessThan(BUDGET_MS)
   })
 
@@ -65,6 +67,7 @@ describe('on the 50-slide, 300-element lesson', () => {
     act(() => void handle.session.apply({ kind: 'set-field', id, path: ['width'], value: 222 }))
     const elapsed = performance.now() - started
 
+    console.log(`perf: history apply while offline | ${elapsed} | ${BUDGET_MS}`)
     expect(elapsed).toBeLessThan(BUDGET_MS)
   })
 

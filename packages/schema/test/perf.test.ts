@@ -54,6 +54,7 @@ describe('validation performance', () => {
     validate(manifest)
     const elapsed = performance.now() - start
 
+    console.log(`perf: validate 50 slides/300 elements | ${elapsed} | ${500}`)
     expect(elapsed).toBeLessThan(500)
   })
 
@@ -71,6 +72,7 @@ describe('validation performance', () => {
     time(small) // warm
 
     const ratio = time(large) / Math.max(time(small), 0.1)
+    console.log(`perf: validation scaling 300 to 600 | ${ratio} | ${6}`)
     expect(ratio).toBeLessThan(6)
   })
 })

@@ -53,7 +53,9 @@ describe('the adapter holds the frame budget', () => {
 
     // Median rather than mean: one scheduling hiccup in a shared CI runner is not a regression, and
     // a mean lets a single outlier fail a build that is fine.
-    expect(median(samples), 'per-frame work on a dense slide').toBeLessThan(FRAME_MS * MARGIN)
+    const frameMs = median(samples)
+    console.log(`perf: adapter per-frame work | ${frameMs} | ${FRAME_MS * MARGIN}`)
+    expect(frameMs, 'per-frame work on a dense slide').toBeLessThan(FRAME_MS * MARGIN)
   })
 
   it('builds each element structure once, not once per frame', async () => {
@@ -94,6 +96,7 @@ describe('the adapter holds the frame budget', () => {
     const crossing = performance.now() - before
 
     // Two frames of work in that step, so the budget is two frames rather than one.
+    console.log(`perf: adapter slide change | ${crossing} | ${FRAME_MS * 2 * MARGIN}`)
     expect(crossing, 'slide change including the stage clone').toBeLessThan(FRAME_MS * 2 * MARGIN)
   })
 })

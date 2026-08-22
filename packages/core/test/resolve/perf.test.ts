@@ -31,7 +31,9 @@ describe('resolution performance', () => {
     const slide = largeSlide(300)
     expect(resolve(slide, 4000).elements.length).toBeGreaterThan(0)
     timeResolve(slide, 5) // warm
-    expect(timeResolve(slide)).toBeLessThan(10)
+    const resolveMs = timeResolve(slide)
+    console.log(`perf: resolve 300 elements | ${resolveMs} | ${10}`)
+    expect(resolveMs).toBeLessThan(10)
   })
 
   it('grows linearly rather than quadratically', () => {
@@ -52,6 +54,9 @@ describe('resolution performance', () => {
       // catches that while tolerating measurement noise.
       expect(cost).toBeLessThan(smallest! * 3)
     }
+    // Reported once, and as a normalised ratio rather than as raw per-element cost: those are
+    // ~1e-5 ms, where a printed figure says nothing. The ratio is what the assertion is about.
+    console.log(`perf: resolve growth ratio | ${Math.max(...perElement) / smallest!} | 3`)
   })
 
   it('a 50-slide lesson resolves every slide within budget', () => {
@@ -66,6 +71,8 @@ describe('resolution performance', () => {
       return performance.now() - start
     }
     for (let i = 0; i < 3; i += 1) pass() // warm
-    expect(median(Array.from({ length: 15 }, pass))).toBeLessThan(50)
+    const lessonMs = median(Array.from({ length: 15 }, pass))
+    console.log(`perf: resolve a 50-slide lesson | ${lessonMs} | ${50}`)
+    expect(lessonMs).toBeLessThan(50)
   })
 })

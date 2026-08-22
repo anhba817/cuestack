@@ -42,6 +42,7 @@ describe('the editor at 50 slides and 300 elements', () => {
       const { unmount } = renderEditor(fixture)
       unmount()
     })
+    console.log(`perf: editor interactive, 50 slides/300 elements | ${ms} | ${INTERACTIVE_MS}`)
     expect(ms).toBeLessThan(INTERACTIVE_MS)
   })
 
@@ -53,6 +54,7 @@ describe('the editor at 50 slides and 300 elements', () => {
     const ms = elapsed(() => act(() => void fireEvent.pointerDown(hit)))
 
     expect(handle.session.selection).toEqual([id])
+    console.log(`perf: editor selection feedback | ${ms} | ${INTERACTION_MS}`)
     expect(ms).toBeLessThan(INTERACTION_MS)
   })
 
@@ -69,6 +71,7 @@ describe('the editor at 50 slides and 300 elements', () => {
       })),
     )
 
+    console.log(`perf: editor move feedback | ${ms} | ${INTERACTION_MS}`)
     expect(ms).toBeLessThan(INTERACTION_MS)
   })
 
@@ -81,6 +84,7 @@ describe('the editor at 50 slides and 300 elements', () => {
     const ms = elapsed(() => act(() => void fireEvent.change(scrub, { target: { value: '4000' } })))
 
     expect(handle.session.authoringTime).toBe(4000)
+    console.log(`perf: editor authoring-time change | ${ms} | ${SEEK_MS}`)
     expect(ms).toBeLessThan(SEEK_MS)
   })
 
@@ -98,6 +102,7 @@ describe('the editor at 50 slides and 300 elements', () => {
     })
 
     // Generous: the point is to catch an order-of-magnitude change, not to measure a machine.
+    console.log(`perf: editor slide-set scaling | ${ten} | ${Math.max(one * 40, SEEK_MS * 10)}`)
     expect(ten).toBeLessThan(Math.max(one * 40, SEEK_MS * 10))
   })
 })

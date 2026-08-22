@@ -20,6 +20,7 @@ describe('the engine on 50 slides and 300 elements', () => {
     const elapsed = performance.now() - started
 
     expect(report.issues).toBeDefined()
+    console.log(`perf: referential validation pass | ${elapsed} | ${1000}`)
     expect(elapsed).toBeLessThan(1000)
   })
 })
