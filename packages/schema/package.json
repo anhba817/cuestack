@@ -4,10 +4,12 @@
   "description": "The Cuestack lesson format: types, validators, and migrations",
   "license": "MIT",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "files": [
     "dist",
-    "fixtures"
+    "fixtures/valid"
   ],
   "exports": {
     ".": {
@@ -35,5 +37,21 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "keywords": [
+    "cuestack",
+    "lesson",
+    "schema",
+    "validation",
+    "zod"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anhba817/cuestack.git",
+    "directory": "packages/schema"
+  },
+  "homepage": "https://github.com/anhba817/cuestack/tree/main/packages/schema#readme",
+  "bugs": {
+    "url": "https://github.com/anhba817/cuestack/issues"
   }
 }

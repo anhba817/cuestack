@@ -1,10 +1,12 @@
 {
   "name": "@cuestack/core",
   "version": "0.0.0",
-  "description": "Cuestack core package (stub \u2014 arrives in a later wave)",
+  "description": "Cuestack core package (stub — arrives in a later wave)",
   "license": "MIT",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "files": [
     "dist"
   ],
@@ -25,5 +27,21 @@
   },
   "dependencies": {
     "@cuestack/schema": "workspace:*"
+  },
+  "keywords": [
+    "cuestack",
+    "lesson",
+    "playback",
+    "timeline",
+    "headless"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anhba817/cuestack.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/anhba817/cuestack/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/anhba817/cuestack/issues"
   }
 }

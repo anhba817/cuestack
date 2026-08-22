@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": [
-    "./dist/styles.css"
+    "*.css"
   ],
   "files": [
     "dist"
@@ -43,5 +43,21 @@
     "happy-dom": "20.11.2",
     "react": "19.2.8",
     "react-dom": "19.2.8"
+  },
+  "keywords": [
+    "cuestack",
+    "lesson",
+    "authoring",
+    "editor",
+    "timeline"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anhba817/cuestack.git",
+    "directory": "packages/studio"
+  },
+  "homepage": "https://github.com/anhba817/cuestack/tree/main/packages/studio#readme",
+  "bugs": {
+    "url": "https://github.com/anhba817/cuestack/issues"
   }
 }

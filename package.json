@@ -27,7 +27,9 @@
     "check:agreement": "node tools/scripts/check-agreement.mjs",
     "check:element-isolation": "node tools/scripts/check-element-isolation.mjs",
     "test:gates": "vitest run -c vitest.gates.config.ts",
-    "check:browser": "node tools/browser/check.mjs"
+    "check:browser": "node tools/browser/check.mjs",
+    "release:version": "changeset version",
+    "release:publish": "pnpm build && pnpm publish -r --access public"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",

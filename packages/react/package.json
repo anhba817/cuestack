@@ -1,11 +1,11 @@
 {
   "name": "@cuestack/react",
   "version": "0.0.0",
-  "description": "Cuestack React adapter \u2014 server-rendered, hydrating lesson player",
+  "description": "Cuestack React adapter — server-rendered, hydrating lesson player",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
-    "./dist/styles.css"
+    "*.css"
   ],
   "files": [
     "dist"
@@ -51,5 +51,21 @@
     "happy-dom": "20.11.2",
     "react": "19.2.8",
     "react-dom": "19.2.8"
+  },
+  "keywords": [
+    "cuestack",
+    "lesson",
+    "player",
+    "react",
+    "rsc"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anhba817/cuestack.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/anhba817/cuestack/tree/main/packages/react#readme",
+  "bugs": {
+    "url": "https://github.com/anhba817/cuestack/issues"
   }
 }

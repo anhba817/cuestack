@@ -4,8 +4,12 @@
   "description": "Cuestack reference adapter: the four persistence contracts over a host's own HTTP API",
   "license": "MIT",
   "type": "module",
-  "sideEffects": false,
-  "files": ["dist"],
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,9 +22,27 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@cuestack/core": "workspace:*",
     "@cuestack/schema": "workspace:*"
+  },
+  "keywords": [
+    "cuestack",
+    "lesson",
+    "adapter",
+    "http",
+    "storage"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anhba817/cuestack.git",
+    "directory": "packages/adapter-http"
+  },
+  "homepage": "https://github.com/anhba817/cuestack/tree/main/packages/adapter-http#readme",
+  "bugs": {
+    "url": "https://github.com/anhba817/cuestack/issues"
   }
 }
