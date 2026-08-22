@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Cuestack element harness</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #111; }
+  cuestack-lesson { display: block; width: 100%; height: 100vh; }
+</style>
+
+<!--
+  The element adapter, loaded the way a host without a bundler loads it.
+
+  A browser resolves no bare specifier, and `packages/element/dist/index.js` imports
+  `@cuestack/core` and `@cuestack/schema/validate`. An import map is the answer here rather than a
+  bundler, and it is not a workaround: a web component exists precisely so it can be used without
+  a build step, so this page exercises the real consumption path.
+
+  `zod` is served from a path `serve.mjs` resolves at runtime — under pnpm it lives at
+  node_modules/.pnpm/zod@<version>/..., which is not a literal anyone may write down.
+-->
+<script type="importmap">
+  {
+    "imports": {
+      "@cuestack/element": "/pkg/element/dist/index.js",
+      "@cuestack/core": "/pkg/core/dist/index.js",
+      "@cuestack/schema": "/pkg/schema/dist/index.js",
+      "@cuestack/schema/validate": "/pkg/schema/dist/validate/index.js",
+      "@cuestack/schema/migrate": "/pkg/schema/dist/migrate/index.js",
+      "zod": "/vendor/zod/index.js"
+    }
+  }
+</script>
+
+<cuestack-lesson id="player" autoplay></cuestack-lesson>
+
+<script type="module">
+  import '@cuestack/element'
+
+  const lesson = await fetch('/lesson.json').then((r) => r.json())
+  const player = document.getElementById('player')
+  player.manifest = lesson
+
+  // A marker the driver waits for, rather than a sleep. A harness that never becomes ready is a
+  // failure to report, not a duration to guess at (FR-005).
+  await customElements.whenDefined('cuestack-lesson')
+  document.documentElement.setAttribute('data-harness-ready', 'element')
+</script>

@@ -26,29 +26,32 @@
     "typecheck": "turbo run typecheck",
     "check:agreement": "node tools/scripts/check-agreement.mjs",
     "check:element-isolation": "node tools/scripts/check-element-isolation.mjs",
-    "test:gates": "vitest run -c vitest.gates.config.ts"
+    "test:gates": "vitest run -c vitest.gates.config.ts",
+    "check:browser": "node tools/browser/check.mjs"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
     "@changesets/cli": "3.0.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
+    "@testing-library/react": "16.3.2",
     "@types/node": "^22.15.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "@vitest/coverage-v8": "4.1.10",
+    "axe-core": "4.13.0",
     "dependency-cruiser": "18.2.0",
     "eslint": "10.8.1",
+    "globals": "^16.0.0",
+    "happy-dom": "20.11.2",
+    "playwright": "^1.62.1",
     "publint": "0.3.23",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "tsdown": "0.22.14",
     "turbo": "2.10.9",
     "typescript": "6.0.3",
     "typescript-eslint": "8.67.0",
-    "vitest": "4.1.10",
-    "@types/react": "^19.2.0",
-    "globals": "^16.0.0",
-    "@testing-library/react": "16.3.2",
-    "axe-core": "4.13.0",
-    "happy-dom": "20.11.2",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "@types/react-dom": "^19.2.0"
+    "vitest": "4.1.10"
   }
 }
